@@ -8,15 +8,15 @@ public:
 
     Attenuator()
     {
-        in.name("signal_in");
-        out.name("signal_out");
+        in.name("in");
+        out.name("out");
         gain.name("gain");
         ports(in, out, gain);
     }
 
     Input<> in;
     Output<> out;
-    Control<> gain;
+    ControlInput<> gain;
 
     virtual void render(State *, size_t frame_count) const
     {
@@ -32,7 +32,7 @@ public:
 
     Oscillator()
     {
-        out.name("osc_out");
+        out.name("out");
         ports(out);
     }
 
@@ -53,8 +53,8 @@ public:
         ports(pitch_bend, modulation);
     }
 
-    Control<> pitch_bend;
-    Control<> modulation;
+    ControlInput<> pitch_bend;
+    ControlInput<> modulation;
 
     virtual void render(Module::State *, size_t) const
     {
@@ -98,7 +98,7 @@ public:
     }
 
     Input<> in[ChannelsIn];
-    Control<> gain[ChannelsIn];
+    ControlInput<> gain[ChannelsIn];
     Output<> out;
 
     virtual void render(Module::State *, size_t) const
@@ -112,6 +112,7 @@ public:
 
     StupidSynth()
     {
+        a.name("The_Volume_Knob");
         g.module(o)
          .module(a)
          .module(m)
@@ -136,6 +137,8 @@ private:
 
 int main()
 {
+    std::clog << "Log message from synth core" << std::endl;
     StupidSynth ss;
+    ss.graph().dump_maps();
     return 0;
 }

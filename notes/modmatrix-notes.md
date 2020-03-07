@@ -76,7 +76,7 @@ Build the graph
 
     instantiate components for prototype voice
     components declare inputs and outputs
-    declare default connections.
+    declare permanent connections.
 
         class MIDIIn ... {
             ControlOutput m_pitchbend;
