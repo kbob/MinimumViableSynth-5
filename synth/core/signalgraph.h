@@ -12,10 +12,10 @@
 #define HERE (std::cout << __FILE__ << ':' << __LINE__ << std::endl)
 
 // XXX Move this into the platform directory.
-static std::string demangle(const char *abi_name)
+static std::string demangle(const std::string& mangled)
 {
     int status;
-    char *s = abi::__cxa_demangle(abi_name, 0, 0, &status);
+    char *s = abi::__cxa_demangle(mangled.c_str(), 0, 0, &status);
     std::string demangled(s);
     std::free(s);
     return demangled;
@@ -24,8 +24,8 @@ static std::string demangle(const char *abi_name)
 template <typename T>
 static std::string type_name(T& obj)
 {
-    std::string name = typeid(*&obj).name();
-    return demangle(name.c_str());
+    const std::string& mangled = typeid(*&obj).name();
+    return demangle(mangled);
 }
 
 typedef float sample;
@@ -33,9 +33,6 @@ typedef float sample;
 class Port {
 
 public:
-
-    // Port() {}
-    // virtual ~Port() {}
 
     const std::string& name() const
     {
@@ -57,8 +54,8 @@ private:
 
     std::string m_name;
 
-    Port(const Port&);
-    Port& operator = (const Port&);
+    Port(const Port&) = delete;
+    Port& operator = (const Port&) = delete;
 
 };
 
@@ -177,11 +174,6 @@ protected:
                   << ": "
                   << type_name(p)
                   << std::endl;
-        // std::cout << "module "
-        //           << type_name(*this)
-        //           << " port "
-        //           << port_name(p)
-        //           << std::endl;
         m_ports.push_back(&p);
         ports(rest...);
     }
@@ -193,8 +185,8 @@ private:
     std::string m_name;
     std::vector<Port *> m_ports;
 
-    Module(const Module&);
-    Module& operator = (const Module&);
+    Module(const Module&) = delete;
+    Module& operator = (const Module&) = delete;
 
 };
 
@@ -207,8 +199,13 @@ class Plan {
 
 public:
 
+    Plan(Plan&& that)
+        : m_call_order(std::move(that.m_call_order))
+    {}
+
 private:
 
+    std::vector<int> m_call_order;
 
 };
 
@@ -256,7 +253,25 @@ public:
         return *this;
     }
 
-    void disconnect(const OutputPort&, const InputPort&);
+    SignalGraph& disconnect(const OutputPort& src, const InputPort& dest)
+    {
+        std::cout << "disconnect "
+                  << module_name(*m_port_modules[&src])
+                  << "."
+                  << port_name(src)
+                  << " from "
+                  << module_name(*m_port_modules[&dest])
+                  << "."
+                  << port_name(dest)
+                  << std::endl;
+
+        for (auto it = m_links.begin(); it != m_links.end(); it++)
+            if (it->src == &src && it->dest == &dest) {
+                m_links.erase(it);
+                return *this;
+            }
+        assert(false && "ports are not connected");
+    }
 
     void dump_maps() const
     {
@@ -295,6 +310,19 @@ public:
             }
             std::cout << "]" << std::endl;
         }
+        std::cout << std::endl;
+
+        std::cout << "m_links:" << std::endl;
+        for (auto link : m_links)
+            std::cout << "    "
+                      << module_name(*m_port_modules.at(link.src))
+                      << "."
+                      << port_name(*link.src)
+                      << " -> "
+                      << module_name(*m_port_modules.at(link.dest))
+                      << "."
+                      << port_name(*link.dest)
+                      << std::endl;
         std::cout << std::endl;
     }
 
