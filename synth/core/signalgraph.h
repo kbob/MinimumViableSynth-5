@@ -1,40 +1,81 @@
 #ifndef SIGNALGRAPH_included
-#define SIGNALGRPAH_included
+#define SIGNALGRAPH_included
 
 #include <cstddef>
+#include <vector>
+#include <iostream>
+#include <cxxabi.h>
+
+#define HERE (std::cout << __FILE__ << ':' << __LINE__ << std::endl);
+
+// XXX Move this into the platform directory.
+std::string demangle(const char *abi_name)
+{
+    int status;
+    char *s = abi::__cxa_demangle(abi_name, 0, 0, &status);
+    std::string demangled(s);
+    std::free(s);
+    return demangled;
+}
+
+template <typename T>
+std::string type_name(T& obj)
+{
+    std::string name = typeid(*&obj).name();
+    return demangle(name.c_str());
+}
 
 typedef float sample;
 
-// module has subclasses.
-// module subclasses have inputs and outputs.
-// module has way of looking up i's and o's.
-// i's and o's are tied to their module somehow.
-
-class Module {
+class Port {
 
 public:
 
-    virtual ~Module();
+    virtual ~Port() {}
 
-    class State {};
+    const std::string& name() const
+    {
+        return m_name;
+    }
 
-    virtual State *create_state() const { return new State(); }
-    virtual void init_note_state(State *) const {}
+    Port& name(const std::string& name)
+    {
+        m_name = name;
+        return *this;
+    }
 
-    virtual void render(State *, unsigned frame_count) const;
+private:
+
+    std::string m_name;
 
 };
 
-class Port {};
-// Port has operator [] that knows how to find the right value.
-// Should it also have iterators?  Sigh...
+std::string port_name(const Port& p)
+{
+    return p.name().empty() ? type_name(p) : p.name();
+}
+
+// Let's redo the port hierarchy.
+//
+//    Port (abstract)
+//      InputPort (abstract)
+//        SignalInput
+//        ControlInput
+//      OutputPort (abstract)
+//        SignalOutput
+//        ControlOutput
+//
+// ... or "control" is an attribute?
+// ...
+// Port subclasses have operator [] that know how to find the
+// right value.  Should it also have iterators?  Sigh...
 
 template <class ElementType = sample>
 class Input : public Port {
 
 public:
 
-    virtual ElementType operator [] (size_t i) const;
+    ElementType operator [] (size_t i) const;
 
 };
 
@@ -43,7 +84,7 @@ class Output : public Port {
 
 public:
 
-    virtual ElementType& operator [](size_t i);
+    ElementType& operator [](size_t i) const;
 
 };
 
@@ -59,54 +100,54 @@ public:
 
 };
 
-class Attenuator : public Module {
+// module has subclasses.
+// module subclasses have inputs and outputs.
+// module has way of looking up i's and o's.
+// i's and o's are tied to their module somehow.
+
+class Module {
 
 public:
 
-    Input<> in;
-    Output<> out;
-    Control<> gain;
+    Module() {}
 
-};
-
-class Oscillator : public Module {
-
-public:
-
-    Output<> out;
-
-};
-
-class BLOscillator : public Oscillator {
-
-    typedef Oscillator super;
-
-public:
-
-    class State : super::State {
-    public:
-        uint8_t note;
-    };
-
-    Control<> pitch_bend;
-    Control<> modulation;
-
-    void render(State *state, size_t frame_count)
+    virtual ~Module()
     {
-        for (size_t i = 0; i < frame_count; i++) {
-            out[i] = state->note + pitch_bend[i] + modulation[i];
-        }
+        std::cout << "delete module " << type_name(*this) << std::endl;
     }
 
-};
+    struct State {
+        virtual ~State() {}
+    };
 
-template <unsigned ChannelsIn>
-class Mixer : public Module {
+    virtual State *create_state() const { return nullptr; }
+    virtual void init_note_state(State *) const {}
 
-public:
+    virtual void render(State *, size_t frame_count) const = 0;
 
-    Input<> in[ChannelsIn];
-    Output<> out;
+protected:
+
+    template <typename... Types>
+    void ports(Port& p, Types... rest)
+    {
+        std::cout << "module "
+                  << type_name(*this)
+                  << " port "
+                  << port_name(p)
+                  << std::endl;
+        m_ports.push_back(&p);
+        ports(rest...);
+    }
+
+    void ports() {}
+
+private:
+
+    std::vector<Port *> m_ports;
+
+    Module(const Module&);
+    Module(const Module&&);
+    Module& operator = (const Module&);
 
 };
 
@@ -114,33 +155,56 @@ class SignalGraph {
 
 public:
 
-    SignalGraph& module(const Module&);
+    SignalGraph& module(const Module& mod)
+    {
+        std::cout << "add module " << type_name(mod) << std::endl;
+
+        m_modules.push_back(&mod);
+        return *this;
+    }
 
     template <class OutputType, class InputType>
-    SignalGraph& connect(const Output<OutputType>&, const Input<InputType>&);
+    SignalGraph& connect(const Output<OutputType>& src,
+                         const Input<InputType>& dest)
+    {
+        std::cout << "connect "
+                  << port_name(src)
+                  << " to "
+                  << port_name(dest)
+                  << std::endl;
+        for (auto i : m_links)
+            if (i.src == &src && i.dest == &dest)
+                assert(false && "ports are already connected");
+
+        m_links.push_back(Link(&src, &dest));
+        return *this;
+    }
+
+    template <class OutputType, class ControlType>
+    SignalGraph& connect(const Output<OutputType>& src,
+                         const Control<ControlType>& dest);
 
     template <class OutputType, class InputType>
     void disconnect(const Output<OutputType>&, const Input<InputType>&);
 
+    template <class OutputType, class ControlType>
+    void disconnect(const Output<OutputType>&, const Control<ControlType>&);
+
+private:
+
+    struct Link {
+
+        Link(const Port *src, const Port *dest)
+            : src(src), dest(dest)
+        {}
+
+        const Port *src;
+        const Port *dest;
+    };
+
+    std::vector<const Module *> m_modules;
+    std::vector<Link> m_links;
+
 };
 
 #endif /* !SIGNALGRAPH_included */
-
-SignalGraph *foo()
-{
-    auto a = Attenuator();
-    auto o = BLOscillator();
-    auto m = Mixer<1>();
-
-    auto g = &(*new SignalGraph())
-        .module(o)
-        .module(a)
-        .module(m)
-        .connect(o.out, a.in)
-        .connect(a.out, m.in[0])
-        ;
-
-    return nullptr;
-
-    // This will never work.
-}

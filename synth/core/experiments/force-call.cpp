@@ -1,0 +1,1 @@
+void force_call() {}
