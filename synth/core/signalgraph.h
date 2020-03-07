@@ -2,14 +2,16 @@
 #define SIGNALGRAPH_included
 
 #include <cstddef>
-#include <vector>
 #include <iostream>
+#include <unordered_map>
+#include <vector>
+
 #include <cxxabi.h>
 
-#define HERE (std::cout << __FILE__ << ':' << __LINE__ << std::endl);
+#define HERE (std::cout << __FILE__ << ':' << __LINE__ << std::endl)
 
 // XXX Move this into the platform directory.
-std::string demangle(const char *abi_name)
+static std::string demangle(const char *abi_name)
 {
     int status;
     char *s = abi::__cxa_demangle(abi_name, 0, 0, &status);
@@ -19,7 +21,7 @@ std::string demangle(const char *abi_name)
 }
 
 template <typename T>
-std::string type_name(T& obj)
+static std::string type_name(T& obj)
 {
     std::string name = typeid(*&obj).name();
     return demangle(name.c_str());
@@ -31,6 +33,7 @@ class Port {
 
 public:
 
+    Port() {}
     virtual ~Port() {}
 
     const std::string& name() const
@@ -47,6 +50,9 @@ public:
 private:
 
     std::string m_name;
+
+    Port(const Port&);
+    Port& operator = (const Port&);
 
 };
 
@@ -66,7 +72,9 @@ std::string port_name(const Port& p)
 //        ControlOutput
 //
 // ... or "control" is an attribute?
-// ...
+// ... Does control mean lower sample rate or has a GUI or
+// ... only runs when changing or what?
+
 // Port subclasses have operator [] that know how to find the
 // right value.  Should it also have iterators?  Sigh...
 
@@ -84,7 +92,7 @@ class Output : public Port {
 
 public:
 
-    ElementType& operator [](size_t i) const;
+    ElementType& operator [] (size_t i) const;
 
 };
 
@@ -96,7 +104,7 @@ class Control : public Port {
 
 public:
 
-    ValueType operator [](size_t i) const;
+    ValueType operator [] (size_t i) const;
 
 };
 
@@ -120,6 +128,11 @@ public:
         virtual ~State() {}
     };
 
+    const std::vector<Port *>& ports() const
+    {
+        return m_ports;
+    }
+
     virtual State *create_state() const { return nullptr; }
     virtual void init_note_state(State *) const {}
 
@@ -128,7 +141,7 @@ public:
 protected:
 
     template <typename... Types>
-    void ports(Port& p, Types... rest)
+    void ports(Port& p, Types&... rest)
     {
         std::cout << "module "
                   << type_name(*this)
@@ -146,7 +159,6 @@ private:
     std::vector<Port *> m_ports;
 
     Module(const Module&);
-    Module(const Module&&);
     Module& operator = (const Module&);
 
 };
@@ -160,6 +172,14 @@ public:
         std::cout << "add module " << type_name(mod) << std::endl;
 
         m_modules.push_back(&mod);
+        for (auto p : mod.ports()) {
+            // std::cout << "    port " << port_name(*p) << std::endl;
+            std::cout << "    port "
+                      << p->name()
+                      << " "
+                      << type_name(*p)
+                      << std::endl;
+        }
         return *this;
     }
 
@@ -203,6 +223,7 @@ private:
     };
 
     std::vector<const Module *> m_modules;
+    // std::unordered_map<const Port *, const Module *> m_port_modules;
     std::vector<Link> m_links;
 
 };

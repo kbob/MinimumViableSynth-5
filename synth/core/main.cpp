@@ -1,4 +1,3 @@
-// #include "synth/core/c-api.h"
 #include "signalgraph.h"
 
 #include <sstream>
@@ -113,8 +112,8 @@ public:
 
     StupidSynth()
     {
-        g.module(a)
-         .module(o)
+        g.module(o)
+         .module(a)
          .module(m)
          .connect(o.out, a.in)
          .connect(a.out, m.in[0])
