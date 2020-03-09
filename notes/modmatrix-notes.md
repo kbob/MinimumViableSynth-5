@@ -1,9 +1,11 @@
 Concepts
+
     audio streams
     control streams
     components
 
 More Concepts
+
     routings
     inputs = sources
     outputs = sinks
@@ -12,6 +14,16 @@ More Concepts
     layers
     graph
     crossbar
+    
+Synonyms
+
+	Connection
+	Link
+	Edge
+	Patch
+	Route
+	Path
+	
 
 Lots of ways to categorize streams
 
@@ -120,35 +132,35 @@ Dynamic connections
 ----------------------------------
 Component hierarchy
 
-VoiceAssign (hidden)
-
-UNzipper (hidden)
-
-Osc
-  LFO
-  QBLOsc
-  WTOsc
-  SampleOsc
-  Noise
-  ...
-
-Mixer
-
-Filter
-  Ladder
-  SVF
-  SEM
-  ...
-
-EnvGen
-  ADSR
-  ...
-
-DCA
-  DCA
-
-Decimator
-  Decimator
+	VoiceAssign (hidden)
+	
+	Unzipper (hidden)
+	
+	Osc
+	  LFO
+	  QBLOsc
+	  WTOsc
+	  SampleOsc
+	  Noise
+	  ...
+	
+	Mixer
+	
+	Filter
+	  Ladder
+	  SVF
+	  SEM
+	  ...
+	
+	EnvGen
+	  ADSR
+	  ...
+	
+	DCA
+	  DCA
+	
+	Decimator
+	  Decimator
 
 If we can do this with templates instead of inheritance, there will
 be no virtual function overhead...
