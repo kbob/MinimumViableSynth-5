@@ -40,13 +40,13 @@ public:
 
 };
 
-class BLOscillator : public Oscillator {
+class QBLOscillator : public Oscillator {
 
     typedef Oscillator super;
 
 public:
 
-    BLOscillator()
+    QBLOscillator()
     {
         pitch_bend.name("pitch_bend");
         modulation.name("modulation");
@@ -69,8 +69,7 @@ public:
 
 private:
 
-    class State : public super::State {
-    public:
+    struct State : public super::State {
         uint8_t note;
     };
 
@@ -129,7 +128,7 @@ public:
 private:
 
     Attenuator a;
-    BLOscillator o;
+    QBLOscillator o;
     Mixer<1> m;
     SignalGraph g;
 
@@ -137,7 +136,6 @@ private:
 
 int main()
 {
-    std::clog << "Log message from synth core" << std::endl;
     StupidSynth ss;
     ss.graph().dump_maps();
     return 0;

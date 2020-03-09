@@ -9,6 +9,9 @@
 
 #include <cxxabi.h>
 
+const double DEFAULT_RANGE = 1.0;
+const double DEFAULT_INTENSITY = 1.0;
+
 #define HERE (std::cout << __FILE__ << ':' << __LINE__ << std::endl)
 
 // XXX Move this into the platform directory.
@@ -93,6 +96,7 @@ protected:
 
 };
 
+// A non-control input can only be connected to one output.
 template <class ElementType = sample>
 class Input : public InputPort {
 
@@ -107,7 +111,25 @@ class ControlInput : public Input<ElementType>, public Control {
 
 public:
 
+    ControlInput(range = DEFAULT_RANGE)
+        : m_range(range)
+    {}
+
+    double range() const
+    {
+        return m_range;
+    }
+
+    void range(double range)
+    {
+        m_range = range;
+    }
+
     ElementType operator [] (size_t i) const;
+
+private:
+
+    double m_range;
 
 };
 
@@ -120,15 +142,12 @@ public:
 
 };
 
+// XXX need ElementTypes that imply transforms.
+// E.g., MIDINote or BipolarDouble type.
 template <class ElementType = double>
 class ControlOutput : public Output<ElementType>, public Control {
 
 };
-
-// module has subclasses.
-// module subclasses have inputs and outputs.
-// module has way of looking up i's and o's.
-// i's and o's are tied to their module somehow.
 
 class Module {
 
@@ -167,13 +186,14 @@ protected:
     template <typename... Types>
     void ports(Port& p, Types&... rest)
     {
-        std::cout << "port "
-                  << type_name(*this)
-                  << "."
-                  << port_name(p)
-                  << ": "
-                  << type_name(p)
-                  << std::endl;
+        // std::cout << "port "
+        //           << type_name(*this)
+        //           << "."
+        //           << port_name(p)
+        //           << ": "
+        //           << type_name(p)
+        //           << std::endl;
+
         m_ports.push_back(&p);
         ports(rest...);
     }
@@ -195,31 +215,17 @@ std::string module_name(const Module& m)
     return m.name().empty() ? type_name(m) : m.name();
 }
 
-class Plan {
-
-public:
-
-    Plan(Plan&& that)
-        : m_call_order(std::move(that.m_call_order))
-    {}
-
-private:
-
-    std::vector<int> m_call_order;
-
-};
-
 class SignalGraph {
 
 public:
 
     SignalGraph& module(const Module& mod)
     {
-        std::cout << "add module " << module_name(mod) << std::endl;
+        // std::cout << "add module " << module_name(mod) << std::endl;
 
         m_modules.push_back(&mod);
         for (auto p : mod.ports()) {
-            std::cout << "    port " << port_name(*p) << std::endl;
+            // std::cout << "    port " << port_name(*p) << std::endl;
             m_port_modules[p] = &mod;
 
             // Create map entries in case modules has no inputs or no outputs.
@@ -234,17 +240,23 @@ public:
         return *this;
     }
 
+    // XXX In addition to src and dest, we need to specify
+    //   Transform -- now part of ControlOutput
+    //   Intensity -- default to 1.0
+    //   Range     -- now part of ControlInput
+    //   Enabled   -- default to false
     SignalGraph& connect(const OutputPort& src, const InputPort& dest)
     {
-        std::cout << "connect "
-                  << module_name(*m_port_modules[&src])
-                  << "."
-                  << port_name(src)
-                  << " to "
-                  << module_name(*m_port_modules[&dest])
-                  << "."
-                  << port_name(dest)
-                  << std::endl;
+        // std::cout << "connect "
+        //           << module_name(*m_port_modules[&src])
+        //           << "."
+        //           << port_name(src)
+        //           << " to "
+        //           << module_name(*m_port_modules[&dest])
+        //           << "."
+        //           << port_name(dest)
+        //           << std::endl;
+
         for (auto i : m_links)
             if (i.src == &src && i.dest == &dest)
                 assert(false && "ports are already connected");
@@ -255,29 +267,47 @@ public:
 
     SignalGraph& disconnect(const OutputPort& src, const InputPort& dest)
     {
-        std::cout << "disconnect "
-                  << module_name(*m_port_modules[&src])
-                  << "."
-                  << port_name(src)
-                  << " from "
-                  << module_name(*m_port_modules[&dest])
-                  << "."
-                  << port_name(dest)
-                  << std::endl;
+        // std::cout << "disconnect "
+        //           << module_name(*m_port_modules[&src])
+        //           << "."
+        //           << port_name(src)
+        //           << " from "
+        //           << module_name(*m_port_modules[&dest])
+        //           << "."
+        //           << port_name(dest)
+        //           << std::endl;
 
-        for (auto it = m_links.begin(); it != m_links.end(); it++)
-            if (it->src == &src && it->dest == &dest) {
-                m_links.erase(it);
-                return *this;
-            }
-        assert(false && "ports are not connected");
+        auto match = [&] (const Link& link) {
+            return link.src == &src && link.dest == &dest;
+        };
+        auto it = std::find_if(m_links.begin(), m_links.end(), match);
+        assert(it != m_links.end() && "ports are not connected");
+        m_links.erase(it);
+        return *this;
     }
+
+    // Plan make_plan() const
+    // {
+    //     size_t undone_count = m_modules.size();
+    //     std::vector<bool> done(m_modules.size(), false);
+    //
+    //     while (true) {
+    //         auto it = std::find_if(done.begin(),
+    //                                done.end(), false);
+    //         if (it == done.end())
+    //             break;
+    //         size_t i = it - done.begin();
+    //         if (is_ready(m_modules[i])) {
+    //             plan.push_back(m_modules[i]);
+    //         }
+    //     }
+    // }
 
     void dump_maps() const
     {
         std::cout << "m_port_modules:" << std::endl;
         for (auto i : m_port_modules)
-            std::cout << "  "
+            std::cout << "    "
                       << i.first->name()
                       << ": "
                       << module_name(*i.second)
@@ -330,12 +360,18 @@ private:
 
     struct Link {
 
-        Link(const Port *src, const Port *dest)
-            : src(src), dest(dest)
+        // Link should have src, dest, transform, intensity, range, enabled bit.
+        Link(const OutputPort *src, const InputPort *dest)
+            : src(src),
+              dest(dest),
+              intensity(DEFAULT_INTENSITY),
+              enabled(false)
         {}
 
-        const Port *src;
-        const Port *dest;
+        const OutputPort *src;
+        const InputPort *dest;
+        double intensity;
+        bool enabled;
     };
 
     std::vector<const Module *> m_modules;
