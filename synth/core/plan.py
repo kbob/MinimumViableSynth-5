@@ -142,6 +142,12 @@ class SignalGraph:
 
     def disconnect(self, src, dest):
         link = self.link_map[(src, dest)]
+        del self.link_map[(src, dest)]
+        self.port_destinations[src].remove(dest)
+        self.port_sources[dest].remove(src)
+        if link in self.links:
+            self.links.remove(link)
+        return self
 
     def plan(self):
         def is_active(src, dest):
@@ -251,7 +257,7 @@ class StupidSynth:
         self.atten = a = Attenuator()
         self.mix = m = Mixer(1)
 
-        a.name = 'The_Volume_Knob'
+        o.name = 'Osc1'
 
         self.gain_link = gain_link = make_link(o.out, a.gain)
 
