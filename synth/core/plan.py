@@ -71,14 +71,14 @@ class Copy(Action):
         dp = self.dest_port
         return f'Copy({sm}.{sp}, {dm}.{dp})'
 
-class Zero(Action):
+class Clear(Action):
     def __init__(self, dest_mod, dest_port):
         self.dest_mod = dest_mod
         self.dest_port = dest_port
     def __repr__(self):
         dm = self.dest_mod
         dp = self.dest_port
-        return f'Zero({dm}.{dp})'
+        return f'Clear({dm}.{dp})'
 
 #       #       #       #       #       #       #       #       #       #
 # So suppose `links` is a map from ``(src, dest)`` pairs to
@@ -150,27 +150,35 @@ class SignalGraph:
         return self
 
     def plan(self):
+
         def is_active(src, dest):
             return self.link_map[(src, dest)].is_active()
 
+        def predecessors(m):
+            """return the modules that directly feed module m."""
+            return [self.port_modules[src]
+                    for dest in self.module_inputs[m]
+                    for src in self.port_sources[dest]
+                    if is_active(src, dest)]
+
         def is_ready(m):
-            return all(self.port_modules[src] in done
-                       for dest in self.module_inputs[m]
-                       for src in self.port_sources[dest]
-                       if is_active(src, dest))
+            return all(pred not in not_done for pred in predecessors(m))
+
         order = []
-        done = set()
-        while len(done) < len(self.modules):
-            ready = [m for m in self.modules if m not in done and is_ready(m)]
+        not_done = set(self.modules)
+        while not_done:
+
+            # Collect all modules ready to process.
+            ready = {m for m in not_done if is_ready(m)}
             if not ready:
                 raise RuntimeError('cycle in graph')
 
-            # Zero all unconnected inputs to ready modules.
+            # Clear all unconnected inputs to ready modules.
             for mod in ready:
                 for dest in self.module_inputs[mod]:
                     if not any(self.link_map[(src, dest)].is_active()
                                for src in self.port_sources[dest]):
-                        order += [Zero(mod, dest)]
+                        order += [Clear(mod, dest)]
 
             # Render all ready modules.
             order += [Render(m) for m in ready]
@@ -183,9 +191,8 @@ class SignalGraph:
                         if isinstance(link, ControlLink) and link.is_active():
                             dest_mod = self.port_modules[dest]
                             order += [Copy(src_mod, out, dest_mod, dest)]
-            done |= set(ready)
-            # print(f'ready = {ready}')
-            # print(f'done = {done}')
+            not_done -= ready
+            print(f'ready = {ready}')
         return order
 
     def fqpn(self, port):

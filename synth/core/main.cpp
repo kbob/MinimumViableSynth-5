@@ -111,13 +111,17 @@ public:
 
     StupidSynth()
     {
-        a.name("The_Volume_Knob");
+        o.name("Osc1");
+        gain_link = std::unique_ptr<Link>(make_link(o.out, a.gain));
         g.module(o)
          .module(a)
          .module(m)
          .connect(o.out, a.in)
          .connect(a.out, m.in[0])
+         .connection(gain_link.get())
+         // .disconnect(o.out, a.in)
          ;
+
     }
 
     SignalGraph& graph()
@@ -125,18 +129,46 @@ public:
         return g;
     }
 
-private:
+    void enable_attenuator_gain()
+    {
+        auto link = gain_link.get();
+        auto gain = dynamic_cast<ControlLink *>(link);
+        assert(gain);
+        gain->enabled(true);
+    }
+
+// private:
 
     Attenuator a;
     QBLOscillator o;
     Mixer<1> m;
+    std::unique_ptr<Link> gain_link;
     SignalGraph g;
 
 };
+
+static void print_order(const SignalGraph::Order& order)
+{
+    std::cout << "order = [\n";
+    for (auto a : order)
+        std::cout << "    " << a->repr() << "\n";
+    std::cout << "]\n" << std::endl;
+}
 
 int main()
 {
     StupidSynth ss;
     ss.graph().dump_maps();
+
+    SignalGraph::Order order = ss.graph().plan();
+    std::cout << "# With attenuator gain disabled" << std::endl;
+    print_order(order);
+
+    ss.enable_attenuator_gain();
+
+    order = ss.graph().plan();
+    std::cout << "# With attenuator gain enabled" << std::endl;
+    print_order(order);
+
     return 0;
 }
