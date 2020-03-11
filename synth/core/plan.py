@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from pprint import pprint
 
 class Port:
@@ -22,24 +22,24 @@ class Output(Port):
 class ControlOutput(Output, Control):
     pass
 
-class Link:
-    def __init__(self, src, dest):
-        self.src = src
-        self.dest = dest
+class Link(namedtuple('Link', 'src dest control', defaults=(None, ))):
+    def __repr__(self):
+        rest = f', {self[2]}' if self[2] is not None else ''
+        return f'{type(self).__name__}({self[0]!r}, {self[1]!r}{rest})'
     def is_active(self):
         return True
 
 class ControlLink(Link):
-    def __init__(self, src, dest, intensity=1, enabled=False):
-        super().__init__(src, dest)
-        self.intensity = intensity
-        self.enabled = enabled
+    def __init__(self, src, dest, control=None):
+        self.intensity = 1
+        self.enabled = False
+        self.transform = 0
     def is_active(self):
         return self.enabled and self.intensity != 0
 
-def make_link(src, dest):
+def make_link(src, dest, control=None):
     if isinstance(dest, Control):
-        return ControlLink(src, dest)
+        return ControlLink(src, dest, control)
     else:
         return Link(src, dest)
 
@@ -59,17 +59,20 @@ class Render(Action):
         return f'Render({self.module})'
 
 class Copy(Action):
-    def __init__(self, src_mod, src_port, dest_mod, dest_port):
+    def __init__(self, src_mod, dest_mod, link):
         self.src_mod = src_mod
-        self.src_port = src_port
         self.dest_mod = dest_mod
-        self.dest_port = dest_port
+        self.link = link
     def __repr__(self):
-        sm = self.src_mod
-        sp = self.src_port
-        dm = self.dest_mod
-        dp = self.dest_port
-        return f'Copy({sm}.{sp}, {dm}.{dp})'
+        return f'Copy({self.src_mod}, {self.dest_mod}, {self.link})'
+
+class Add(Action):
+    def __init__(self, src_mod, dest_mod, link):
+        self.src_mod = src_mod
+        self.dest_mod = dest_mod
+        self.link = link
+    def __repr__(self):
+        return f'Add({self.src_mod}, {self.dest_mod}, {self.link})'
 
 class Clear(Action):
     def __init__(self, dest_mod, dest_port):
@@ -81,118 +84,126 @@ class Clear(Action):
         return f'Clear({dm}.{dp})'
 
 #       #       #       #       #       #       #       #       #       #
-# So suppose `links` is a map from ``(src, dest)`` pairs to
-# `Link` objects.  A basic `Link` object has no data, but a
-# `ControlLink` has `intensity` and `enable` fields.
-#
-# To enable, disable, or change the intensity of a `ControlLink`,
-# you have to look it up in the map, then assign the member
-# (or call a method to assign it).
-#
-# I am thinking the map should be implemented as a vector of
-# `(src, dest, link)` triples.
-# Pointers into the map are cached, along with their gen number.
-# When a pointer is newly created or out of date, search
-# the vector linearly for the right element.
 
 class SignalGraph:
+
     def __init__(self):
         self.modules = []
         self.port_modules = {}
         self.module_inputs = defaultdict(list)
         self.module_outputs = defaultdict(list)
-        # `self.links` holds links that this graph owns.
-        # `self.link_map` maps (src, dest) pairs to links,
-        # including both owned and non-owned links.
+        # `self.owned_links` holds links that this graph owns.
+        # `self.links` holds all links, whether owned or not.
+        self.owned_links = []
         self.links = []
-        self.link_map = {}
-        self.port_destinations = defaultdict(list)
-        self.port_sources = defaultdict(list)
 
     def module(self, mod):
-        self.modules += [mod]
+        self.modules.append(mod)
         for p in mod.ports:
             self.port_modules[p] = mod
             if isinstance(p, Input):
-                self.module_inputs[mod] += [p]
+                self.module_inputs[mod].append(p)
             if isinstance(p, Output):
-                self.module_outputs[mod] += [p]
+                self.module_outputs[mod].append(p)
         return self
 
     def connect(self, src, dest):
         # create an unnamed link, add it to the graph, and retain ownership.
-        link = make_link(src, dest)
-        self.links += [link]
+        link = Link(src, dest)
+        self.owned_links.append(link)
         return self.connection(link)
 
     def connection(self, link):
-        # add a non-owned link to the graph.
+        # add a non-owned link to the graph, preferably a ControlLink.
         src = link.src
         dest = link.dest
         assert isinstance(src, Output)
         assert isinstance(dest, Input)
-        if isinstance(dest, Control):
-            assert (src, dest) not in self.link_map
-        else:
-            assert dest not in {l[1] for l in self.link_map}
-        self.link_map[(src, dest)] = link
-        self.port_destinations[src] += [dest]
-        self.port_sources[dest] += [src]
+        assert link not in self.links
+        self.links.append(link)
         return self
 
-    def disconnect(self, src, dest):
-        link = self.link_map[(src, dest)]
-        del self.link_map[(src, dest)]
-        self.port_destinations[src].remove(dest)
-        self.port_sources[dest].remove(src)
-        if link in self.links:
-            self.links.remove(link)
+    def disconnect(self, src, dest, control=None):
+        def find_link(src, dest, control):
+            for link in self.links:
+                if link == (src, dest, control):
+                    return link
+
+        link = find_link(src, dest, control)
+        self.links.remove(link)
+        if link in self.owned_links:
+            self.owned_links.remove(link)
+            del link
         return self
 
     def plan(self):
 
-        def is_active(src, dest):
-            return self.link_map[(src, dest)].is_active()
+        n_modules = len(self.modules)
+        module_predecessor_mask = [0] * n_modules
+        port_destinations = defaultdict(list)
+        port_sources = defaultdict(list)
+        for link in self.links:
+            src = link.src
+            dest = link.dest
+            pred = self.port_modules[src]
+            succ = self.port_modules[dest]
+            pred_index = self.modules.index(pred)
+            succ_index = self.modules.index(succ)
+            module_predecessor_mask[succ_index] |= 1 << pred_index
+            if dest not in port_destinations[src]:
+                port_destinations[src].append(dest)
+            if src not in port_sources[dest]:
+                port_sources[dest].append(src)
 
-        def predecessors(m):
-            """return the modules that directly feed module m."""
-            return [self.port_modules[src]
-                    for dest in self.module_inputs[m]
-                    for src in self.port_sources[dest]
-                    if is_active(src, dest)]
+        def links_between(src, dest):
+            for link in self.links:
+                if (link.src == src and
+                    link.dest == dest):
+                    yield link
 
-        def is_ready(m):
-            return all(pred not in not_done for pred in predecessors(m))
+        def control_links_between(src, dest):
+            for link in self.links:
+                if (isinstance(link, ControlLink) and
+                    link.src == src and
+                    link.dest == dest):
+                    yield link
 
         order = []
-        not_done = set(self.modules)
-        while not_done:
+
+        done_mask = 0
+        all_done_mask = (1 << n_modules) - 1
+        while done_mask != all_done_mask:
 
             # Collect all modules ready to process.
-            ready = {m for m in not_done if is_ready(m)}
-            if not ready:
+            ready_mask = sum(1 << i
+                             for i in range(n_modules)
+                             if (module_predecessor_mask[i] &~ done_mask) == 0
+                             ) & ~done_mask
+            if not ready_mask:
                 raise RuntimeError('cycle in graph')
 
-            # Clear all unconnected inputs to ready modules.
-            for mod in ready:
+            for i in range(n_modules):
+                if not ready_mask & 1 << i:
+                    continue
+                mod = self.modules[i]
+
+                # Prep the ready module's inputs.
                 for dest in self.module_inputs[mod]:
-                    if not any(self.link_map[(src, dest)].is_active()
-                               for src in self.port_sources[dest]):
-                        order += [Clear(mod, dest)]
+                    for src in port_sources[dest]:
+                        action = Copy
+                        for link in control_links_between(src, dest):
+                            src_mod = self.port_modules[src]
+                            order.append(action(src_mod, mod, link))
+                            action = Add
 
-            # Render all ready modules.
-            order += [Render(m) for m in ready]
+                # Render the ready module.
+                order.append(Render(mod))
 
-            # Copy all ready modules' outputs to ControlLinks.
-            for src_mod in ready:
-                for out in self.module_outputs[src_mod]:
-                    for dest in self.port_destinations[out]:
-                        link = self.link_map[(out, dest)]
-                        if isinstance(link, ControlLink) and link.is_active():
-                            dest_mod = self.port_modules[dest]
-                            order += [Copy(src_mod, out, dest_mod, dest)]
-            not_done -= ready
-            print(f'ready = {ready}')
+            done_mask |= ready_mask
+            print(f'ready = {ready_mask:0{n_modules}b}')
+
+        # XXX emit list of unconnected input ports.
+
         return order
 
     def fqpn(self, port):
@@ -205,8 +216,7 @@ class SignalGraph:
         for (map_name, fq) in {'port_modules': False,
                                'module_inputs': False,
                                'module_outputs': False,
-                               'port_destinations': True,
-                               'port_sources': True}.items():
+                               }.items():
             print(f'{map_name} = {{')
             for (k, v) in getattr(self, map_name).items():
                 if fq:
@@ -216,21 +226,21 @@ class SignalGraph:
             print('}\n')
 
         def link_name(link):
-            cname = '' if type(link) == Link else link.__class__.__name__
-            return f'{cname}({self.fqpn(link.src)}, {self.fqpn(link.dest)})'
+            tname = type(link).__name__
+            src = self.fqpn(link.src)
+            dest = self.fqpn(link.dest)
+            rest = f', {link.control}' if link.control is not None else ''
+            return f'{tname}({src}, {dest}{rest})'
 
         print('links = [')
         for link in self.links:
-            print(f'    ({self.fqpn(link.src)}, {self.fqpn(link.dest)}),')
+            print(f'    {link_name(link)}')
         print(']\n')
 
-        print('link_map = {')
-        for ((src, dest), link) in self.link_map.items():
-            key_name = f'({self.fqpn(src)}, {self.fqpn(dest)})'
-            value_name = link_name(link)
-            value_name = f'{link.__class__.__name__}'
-            print(f'    {key_name}: {value_name},')
-        print('}\n')
+        print('owned_links = [')
+        for link in self.owned_links:
+            print(f'    {link_name(link)}')
+        print(']\n')
 
 # ---- -- ---- -- ---- -- ---- -- ---- -- ---- -- ---- -- ---- -- ---- -- ----
 
@@ -266,7 +276,8 @@ class StupidSynth:
 
         o.name = 'Osc1'
 
-        self.gain_link = gain_link = make_link(o.out, a.gain)
+        self.gain_link = gain_link = make_link(o.out, a.gain, 'CC 7')
+        self.gain_link2 = gain_link2 = make_link(o.out, a.gain, 'CC 3')
 
         self.graph = (SignalGraph()
                         .module(o)
@@ -275,6 +286,7 @@ class StupidSynth:
                         .connect(o.out, a.in_)
                         .connect(a.out, m.in_[0])
                         .connection(gain_link)
+                        .connection(gain_link2)
                         )
 
 def dump_order(order):
@@ -286,10 +298,10 @@ def dump_order(order):
 ss = StupidSynth()
 ss.graph.dump()
 order = ss.graph.plan()
-print('# With attenuator gain disabled')
+# print('# With attenuator gain disabled')
 dump_order(order)
 
-ss.gain_link.enabled = True
-order = ss.graph.plan()
-print('# With attenuator gain enabled')
-dump_order(order)
+# ss.gain_link.enabled = True
+# order = ss.graph.plan()
+# print('# With attenuator gain enabled')
+# dump_order(order)

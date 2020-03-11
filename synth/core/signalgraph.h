@@ -195,7 +195,7 @@ class ControlOutput : public Output<ElementType>, public Control {};
 
 // -- Links -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 // XXX write something
-// XXX discuss src/dest, input/output
+// XXX discuss src/dest, input/output, predecessor/successor.
 // XXX a link is like a patch cord.
 
 class Link {

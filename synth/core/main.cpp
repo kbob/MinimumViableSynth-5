@@ -121,7 +121,6 @@ public:
          .connection(gain_link.get())
          // .disconnect(o.out, a.in)
          ;
-
     }
 
     SignalGraph& graph()
