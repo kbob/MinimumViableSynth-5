@@ -22,6 +22,8 @@ class Output(Port):
 class ControlOutput(Output, Control):
     pass
 
+#       #       #       #       #       #       #       #       #       #
+
 class Link(namedtuple('Link', 'src dest control', defaults=(None, ))):
     def __repr__(self):
         rest = f', {self[2]}' if self[2] is not None else ''
@@ -43,11 +45,15 @@ def make_link(src, dest, control=None):
     else:
         return Link(src, dest)
 
+#       #       #       #       #       #       #       #       #       #
+
 class Module:
     def __init__(self):
         self.ports = []
     def __repr__(self):
         return getattr(self, 'name', self.__class__.__name__)
+
+#       #       #       #       #       #       #       #       #       #
 
 class Action:
     pass
@@ -83,6 +89,14 @@ class Clear(Action):
         dp = self.dest_port
         return f'Clear({dm}.{dp})'
 
+class Alias(Action):
+    def __init__(self, src_mod, dest_mod, link):
+        self.src_mod = src_mod
+        self.dest_mod = dest_mod
+        self.link = link
+    def __repr__(self):
+        return f'Alias({self.src_mod}, {self.dest_mod}, {self.link})'
+
 #       #       #       #       #       #       #       #       #       #
 
 class SignalGraph:
@@ -110,15 +124,31 @@ class SignalGraph:
     def connect(self, src, dest):
         # create an unnamed link, add it to the graph, and retain ownership.
         link = Link(src, dest)
+        self.connection(link)   # do this first; it may assert.
         self.owned_links.append(link)
-        return self.connection(link)
+        return self
+
+    # A ControlInput can have many ControlLinks.
+    # A ControlInput can have no (signal)Links.
+    # A (signal)Input can have one (signal)Link.
+    # A (signal)Input can have no ControlLinks.
+
+    # A ControlOutput can feed many ControlLinks.
+    # A ControlOutput can feed many (signal)Links.
+    # A (signal)Output can feed many (signal)Links.
+    # A (signal)Output can feed many ControlLinks.
 
     def connection(self, link):
-        # add a non-owned link to the graph, preferably a ControlLink.
+        # add a non-owned link to the graph.
         src = link.src
         dest = link.dest
         assert isinstance(src, Output)
         assert isinstance(dest, Input)
+        if isinstance(dest, ControlInput):
+            assert isinstance(link, ControlLink)
+        else:
+            assert not isinstance(link, ControlLink)
+            assert not list(self.gen_links(dest=dest))
         assert link not in self.links
         self.links.append(link)
         return self
@@ -136,11 +166,23 @@ class SignalGraph:
             del link
         return self
 
+    def gen_links(self, type_=None, src=None, dest=None, control=None):
+        for link in self.links:
+            if type_ and type(link) != type_:
+                continue
+            if src and link.src != src:
+                continue
+            if dest and link.dest != dest:
+                continue
+            if control and link.control != control:
+                continue
+            yield link
+
     def plan(self):
 
         n_modules = len(self.modules)
+        assert n_modules < 32
         module_predecessor_mask = [0] * n_modules
-        port_destinations = defaultdict(list)
         port_sources = defaultdict(list)
         for link in self.links:
             src = link.src
@@ -150,23 +192,11 @@ class SignalGraph:
             pred_index = self.modules.index(pred)
             succ_index = self.modules.index(succ)
             module_predecessor_mask[succ_index] |= 1 << pred_index
-            if dest not in port_destinations[src]:
-                port_destinations[src].append(dest)
             if src not in port_sources[dest]:
                 port_sources[dest].append(src)
 
-        def links_between(src, dest):
-            for link in self.links:
-                if (link.src == src and
-                    link.dest == dest):
-                    yield link
-
         def control_links_between(src, dest):
-            for link in self.links:
-                if (isinstance(link, ControlLink) and
-                    link.src == src and
-                    link.dest == dest):
-                    yield link
+            yield from self.gen_links(type_=ControlLink, src=src, dest=dest)
 
         order = []
 
@@ -200,11 +230,28 @@ class SignalGraph:
                 order.append(Render(mod))
 
             done_mask |= ready_mask
-            print(f'ready = {ready_mask:0{n_modules}b}')
+            # print(f'ready = {ready_mask:0{n_modules}b}')
 
-        # XXX emit list of unconnected input ports.
+        prep = []
 
-        return order
+        for mod in self.modules:
+            # print(f'mod = {mod}')
+            for dest in self.module_inputs[mod]:
+                # print(f'    dest = {self.fqpn(dest)}')
+                links = list(self.gen_links(None, None, dest, None))
+                # print(f'    links = {links}')
+                if links:
+                    link = links[0]
+                    if len(links) == 1 and type(link) == Link:
+                        src_mod = self.port_modules[link.src]
+                        prep.append(Alias(src_mod, mod, link))
+                else:
+                    prep.append(Clear(mod, dest))
+
+
+
+        Plan = namedtuple('Plan', 'prep order')
+        return Plan(prep, order)
 
     def fqpn(self, port):
         return f'{self.port_modules[port]}.{port}'
@@ -242,7 +289,42 @@ class SignalGraph:
             print(f'    {link_name(link)}')
         print(']\n')
 
-# ---- -- ---- -- ---- -- ---- -- ---- -- ---- -- ---- -- ---- -- ---- -- ----
+#       #       #       #       #       #       #       #       #       #
+
+# Voice
+#     has storage for each module's state.
+#     has storage for each Output's data.
+#     has storage for each ControlInput's data.
+
+class Voice:
+    def __init__(self):
+        self.module_states = [m.create_state() for m in graph.modules]
+        self.input_data = [[i.data() for j in range(MAX_FRAMES)]
+                           for i in graph.inputs
+                           if isinstance(i, ControlPort)]
+        self.output_data = [[o.data() for i in range(MAX_FRAMES)]
+                            for o in graph.outputs]
+
+    def assign_note(self, note):
+        # do something with the note.
+        for (i, m) in enumerate(graph.modules):
+            m.init_state(self.module_states[i])
+        for action in plan.prep:
+            action()
+
+    def render(self):
+        for (i, d) in zip(graph.inputs, self.input_data):
+            i.set_ptr(d)
+        for (o, d) in zip(graph.outputs, self.output_data):
+            o.set_ptr(d)
+        for action in plan.order:
+            action()
+        # where is the output?
+
+
+# ---- -- ---- -- ---- -- ---- -- ---- -- ---- -- ---- -- ---- -- ---- --
+#       #       #       #       #       #       #       #       #       #
+# ---- -- ---- -- ---- -- ---- -- ---- -- ---- -- ---- -- ---- -- ---- --
 
 class QBLOscillator(Module):
     def __init__(self):
@@ -289,19 +371,24 @@ class StupidSynth:
                         .connection(gain_link2)
                         )
 
-def dump_order(order):
-    print('order = [')
-    for action in order:
-        print(f'    {action}')
-    print(']\n')
+def dump_plan(plan):
+    print('plan = (')
+    sep = int
+    for member in ('prep', 'order'):
+        sep()
+        sep = print
+        print(f'    {member} = [')
+        for action in getattr(plan, member):
+            print(f'        {action}')
+    print(')\n')
 
 ss = StupidSynth()
 ss.graph.dump()
-order = ss.graph.plan()
+plan = ss.graph.plan()
 # print('# With attenuator gain disabled')
-dump_order(order)
+dump_plan(plan)
 
 # ss.gain_link.enabled = True
-# order = ss.graph.plan()
+# plan = ss.graph.plan()
 # print('# With attenuator gain enabled')
-# dump_order(order)
+# dump_plan(plan)
