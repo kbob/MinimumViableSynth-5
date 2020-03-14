@@ -1,14 +1,20 @@
 #ifndef SIGNALGRAPH_included
 #define SIGNALGRAPH_included
 
+#include <algorithm>
 #include <cstddef>
+#include <cstdlib>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <set>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <cxxabi.h>
+
+#include "synth/util/heap-map.h"
 
 const double  DEFAULT_RANGE      = 1.0;
 const double  DEFAULT_INTENSITY  = 1.0;
@@ -156,7 +162,7 @@ class ControlInput : public Input<ElementType>, public Control {
 public:
 
     ControlInput(const ElementType& range = DEFAULT_RANGE)
-        : m_range(range)
+    : m_range(range)
     {}
 
     double range() const
@@ -206,8 +212,8 @@ public:
     typedef std::pair<OutputPort *, InputPort *> Key;
 
     Link(OutputPort& src, InputPort& dest)
-        : m_src(&src),
-          m_dest(&dest)
+    : m_src(&src),
+      m_dest(&dest)
     {}
 
     virtual ~Link() {}
@@ -237,9 +243,9 @@ public:
                 InputPort& dest,
                 double intensity = DEFAULT_INTENSITY,
                 bool enabled = DEFAULT_ENABLEMENT)
-        : Link(src, dest),
-          m_intensity(intensity),
-          m_enabled(enabled)
+    : Link(src, dest),
+      m_intensity(intensity),
+      m_enabled(enabled)
     {}
 
     virtual bool is_active() const
@@ -397,7 +403,7 @@ class Render : public Action {
 public:
 
     Render(const Module *module)
-        : m_module(module)
+    : m_module(module)
     {}
 
     virtual void do_it()
@@ -421,7 +427,7 @@ class Copy : public Action {
 public:
 
     Copy(Link *link)
-        : m_link(link)
+    : m_link(link)
     {}
 
     virtual void do_it()
@@ -449,8 +455,8 @@ class Clear : public Action {
 public:
 
     Clear(const Module *module, InputPort *port)
-        : m_module(module),
-          m_port(port)
+    : m_module(module),
+      m_port(port)
     {}
 
     virtual void do_it()

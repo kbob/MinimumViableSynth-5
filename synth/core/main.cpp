@@ -1,5 +1,7 @@
-#include "signalgraph.h"
+#include "synth/core/signalgraph.h"
 
+#include <iostream>
+#include <memory>
 #include <sstream>
 
 class Attenuator : public Module {
@@ -136,7 +138,7 @@ public:
         gain->enabled(true);
     }
 
-// private:
+private:
 
     Attenuator a;
     QBLOscillator o;
@@ -156,6 +158,18 @@ static void print_order(const SignalGraph::Order& order)
 
 int main()
 {
+    // heap_map<int, char> hm;
+    // hm[42] = 'a';
+    // hm[2] = 'b';
+    // hm.crbegin();
+    // hm.crend();
+    // *hm.begin();
+    // for (auto it : hm) {
+    //     std::cout << it.first << ": " << it.second << ", ";
+    // }
+    // std::cout << std::endl;
+    // return 0;
+
     StupidSynth ss;
     ss.graph().dump_maps();
 

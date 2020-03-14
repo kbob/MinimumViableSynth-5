@@ -1,0 +1,268 @@
+#ifndef HEAPMAP_included
+#define HEAPMAP_included
+
+#include <cassert>
+#include <initializer_list>
+#include <memory>
+#include <utility>
+#include <vector>
+
+template <class K, class V, class Comp = std::less<K>>
+class heap_map {
+
+    template<class Map, class Value>
+    class iter_tmpl
+    : public std::iterator<std::bidirectional_iterator_tag, Value>
+    {
+
+    public:
+
+        // default constructor
+        iter_tmpl()
+        : m_map(nullptr),
+          m_pos(0)
+        {}
+
+        // copy constructor
+        iter_tmpl(const iter_tmpl& that) = default;
+
+        // constructor
+        iter_tmpl(Map *m, typename Map::size_type pos)
+        : m_map(m),
+          m_pos(pos)
+        {}
+
+        // assignment
+        iter_tmpl& operator = (const iter_tmpl& that) = default;
+
+        // comparison
+        bool operator == (const iter_tmpl& that)
+        {
+            assert(m_map == that.m_map);
+            return m_pos == that.m_pos;
+        }
+        bool operator != (const iter_tmpl& that)
+        {
+            return !(*this == that);
+        }
+
+        // element access
+        Value& operator *  () const
+        {
+            assert(m_map);
+            return m_map->m_v[m_pos];
+        }
+        Value *operator -> () const
+        {
+            assert(m_map);
+            return &m_map->m_v[m_pos];
+        }
+
+        // increment and decrement
+        iter_tmpl& operator ++ ()
+        {
+            assert(m_map);
+            assert(m_pos < m_map->size());
+            m_pos++;
+            return *this;
+        }
+        iter_tmpl  operator ++ (int)
+        {
+            iter_tmpl prev = *this;
+            (void)++*this;
+            return prev;
+        }
+        iter_tmpl& operator -- ()
+        {
+            assert(m_map);
+            assert(m_pos > 0);
+            --m_pos;
+            return *this;
+        }
+        iter_tmpl  operator -- (int)
+        {
+            iter_tmpl prev = *this;
+            (void)--*this;
+            return prev;
+        }
+
+    private:
+
+        Map *m_map;
+        size_t m_pos;
+
+    };
+
+public:
+
+    typedef K                                           key_type;
+    typedef V                                           mapped_type;
+    typedef std::pair<const key_type, mapped_type>      value_type;
+    typedef Comp                                        key_compare;
+    typedef value_type&                                 reference;
+    typedef const value_type&                           const_reference;
+    typedef value_type *                                pointer;
+    typedef const value_type *                          const_pointer;
+    typedef iter_tmpl<heap_map, value_type>             iterator;
+    typedef iter_tmpl<const heap_map, const value_type> const_iterator;
+    typedef std::reverse_iterator<iterator>             reverse_iterator;
+    typedef std::reverse_iterator<const_iterator>       const_reverse_iterator;
+    typedef ptrdiff_t                                   difference_type;
+    typedef size_t                                      size_type;
+
+    class value_compare
+    : public std::binary_function<value_type, value_type, bool>
+    {
+    public:
+        key_compare comp;
+        value_compare(key_compare c);
+    public:
+        bool operator () (const value_type& a, const value_type& b) const
+        {
+            // return static_cast<const key_compare&>(*this)(a.first, b.first);
+            return comp(a.first, b.first);
+        }
+    };
+
+    // default constructor, destructor
+    heap_map()
+    : m_sorted(false),
+      m_v()
+    {}
+    ~heap_map() {}
+
+    // iterators
+    iterator               begin()
+    {
+        return iterator(this, 0);
+    }
+    iterator               end()
+    {
+        return iterator(this, m_v.size());
+    }
+    const_iterator         begin()   const
+    {
+        return const_iterator(this, 0);
+    }
+    const_iterator         end()     const
+    {
+        return const_iterator(this, m_v.size());
+    }
+    reverse_iterator       rbegin()
+    {
+        return reverse_iterator(end());
+    }
+    reverse_iterator       rend()
+    {
+        return reverse_iterator(begin());
+    }
+    const_reverse_iterator rbegin()  const
+    {
+        return const_reverse_iterator(end());
+    }
+    const_reverse_iterator rend()    const
+    {
+        return const_reverse_iterator(begin());
+    }
+    const_iterator         cbegin()  const
+    {
+        return begin();
+    }
+    const_iterator         cend()    const
+    {
+        return end();
+    }
+    const_reverse_iterator crbegin() const
+    {
+        return rbegin();
+    }
+    const_reverse_iterator crend()   const
+    {
+        return rend();
+    }
+
+    // capacity
+    bool empty() const
+    {
+        return m_v.empty();
+    }
+    size_type size() const
+    {
+        return m_v.size();
+    }
+    size_type max_size() const
+    {
+        return m_v.max_size();
+    }
+    void reserve(size_type n)
+    {
+        m_v.reserve(n);
+    }
+    void shrink_to_fit()
+    {
+        m_v.shrink_to_fit();
+    }
+
+    // element access
+    mapped_type& operator [] (const key_type& key)
+    {
+        auto match = [&](const value_type& v) {
+            return v.first == key;
+        };
+
+        assert(!m_sorted);
+        auto it = std::find_if(m_v.begin(), m_v.end(), match);
+        if (it == m_v.end()) {
+            m_v.push_back(value_type(key, mapped_type()));
+            it = m_v.end() - 1;
+        }
+        return it->second;
+    }
+    mapped_type& at(const key_type& key)
+    {
+        auto pos = find(key);
+        assert(pos != m_v.end());
+        return *pos;
+    }
+    const mapped_type& at(const key_type& key) const
+    {
+        auto pos = find(key);
+        assert(pos != m_v.end());
+        return *pos;
+    }
+
+    // operations
+    iterator find(const key_type& key)
+    {
+        assert(m_sorted);
+        return std::lower_bound(m_v.begin(), m_v.end(), key, value_compare());
+    }
+    const_iterator find(const key_type& key) const
+    {
+        assert(m_sorted);
+        return std::lower_bound(m_v.begin(), m_v.end(), key, value_compare());
+    }
+    size_type count(const key_type& key) const
+    {
+        auto vcomp = value_compare();
+        auto low = std::lower_bound(m_v.begin(), m_v.end(), key, vcomp);
+        auto high = std::upper_bound(m_v.begin(), m_v.end(), key, vcomp);
+        return high - low;
+    }
+
+    void finalize() {
+        std::sort(m_v.begin(), m_v.end(), value_compare());
+        m_sorted = true;
+    }
+
+private:
+
+    bool m_sorted;
+    std::vector<value_type> m_v;
+
+    heap_map(const heap_map&) = delete;
+    heap_map& operator = (const heap_map&) = delete;
+
+};
+
+#endif /* !HEAPMAP_included */

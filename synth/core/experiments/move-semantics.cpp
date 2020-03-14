@@ -42,7 +42,7 @@ class Object {
 public:
 
     Object()
-        : c(bar())
+    : c(bar())
     {
         std::cout << "Object()" << std::endl;
     }
