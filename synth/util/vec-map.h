@@ -1,5 +1,5 @@
-#ifndef HEAPMAP_included
-#define HEAPMAP_included
+#ifndef VEC_MAP_included
+#define VEC_MAP_included
 
 #include <cassert>
 #include <initializer_list>
@@ -31,7 +31,7 @@
 
 
 template <class K, class V, class Comp = std::less<K>>
-class heap_map {
+class vec_map {
 
     typedef std::pair<K, V> mut_value_type;
 
@@ -131,8 +131,8 @@ public:
     typedef const value_type&                           const_reference;
     typedef value_type *                                pointer;
     typedef const value_type *                          const_pointer;
-    typedef iter_tmpl<heap_map, value_type>             iterator;
-    typedef iter_tmpl<const heap_map, const value_type> const_iterator;
+    typedef iter_tmpl<vec_map, value_type>              iterator;
+    typedef iter_tmpl<const vec_map, const value_type>  const_iterator;
     typedef std::reverse_iterator<iterator>             reverse_iterator;
     typedef std::reverse_iterator<const_iterator>       const_reverse_iterator;
     typedef ptrdiff_t                                   difference_type;
@@ -141,7 +141,7 @@ public:
     class value_compare
     : public std::binary_function<value_type, value_type, bool>
     {
-        friend class heap_map;
+        friend class vec_map;
     protected:
         key_compare comp;
         value_compare(key_compare c)
@@ -155,11 +155,11 @@ public:
     };
 
     // default constructor, destructor
-    heap_map()
+    vec_map()
     : m_sorted(false),
       m_v()
     {}
-    ~heap_map() {}
+    ~vec_map() {}
 
     // iterators
     iterator               begin()
@@ -317,9 +317,9 @@ private:
     bool m_sorted;
     std::vector<mut_value_type> m_v;
 
-    heap_map(const heap_map&) = delete;
-    heap_map& operator = (const heap_map&) = delete;
+    vec_map(const vec_map&) = delete;
+    vec_map& operator = (const vec_map&) = delete;
 
 };
 
-#endif /* !HEAPMAP_included */
+#endif /* !VEC_MAP_included */

@@ -1,7 +1,7 @@
 
   SOURCES := main.cpp
  BINARIES := a.out
-    TESTS := test-heap-map
+    TESTS := test-vec-map
     VPATH := ../util
 
    CFILES := $(filter %.c, $(SOURCES))

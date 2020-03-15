@@ -14,7 +14,7 @@
 
 #include <cxxabi.h>
 
-#include "synth/util/heap-map.h"
+#include "synth/util/vec-map.h"
 
 const double  DEFAULT_RANGE      = 1.0;
 const double  DEFAULT_INTENSITY  = 1.0;
