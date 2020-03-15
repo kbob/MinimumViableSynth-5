@@ -1,3 +1,5 @@
+test-*.cpp
 *.d
 *.o
 a.out
+test-heap-map

@@ -7,8 +7,33 @@
 #include <utility>
 #include <vector>
 
+// // -- Debugging - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
+//
+// #include <cxxabi.h>
+//
+// // XXX Move this into the platform directory.
+// static std::string demangle(const std::string& mangled)
+// {
+//     int status;
+//     char *s = abi::__cxa_demangle(mangled.c_str(), 0, 0, &status);
+//     std::string demangled(s);
+//     std::free(s);
+//     return demangled;
+// }
+//
+// template <typename T>
+// static std::string type_name(T& obj)
+// {
+//     const std::string& mangled = typeid(*&obj).name();
+//     return demangle(mangled);
+// }
+
+
+
 template <class K, class V, class Comp = std::less<K>>
 class heap_map {
+
+    typedef std::pair<K, V> mut_value_type;
 
     template<class Map, class Value>
     class iter_tmpl
@@ -50,12 +75,15 @@ class heap_map {
         Value& operator *  () const
         {
             assert(m_map);
-            return m_map->m_v[m_pos];
+            // sigh. m_v has mutable keys, but we need to return
+            // a value_type here where the key is const but the
+            // value might not be.
+            return *reinterpret_cast<Value *>(&m_map->m_v[m_pos]);
         }
         Value *operator -> () const
         {
             assert(m_map);
-            return &m_map->m_v[m_pos];
+            return reinterpret_cast<Value *>(&m_map->m_v[m_pos]);
         }
 
         // increment and decrement
@@ -113,13 +141,15 @@ public:
     class value_compare
     : public std::binary_function<value_type, value_type, bool>
     {
-    public:
+        friend class heap_map;
+    protected:
         key_compare comp;
-        value_compare(key_compare c);
+        value_compare(key_compare c)
+        : comp(c)
+        {}
     public:
         bool operator () (const value_type& a, const value_type& b) const
         {
-            // return static_cast<const key_compare&>(*this)(a.first, b.first);
             return comp(a.first, b.first);
         }
     };
@@ -194,6 +224,10 @@ public:
     {
         return m_v.max_size();
     }
+    size_t capacity() const
+    {
+        return m_v.capacity();
+    }
     void reserve(size_type n)
     {
         m_v.reserve(n);
@@ -221,44 +255,67 @@ public:
     mapped_type& at(const key_type& key)
     {
         auto pos = find(key);
-        assert(pos != m_v.end());
-        return *pos;
+        assert(pos != end());
+        return pos->second;
     }
     const mapped_type& at(const key_type& key) const
     {
         auto pos = find(key);
-        assert(pos != m_v.end());
-        return *pos;
+        assert(pos != end());
+        return pos->second;
+    }
+
+    // observers
+    key_compare key_comp() const
+    {
+        assert(m_sorted);
+        return key_compare();
+    }
+    value_compare value_comp() const
+    {
+        return value_compare(key_comp());
     }
 
     // operations
     iterator find(const key_type& key)
     {
-        assert(m_sorted);
-        return std::lower_bound(m_v.begin(), m_v.end(), key, value_compare());
+        auto comp = [] (const mut_value_type& a, const mut_value_type& b) {
+            return a.first < b.first;
+        };
+        auto k = mut_value_type(key, mapped_type());
+        auto it = std::lower_bound(m_v.begin(), m_v.end(), k, comp);
+        return iterator(this, it - m_v.begin());
     }
     const_iterator find(const key_type& key) const
     {
-        assert(m_sorted);
-        return std::lower_bound(m_v.begin(), m_v.end(), key, value_compare());
+        auto comp = [] (const mut_value_type& a, const mut_value_type& b) {
+            return a.first < b.first;
+        };
+        auto k = mut_value_type(key, mapped_type());
+        auto it = std::lower_bound(m_v.begin(), m_v.end(), k, comp);
+        return const_iterator(this, it - m_v.cbegin());
     }
     size_type count(const key_type& key) const
     {
-        auto vcomp = value_compare();
-        auto low = std::lower_bound(m_v.begin(), m_v.end(), key, vcomp);
-        auto high = std::upper_bound(m_v.begin(), m_v.end(), key, vcomp);
+        auto comp = [] (const mut_value_type& a, const mut_value_type& b) {
+            return a.first < b.first;
+        };
+        assert(m_sorted);
+        auto k = mut_value_type(key, mapped_type());
+        auto low = std::lower_bound(m_v.begin(), m_v.end(), k, comp);
+        auto high = std::upper_bound(m_v.begin(), m_v.end(), k, comp);
         return high - low;
     }
 
     void finalize() {
-        std::sort(m_v.begin(), m_v.end(), value_compare());
         m_sorted = true;
+        std::sort(m_v.begin(), m_v.end(), value_comp());
     }
 
 private:
 
     bool m_sorted;
-    std::vector<value_type> m_v;
+    std::vector<mut_value_type> m_v;
 
     heap_map(const heap_map&) = delete;
     heap_map& operator = (const heap_map&) = delete;
