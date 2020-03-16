@@ -1,5 +1,6 @@
 #include "synth/core/signalgraph.h"
 
+#include <array>
 #include <iostream>
 #include <memory>
 #include <sstream>

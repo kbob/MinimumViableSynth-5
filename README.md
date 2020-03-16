@@ -11,3 +11,26 @@ C++](https://www.willpirkle.com/synthbook/).  Also, I've got a Teensy
 Daisy Kickstarter
 campaign](https://www.kickstarter.com/projects/electro-smith/daisy-an-embedded-platform-for-music),
 and I want the MVS to run on these.
+
+# Directories
+
+`synth/` is the platform-independent synth engine.
+
+`synth/core/` contains the plumbing.
+
+`synth/util/` is functions that aren't specific to synths but not part
+of any one platform.
+
+`synth/osc`, `synth/filt`, `synth/mod`, ...  collections of
+synth modules.
+
+`targets/` has specific configurations of the synth engine, *e.g.*,
+NanoSynth, FM Synth, sampler.
+
+`platforms/` adapts the synth engine to a platform, *e.g.*, MacOS AU,
+Teensy Audio Library, offline.
+
+`products/` adapts (target, platform) pairs, *e.g.*, nanosynth AU,
+Teensy FM synth, offline sampler.  This is where complete synths are.
+
+#       #       #       #       #       #       #       #       #       #       #
