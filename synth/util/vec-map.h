@@ -12,7 +12,7 @@
 // #include <cxxabi.h>
 //
 // // XXX Move this into the platform directory.
-// static std::string demangle(const std::string& mangled)
+// static inline std::string demangle(const std::string& mangled)
 // {
 //     int status;
 //     char *s = abi::__cxa_demangle(mangled.c_str(), 0, 0, &status);
@@ -22,12 +22,11 @@
 // }
 //
 // template <typename T>
-// static std::string type_name(T& obj)
+// static inline std::string type_name(T& obj)
 // {
 //     const std::string& mangled = typeid(*&obj).name();
 //     return demangle(mangled);
 // }
-
 
 
 template <class K, class V, class Comp = std::less<K>>
@@ -94,7 +93,7 @@ class vec_map {
             m_pos++;
             return *this;
         }
-        iter_tmpl  operator ++ (int)
+        iter_tmpl operator ++ (int)
         {
             iter_tmpl prev = *this;
             (void)++*this;
@@ -107,7 +106,7 @@ class vec_map {
             --m_pos;
             return *this;
         }
-        iter_tmpl  operator -- (int)
+        iter_tmpl operator -- (int)
         {
             iter_tmpl prev = *this;
             (void)--*this;
@@ -123,6 +122,7 @@ class vec_map {
 
 public:
 
+    // member types
     typedef K                                           key_type;
     typedef V                                           mapped_type;
     typedef std::pair<const key_type, mapped_type>      value_type;
@@ -154,12 +154,13 @@ public:
         }
     };
 
-    // default constructor, destructor
+    // default constructor, no copy, no assign, implicit destructor
     vec_map()
-    : m_sorted(false),
+    : m_finalized(false),
       m_v()
     {}
-    ~vec_map() {}
+    vec_map(const vec_map&) = delete;
+    vec_map& operator = (const vec_map&) = delete;
 
     // iterators
     iterator               begin()
@@ -244,7 +245,7 @@ public:
             return v.first == key;
         };
 
-        assert(!m_sorted);
+        assert(!m_finalized);
         auto it = std::find_if(m_v.begin(), m_v.end(), match);
         if (it == m_v.end()) {
             m_v.push_back(value_type(key, mapped_type()));
@@ -268,7 +269,7 @@ public:
     // observers
     key_compare key_comp() const
     {
-        assert(m_sorted);
+        assert(m_finalized);
         return key_compare();
     }
     value_compare value_comp() const
@@ -300,25 +301,28 @@ public:
         auto comp = [] (const mut_value_type& a, const mut_value_type& b) {
             return a.first < b.first;
         };
-        assert(m_sorted);
+        assert(m_finalized);
         auto k = mut_value_type(key, mapped_type());
         auto low = std::lower_bound(m_v.begin(), m_v.end(), k, comp);
         auto high = std::upper_bound(m_v.begin(), m_v.end(), k, comp);
         return high - low;
     }
 
-    void finalize() {
-        m_sorted = true;
+    // finalization
+    bool finalized() const
+    {
+        return m_finalized;
+    }
+    void finalize()
+    {
+        m_finalized = true;
         std::sort(m_v.begin(), m_v.end(), value_comp());
     }
 
 private:
 
-    bool m_sorted;
+    bool m_finalized;
     std::vector<mut_value_type> m_v;
-
-    vec_map(const vec_map&) = delete;
-    vec_map& operator = (const vec_map&) = delete;
 
 };
 

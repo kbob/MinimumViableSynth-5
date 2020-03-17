@@ -2,4 +2,5 @@ test-*.cpp
 *.d
 *.o
 a.out
+test-span-map
 test-vec-map

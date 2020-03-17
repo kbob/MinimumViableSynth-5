@@ -1,7 +1,7 @@
 # Derive project root as this file's grandparent.
 r := $(lastword $(MAKEFILE_LIST))
-r := $(r:%make/common.make=%)
-r := $(r:%/=%)
+r := $(r:make/common.make=)
+r := $(r:/=)
 
 # unpack sources
        CFILES := $(filter %.c, $(SOURCES))
@@ -14,7 +14,7 @@ r := $(r:%/=%)
   release_OPT := -O3 -DNDEBUG
         BUILD := debug
           OPT := $($(BUILD)_OPT)
-     CPPFLAGS := -I../.. -MMD
+     CPPFLAGS := -I../.. -MMD $(EXTRA_CPPFLAGS)
      CXXFLAGS := -std=c++11 -Wall -Wextra -Werror $(OPT)
 
       HOSTCXX := c++
@@ -83,7 +83,7 @@ test-%:     test-%.cpp
 test-%.cpp: test-%.h
 	    $(TESTGEN) $(TESTGENFLAGS) $< -o $@
 
-.PHONY: run-tests $(RUN_TESTS)
+.PHONY: run-tests
 
 # Check that git submodules have been initialized.
 

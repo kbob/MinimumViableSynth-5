@@ -222,7 +222,7 @@ public:
         TS_ASSERT(*ca == P(2, 1.2f));
     }
 
-    void testConst()
+    void testCount()
     {
         VM vm;
         vm[13] = 1.13f;
