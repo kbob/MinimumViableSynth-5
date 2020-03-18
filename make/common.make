@@ -36,23 +36,50 @@ test:       $(SUBDIRS:%=%/test) $(TESTS) run-tests
 tests:      $(SUBDIRS:%=%/tests) $(TESTS)
 clean:      $(SUBDIRS:%=%/clean)
 	    rm -f *.d *.o *.out test-*.cpp $(PROGRAM) $(TESTS) $(FILTH)
-help:
+help: general-help local-help
+general-help:
 	    @echo ''
 	    @echo 'Common Targets'
 	    @echo ''
-	    @echo '    all            - build programs and images, run tests'
+	    @echo '    all              - build programs and images, run tests'
 ifneq ($r,)
-	    @echo '    project        - build whole project, run all tests'
+	    @echo '    project          - build whole project, run all tests'
 endif
-	    @echo '    programs       - build all programs'
-	    @echo '    images         - build all firmware images'
-	    @echo '    test           - build and run all tests'
-	    @echo '    tests          - build all tests'
-	    @echo '    clean          - remove all generated files'
-	    @echo '    help           - print this text'
+	    @echo '    programs         - build all programs'
+	    @echo '    images           - build all firmware images'
+	    @echo '    test             - build and run all tests'
+	    @echo '    tests            - build all test programss'
+	    @echo '    clean            - remove all generated files'
+	    @echo '    help             - print this text'
+	    @echo ''
+	    @echo 'Common Variables'
+	    @echo ''
+	    @echo '    BUILD=debug      - use "BUILD=release" for release build'
+	    @echo '    EXTRA_CPPFLAGS=  - add flags to cc and c++'
 	    @echo ''
 
-.PHONY: all project programs images test tests clean
+local-help:
+ifneq ($(PROGRAM),)
+	    @echo 'Programs in this directory'
+	    @echo ''
+	    @for p in $(PROGRAM); do echo "    $$p"; done
+	    @echo ''
+endif
+ifneq ($(IMAGES),)
+	    @echo 'Firmware images in this directory'
+	    @echo ''
+	    @for i in $(IMAGES); do echo "    $$i"; done
+	    @echo ''
+endif
+ifneq ($(TESTS),)
+	    @echo 'Test programs in this directory'
+	    @echo ''
+	    @for t in $(TESTS); do echo "    $$t"; done
+	    @echo ''
+endif
+
+PHONY:     all project programs images test tests clean
+.PHONY:     help general-help local-help
 
 # Recurse into subdirectories.
 
@@ -83,7 +110,7 @@ test-%:     test-%.cpp
 test-%.cpp: test-%.h
 	    $(TESTGEN) $(TESTGENFLAGS) $< -o $@
 
-.PHONY: run-tests
+.PHONY:     run-tests
 
 # Check that git submodules have been initialized.
 
