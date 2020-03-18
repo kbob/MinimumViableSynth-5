@@ -4,8 +4,11 @@ from pprint import pprint
 class Port:
     def __init__(self, name):
         self.name = name
+        self.module = None
     def __repr__(self):
         return getattr(self, 'name', self.__class__.__name__)
+    def fqpn(self):
+        return f'{repr(self.module)}.{repr(self)}'
 
 class Control:
     pass
@@ -48,10 +51,16 @@ def make_link(src, dest, control=None):
 #       #       #       #       #       #       #       #       #       #
 
 class Module:
-    def __init__(self):
-        self.ports = []
     def __repr__(self):
         return getattr(self, 'name', self.__class__.__name__)
+    @property
+    def ports(self):
+        return getattr(self, '_ports', [])
+    @ports.setter
+    def ports(self, ports):
+        self._ports = ports
+        for p in ports:
+            p.module = self
 
 #       #       #       #       #       #       #       #       #       #
 
@@ -103,7 +112,6 @@ class SignalGraph:
 
     def __init__(self):
         self.modules = []
-        self.port_modules = {}
         self.module_inputs = defaultdict(list)
         self.module_outputs = defaultdict(list)
         # `self.owned_links` holds links that this graph owns.
@@ -114,7 +122,6 @@ class SignalGraph:
     def module(self, mod):
         self.modules.append(mod)
         for p in mod.ports:
-            self.port_modules[p] = mod
             if isinstance(p, Input):
                 self.module_inputs[mod].append(p)
             if isinstance(p, Output):
@@ -187,10 +194,8 @@ class SignalGraph:
         for link in self.links:
             src = link.src
             dest = link.dest
-            pred = self.port_modules[src]
-            succ = self.port_modules[dest]
-            pred_index = self.modules.index(pred)
-            succ_index = self.modules.index(succ)
+            pred_index = self.modules.index(src.module)
+            succ_index = self.modules.index(dest.module)
             module_predecessor_mask[succ_index] |= 1 << pred_index
             if src not in port_sources[dest]:
                 port_sources[dest].append(src)
@@ -222,7 +227,7 @@ class SignalGraph:
                     for src in port_sources[dest]:
                         action = Copy
                         for link in control_links_between(src, dest):
-                            src_mod = self.port_modules[src]
+                            src_mod = src.module
                             order.append(action(src_mod, mod, link))
                             action = Add
 
@@ -237,13 +242,13 @@ class SignalGraph:
         for mod in self.modules:
             # print(f'mod = {mod}')
             for dest in self.module_inputs[mod]:
-                # print(f'    dest = {self.fqpn(dest)}')
+                # print(f'    dest = {dest.fqpn()}')
                 links = list(self.gen_links(None, None, dest, None))
                 # print(f'    links = {links}')
                 if links:
                     link = links[0]
                     if len(links) == 1 and type(link) == Link:
-                        src_mod = self.port_modules[link.src]
+                        src_mod = link.src.module
                         prep.append(Alias(src_mod, mod, link))
                 else:
                     prep.append(Clear(mod, dest))
@@ -253,29 +258,25 @@ class SignalGraph:
         Plan = namedtuple('Plan', 'prep order')
         return Plan(prep, order)
 
-    def fqpn(self, port):
-        return f'{self.port_modules[port]}.{port}'
-
     def dump(self):
 
         print(f'modules = {self.modules}\n')
 
-        for (map_name, fq) in {'port_modules': False,
-                               'module_inputs': False,
+        for (map_name, fq) in {'module_inputs': False,
                                'module_outputs': False,
                                }.items():
             print(f'{map_name} = {{')
             for (k, v) in getattr(self, map_name).items():
                 if fq:
-                    k = self.fqpn(k)
-                    v = f'[{", ".join(self.fqpn(p) for p in v)}]'
+                    k = k.fqpn()
+                    v = f'[{", ".join(p.fqpn() for p in v)}]'
                 print(f'    {k}: {v},')
             print('}\n')
 
         def link_name(link):
             tname = type(link).__name__
-            src = self.fqpn(link.src)
-            dest = self.fqpn(link.dest)
+            src = link.src.fqpn()
+            dest = link.dest.fqpn()
             rest = f', {link.control}' if link.control is not None else ''
             return f'{tname}({src}, {dest}{rest})'
 

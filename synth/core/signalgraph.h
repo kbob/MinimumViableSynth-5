@@ -12,8 +12,7 @@
 #include <utility>
 #include <vector>
 
-#include <cxxabi.h>
-
+#include "synth/util/span-map.h"
 #include "synth/util/vec-map.h"
 
 const double  DEFAULT_RANGE      = 1.0;
@@ -22,6 +21,8 @@ const bool    DEFAULT_ENABLEMENT = false;
 typedef float DEFAULT_SAMPLE_TYPE;
 
 // -- Debugging - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
+
+#include <cxxabi.h>
 
 #define HERE (std::cout << __FILE__ << ':' << __LINE__ << std::endl)
 
@@ -92,13 +93,19 @@ public:
         return *this;
     }
 
+    const class Module& module() const { return *m_module; }
+    void module(const class Module& module) { m_module = &module; }
+
 protected:
 
     // Abstract base class.  Must subclass to use.
     Port() {}
+
     virtual ~Port() {}
 
 private:
+
+    const class Module *m_module;
 
     std::string m_name;
 
@@ -356,6 +363,7 @@ protected:
     void ports(Port& p, Types&... rest)
     {
         m_ports.push_back(&p);
+        p.module(*this);
         ports(rest...);
     }
 
@@ -375,6 +383,11 @@ private:
 std::string module_name(const Module& m)
 {
     return m.name().empty() ? type_name(m) : m.name();
+}
+
+std::string fqpn(const Port& p)
+{
+    return module_name(p.module()) + "." + port_name(p);
 }
 
 // -- Actions  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
@@ -433,8 +446,6 @@ public:
     virtual void do_it()
     {
         assert(false && "not implemented");
-        if (m_link)             // -Wunused-private-field
-            ;
     }
 
     virtual std::string repr() const
@@ -450,6 +461,42 @@ private:
 
 };
 
+class Add : public Action {
+
+public:
+
+    Add(const Module *src_mod, const Module *dest_mod, const Link *link)
+    : m_src_mod(src_mod),
+      m_dest_mod(dest_mod),
+      m_link(link)
+    {}
+
+    virtual void do_it()
+    {
+        assert (false && "not implemented");
+    }
+
+    virtual std::string repr() const
+    {
+        auto src_port = m_link->key().first;
+        auto dest_port = m_link->key().second;
+        auto src_mod_name = module_name(*m_src_mod);
+        auto dest_mod_name = module_name(*m_dest_mod);
+        auto src_port_name = port_name(*src_port);
+        auto dest_port_name = port_name(*dest_port);
+        auto fq_src_port_name = src_mod_name + "." + src_port_name;
+        auto fq_dst_port_name = dest_mod_name + "." + dest_port_name;
+        return "Add(" + fq_src_port_name + ", ", fq_dst_port_name + ")";
+    }
+
+private:
+
+    const Module *m_src_mod;
+    const Module *m_dest_mod;
+    const Link *m_link;
+
+};
+
 class Clear : public Action {
 
 public:
@@ -462,8 +509,6 @@ public:
     virtual void do_it()
     {
         assert(false && "not implemented");
-        if (m_module || m_port) // -Wunused-private-field
-            ;
     }
 
     virtual std::string repr() const
@@ -482,6 +527,42 @@ private:
 
 };
 
+class Alias : public Action {
+
+public:
+
+    Alias(const Module *src_mod, const Module *dest_mod, const Link *link)
+    : m_src_mod(src_mod),
+      m_dest_mod(dest_mod),
+      m_link(link)
+    {}
+
+    virtual void do_it()
+    {
+        assert(false && "not implemented");
+    }
+
+    virtual std::string repr() const
+    {
+        auto src_port = m_link->key().first;
+        auto dest_port = m_link->key().second;
+        auto src_mod_name = module_name(*m_src_mod);
+        auto dest_mod_name = module_name(*m_dest_mod);
+        auto src_port_name = port_name(*src_port);
+        auto dest_port_name = port_name(*dest_port);
+        auto fq_src_port_name = src_mod_name + "." + src_port_name;
+        auto fq_dst_port_name = dest_mod_name + "." + dest_port_name;
+        return "Alias(" + fq_src_port_name + ", ", fq_dst_port_name + ")";
+    }
+
+private:
+
+    const Module *m_src_mod;
+    const Module *m_dest_mod;
+    const Link *m_link;
+
+};
+
 // -- SignalGraph -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 // XXX write something
 
@@ -494,7 +575,6 @@ public:
     {
         m_modules.push_back(&mod);
         for (auto p : mod.ports()) {
-            m_port_modules[p] = &mod;
 
             // Create map entries in case modules has no inputs or no outputs.
             m_module_inputs[&mod];
@@ -595,9 +675,7 @@ public:
             for (auto dest : m_module_inputs[m]) {
                 for (auto src : m_port_sources[dest]) {
                     if (is_active(src, dest)) {
-                        if (not_done.find(m_port_modules[src]) !=
-                            not_done.end())
-                        {
+                        if (not_done.find(&src->module()) != not_done.end()) {
                             // module has an input that is connected
                             // through an active link to an output of
                             // a module that is not done.  Whew!
@@ -680,7 +758,7 @@ public:
             //
             //     not_done -= ready
             //
-            // None of them are good.
+            // None of them are good.  I hate C++.
 #if 1
             // Runs but uses extra space.
             ModuleSet tmp;
@@ -735,16 +813,6 @@ public:
         for (auto i : m_modules)
             std::cout << "    " << module_name(*i) << "," << std::endl;
         std::cout << "]\n" << std::endl;
-
-        std::cout << "m_port_modules = {" << std::endl;
-        for (auto i : m_port_modules)
-            std::cout << "    "
-                      << i.first->name()
-                      << ": "
-                      << module_name(*i.second)
-                      << ","
-                      << std::endl;
-        std::cout << "}\n" << std::endl;
 
         std::cout << "m_module_inputs = {" << std::endl;
         for (auto mod : m_modules) {
@@ -822,17 +890,11 @@ public:
 
 private:
 
-    std::string fqpn(const Port& port) const
-    {
-        return module_name(*m_port_modules.at(&port)) + "." + port_name(port);
-    }
-
     // XXX should these be unordered maps?
 
     // XXX should `m_link_map` be a vector?  Vectors are slower but use
     // memory predictably.
     std::vector<const Module *> m_modules;
-    std::map<const Port *, const Module *> m_port_modules;
     std::map<const Module *, std::vector<InputPort *>> m_module_inputs;
     std::map<const Module *, std::vector<OutputPort *>> m_module_outputs;
     std::vector<std::unique_ptr<Link>> m_links;

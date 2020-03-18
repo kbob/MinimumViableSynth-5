@@ -469,8 +469,6 @@ public:
         --a;
         TS_ASSERT(*a == 2.13f);
         TS_ASSERT(a == m.crbegin());
-
     }
-    // test mapped_span types, empty, size, front and back, iterators.
 
 };
