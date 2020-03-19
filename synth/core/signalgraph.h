@@ -16,8 +16,10 @@
 #include "synth/util/span-map.h"
 #include "synth/util/vec-map.h"
 
-const double  DEFAULT_RANGE      = 1.0;
-const double  DEFAULT_INTENSITY  = 1.0;
+const size_t  MAX_MODULES        = 32;
+const size_t  MAX_PORTS          = 32;
+const double  DEFAULT_RANGE      =  1.0;
+const double  DEFAULT_INTENSITY  =  1.0;
 const bool    DEFAULT_ENABLEMENT = false;
 typedef float DEFAULT_SAMPLE_TYPE;
 
@@ -257,6 +259,7 @@ public:
         return Key(m_src, m_dest, m_control);
     }
 
+    // XXX deprecate this.
     virtual bool is_active() const
     {
         return true;            // signal links are always active.
@@ -446,6 +449,8 @@ class Action {
 
 public:
 
+    virtual ~Action() {}
+
     virtual void do_it() = 0;
 
     virtual std::string repr() const
@@ -456,7 +461,6 @@ public:
 protected:
 
     Action() {}
-    virtual ~Action() {}
 
 };
 
@@ -594,6 +598,43 @@ private:
 };
 
 
+// -- Plan  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
+// XXX write something
+
+class Plan {
+
+public:
+
+    typedef std::vector<std::unique_ptr<Action>> action_sequence;
+
+    const action_sequence& prep() const
+    {
+        return m_prep;
+    }
+
+    const action_sequence& order() const
+    {
+        return m_order;
+    }
+
+    void push_back_prep(Action *action)
+    {
+        m_prep.emplace_back(action);
+    }
+
+    void push_back_order(Action *action)
+    {
+        m_prep.emplace_back(action);
+    }
+
+
+private:
+
+    action_sequence m_prep;
+    action_sequence m_order;
+
+};
+
 // -- SignalGraph -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 // XXX write something
 
@@ -624,7 +665,7 @@ public:
     SignalGraph& connect(OutputPort& src, InputPort& dest)
     {
         auto link = make_link(src, dest);
-        m_links.emplace_back(link);
+        m_owned_links.emplace_back(link);
         return connection(link);
     }
 
@@ -637,18 +678,21 @@ public:
 
         if (dynamic_cast<Controlled *>(dest)) {
             // can't have two links with the same key.
-            assert(m_link_map.find(key) == m_link_map.end());
+            assert(std::find_if(m_links.begin(),
+                                m_links.end(),
+                                [&] (Link *& l) {
+                                    return l->key() == key;
+                                }) == m_links.end());
         } else {
             // can't have two links to the same signal dest.
-            assert(!any_of(m_link_map.begin(),
-                           m_link_map.end(),
-                           [=] (std::pair<Link::Key, Link *> item) {
-                               return item.first.dest() == dest;
-                           }
-                       ));
+            assert(std::none_of(m_links.begin(),
+                                m_links.end(),
+                                [&] (Link *& l) {
+                                    return l->key().dest() == dest;
+                                }));
         }
 
-        m_link_map[key] = link;
+        m_links.push_back(link);
         m_port_destinations[src].push_back(dest);
         m_port_sources[dest].push_back(src);
         return *this;
@@ -658,18 +702,16 @@ public:
                             InputPort& dest,
                             Control *control = nullptr)
     {
-        // Get link position in m_link_map.
         auto key = Link::Key(&src, &dest, control);
-        auto link_map_pos = m_link_map.find(key);
 
-        // Verify src and dest are connected.
-        assert(link_map_pos != m_link_map.end());
-
-        // Get the link.
-        Link *link = link_map_pos->second;
-
-        // Remove from m_link_map.
-        m_link_map.erase(link_map_pos);
+        // Find in m_links;
+        auto links_pos = std::find_if(m_links.begin(),
+                                      m_links.end(),
+                                      [&](Link *& p) {
+                                          return p->key() == key;
+                                      });
+        assert(links_pos != m_links.end());
+        Link *link = *links_pos;
 
         // Remove dest from m_port_destinations.
         auto& dests = m_port_destinations.at(&src);
@@ -679,17 +721,32 @@ public:
         auto& sources = m_port_sources.at(&dest);
         sources.erase(std::find(sources.begin(), sources.end(), &src));
 
-        // If link is in m_links, remove it.
-        auto links_pos = std::find_if(m_links.begin(),
-                                      m_links.end(),
-                                      [=](std::unique_ptr<Link>& p) {
-                                          return p.get() == link;
-                                      });
-        if (links_pos != m_links.end())
-            m_links.erase(links_pos);
+        // If link is in m_owned_links, remove it.
+        auto owned_links_pos = std::find_if(m_owned_links.begin(),
+                                            m_owned_links.end(),
+                                            [&](std::unique_ptr<Link>& p) {
+                                                return p.get() == link;
+                                            });
+        if (owned_links_pos != m_owned_links.end())
+            m_owned_links.erase(owned_links_pos);
+
+        // Remove from m_links.
+        m_links.erase(links_pos);
 
         return *this;
     }
+
+    // Plan new_plan()
+    // {
+    //     const size_t n_modules = m_modules.size();
+    //     assert(n_modules <= MAX_MODULES);
+    //     int32_t module_predecessor_mask = 0;
+    //     span_map<Port *, Port *> port_sources;
+    //     port_sources.reserve(MAX_PORTS);
+    //     port_sources.values_reserve(MAX_PORTS);
+    //
+    //     for (auto it : self.link_map)
+    // }
 
     // XXX actions allocated here are leaked.
     typedef std::vector<Action *> Order;
@@ -700,8 +757,11 @@ public:
         ModuleSet not_done(m_modules.begin(), m_modules.end());
 
         auto is_active = [&] (OutputPort *src, InputPort *dest) {
-            auto key = Link::Key(src, dest);
-            return m_link_map.at(key)->is_active();
+            auto match = [&] (Link *& l) {
+                auto k = l->key();
+                return k.src() == src && k.dest() == dest && l->is_active();
+            };
+            return std::any_of(m_links.begin(), m_links.end(), match);
         };
 
         auto is_ready = [&] (const Module *m) {
@@ -755,7 +815,7 @@ public:
                 for (auto dest : m_module_inputs[mod]) {
                     bool any_active = false;
                     for (auto src : m_port_sources[dest]) {
-                        if (m_link_map[Link::Key(src, dest)]->is_active())
+                        if (is_active(src, dest))
                             any_active = true;
                     }
                     if (!any_active)
@@ -773,7 +833,15 @@ public:
             for (auto src_mod : ready) {
                 for (auto out : m_module_outputs[src_mod]) {
                     for (auto dest : m_port_destinations[out]) {
-                        auto link = m_link_map[Link::Key(out, dest)];
+                        auto match = [&] (Link *& l) {
+                            auto k = l->key();
+                            return k.src() == out && k.dest() == dest;
+                        };
+                        auto pos = std::find_if(m_links.begin(),
+                                                m_links.end(),
+                                                match);
+                        assert(pos != m_links.end());
+                        Link *link = *pos;
                         if (dynamic_cast<ControlLink *>(link) &&
                             link->is_active())
                         {
@@ -833,13 +901,6 @@ public:
         return order;
     }
 
-    // // XXX make private
-    // bool is_active(OutputPort *src, InputPort *dest) const
-    // {
-    //     auto key = std::make_pair(src, dest);
-    //     return m_link_map.at(key)->is_active();
-    // }
-
     void dump_maps() const
     {
         std::cout << "m_modules = [" << std::endl;
@@ -896,8 +957,7 @@ public:
         std::cout << "}\n" << std::endl;
 
         std::cout << "m_links = [" << std::endl;
-        for (auto it = m_links.begin(); it != m_links.end(); it++) {
-            auto link = it->get();
+        for (auto link : m_links) {
             auto key = link->key();
             std::cout << "    "
                       << type_name(*link)
@@ -910,9 +970,9 @@ public:
         }
         std::cout << "]\n" << std::endl;
 
-        std::cout << "m_link_map = {" << std::endl;
-        for (auto pr : m_link_map) {
-            auto link = pr.second;
+        std::cout << "m_owned_links = [" << std::endl;
+        for (auto it = m_owned_links.begin(); it != m_owned_links.end(); it++) {
+            auto link = it->get();
             auto key = link->key();
             std::cout << "    "
                       << type_name(*link)
@@ -923,20 +983,16 @@ public:
                       << "),"
                       << std::endl;
         }
-        std::cout << "}\n" << std::endl;
+        std::cout << "]\n" << std::endl;
     }
 
 private:
 
-    // XXX should these be unordered maps?
-
-    // XXX should `m_link_map` be a vector?  Vectors are slower but use
-    // memory predictably.
     std::vector<const Module *> m_modules;
     std::map<const Module *, std::vector<InputPort *>> m_module_inputs;
     std::map<const Module *, std::vector<OutputPort *>> m_module_outputs;
-    std::vector<std::unique_ptr<Link>> m_links;
-    std::map<Link::Key, Link *> m_link_map;
+    std::vector<Link *> m_links;
+    std::vector<std::unique_ptr<Link>> m_owned_links;
     std::map<OutputPort *, std::vector<InputPort *>> m_port_destinations;
     std::map<InputPort *, std::vector<OutputPort *>> m_port_sources;
 
