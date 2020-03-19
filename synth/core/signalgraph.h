@@ -588,7 +588,7 @@ public:
         return *this;
     }
 
-    // Create an anonymous like, add it to the graph, and
+    // Create an anonymous link, add it to the graph, and
     // retain ownership.
     SignalGraph& connect(OutputPort& src, InputPort& dest)
     {

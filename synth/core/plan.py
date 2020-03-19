@@ -1,16 +1,44 @@
 from collections import defaultdict, namedtuple
 from pprint import pprint
 
+# This is an outline of the synth core components, how they relate
+# and interact.
+#
+#   Port and its subclasses: Control, Input, ControlInput, Output,
+#   ControlOutput.  In the real thing, the concrete subclasses are
+#   templated by signal type.
+#
+#   Link and its subclass, ControlLink.
+#
+#   Module and some toy example subclasses: BLOscillator,
+#   Attenuator, Mixer.
+#
+#   Action and it subclasses, Render, Clear, Copy, Add, Alias.
+#
+#   SignalGraph.  The graph is made of modules and links that
+#   connect their ports.  The main event there is the `plan` method,
+#   which spits out a `Plan` object.
+#
+#   Plan.  A plan has a list of actions to start a note, then
+#   a separate list of actions to render a buffer of samples.
+#   The idea is that all decision making is moved out of the
+#   sampling loop -- just execute the plan sequentially.
+#
+# This is an outline.  You can run it, and it prints the data
+# structures.  The C++ code has exactly the same organization,
+# but it's harder to follow.
+
+
 class Port:
     def __init__(self, name):
         self.name = name
         self.module = None
     def __repr__(self):
         return getattr(self, 'name', self.__class__.__name__)
-    def fqpn(self):
+    def fqpn(self):             # "fully qualified port name"
         return f'{repr(self.module)}.{repr(self)}'
 
-class Control:
+class Control:                  # mixin for control ports
     pass
 
 class Input(Port):
