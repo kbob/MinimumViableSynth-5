@@ -8,6 +8,7 @@
 #include <iterator>
 #include <map>
 #include <set>
+#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -19,6 +20,7 @@ const double  DEFAULT_RANGE      = 1.0;
 const double  DEFAULT_INTENSITY  = 1.0;
 const bool    DEFAULT_ENABLEMENT = false;
 typedef float DEFAULT_SAMPLE_TYPE;
+
 
 // -- Debugging - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 
@@ -42,6 +44,7 @@ static std::string type_name(T& obj)
     const std::string& mangled = typeid(*&obj).name();
     return demangle(mangled);
 }
+
 
 // -- Ports -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 //
@@ -140,13 +143,13 @@ protected:
 
 };
 
-// `Control` is a mixin.  It marks a port as a control port.  (See above.)
-class Control {
+// `Controlled` is a mixin.  It marks a port as a control port.  (See above.)
+class Controlled {
 
 protected:
 
     // Abstract base class.  Must subclass to use.
-    Control() {}
+    Controlled() {}
 
 };
 
@@ -164,7 +167,7 @@ public:
 // A `ControlInput<T>` has an element type and a range.
 // The range sets the maximum meaningful value for the input.
 template <class ElementType = double>
-class ControlInput : public Input<ElementType>, public Control {
+class ControlInput : public Input<ElementType>, public Controlled {
 
 public:
 
@@ -204,7 +207,14 @@ public:
 // The ElementType can be used to imply a transform.
 // XXX need to work out the transform details.
 template <class ElementType = double>
-class ControlOutput : public Output<ElementType>, public Control {};
+class ControlOutput : public Output<ElementType>, public Controlled {};
+
+
+// -- Controls -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
+// XXX TBD
+
+class Control {};
+
 
 // -- Links -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 // XXX write something
@@ -213,21 +223,38 @@ class ControlOutput : public Output<ElementType>, public Control {};
 
 class Link {
 
+    typedef std::tuple<OutputPort *, InputPort *, Control *> key_base;
+
 public:
 
     // XXX use a better name than "Key".
-    typedef std::pair<OutputPort *, InputPort *> Key;
+    // typedef std::pair<OutputPort *, InputPort *> Key;
+    // typedef std::tuple<OutputPort *, InputPort *, Control *> Key;
+    class Key : public key_base {
 
-    Link(OutputPort& src, InputPort& dest)
-    : m_src(&src),
-      m_dest(&dest)
-    {}
+    public:
 
+        Key(OutputPort *src, InputPort *dest, Control *control = nullptr)
+        : key_base(src, dest, control)
+        {}
+
+        OutputPort  *src() const { return std::get<0>(*this); }
+        InputPort  *dest() const { return std::get<1>(*this); }
+        Control *control() const { return std::get<2>(*this); }
+
+    };
+
+    // Link(OutputPort& src, InputPort& dest)
+    // : m_src(&src),
+    //   m_dest(&dest)
+    // {}
+    //
     virtual ~Link() {}
 
     Key key() const
     {
-        return std::make_pair(m_src, m_dest);
+        // return std::make_tuple(m_src, m_dest, m_control);
+        return Key(m_src, m_dest, m_control);
     }
 
     virtual bool is_active() const
@@ -235,10 +262,30 @@ public:
         return true;            // signal links are always active.
     }
 
+protected:
+
+    Link(OutputPort& src, InputPort& dest, Control *control = nullptr)
+    : m_src(&src),
+      m_dest(&dest),
+      m_control(control)
+    {
+        m_control = &*m_control;
+    }
+
 private:
 
     OutputPort *m_src;
     InputPort *m_dest;
+    Control *m_control;
+};
+
+class SimpleLink : public Link {
+
+public:
+
+    SimpleLink(OutputPort& src, InputPort& dest)
+    : Link(src, dest)
+    {}
 
 };
 
@@ -289,11 +336,12 @@ private:
 
 Link *make_link(OutputPort& src, InputPort& dest)
 {
-    if (dynamic_cast<Control *>(&dest))
+    if (dynamic_cast<Controlled *>(&dest))
         return new ControlLink(src, dest);
     else
-        return new Link(src, dest);
+        return new SimpleLink(src, dest);
 }
+
 
 // -- Modules  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 //
@@ -390,6 +438,7 @@ std::string fqpn(const Port& p)
     return module_name(p.module()) + "." + port_name(p);
 }
 
+
 // -- Actions  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 // XXX write something
 
@@ -450,9 +499,10 @@ public:
 
     virtual std::string repr() const
     {
-        auto src = m_link->key().first;
-        auto dest = m_link->key().second;
-        return "Copy(" + port_name(*src) + ", " + port_name(*dest) + ")";
+        auto key = m_link->key();
+        auto src = key.src();
+        auto dest = key.dest();
+        return "Copy(" + fqpn(*src) + ", " + fqpn(*dest) + ")";
     }
 
 private:
@@ -465,10 +515,8 @@ class Add : public Action {
 
 public:
 
-    Add(const Module *src_mod, const Module *dest_mod, const Link *link)
-    : m_src_mod(src_mod),
-      m_dest_mod(dest_mod),
-      m_link(link)
+    Add(const Link *link)
+    : m_link(link)
     {}
 
     virtual void do_it()
@@ -478,21 +526,14 @@ public:
 
     virtual std::string repr() const
     {
-        auto src_port = m_link->key().first;
-        auto dest_port = m_link->key().second;
-        auto src_mod_name = module_name(*m_src_mod);
-        auto dest_mod_name = module_name(*m_dest_mod);
-        auto src_port_name = port_name(*src_port);
-        auto dest_port_name = port_name(*dest_port);
-        auto fq_src_port_name = src_mod_name + "." + src_port_name;
-        auto fq_dst_port_name = dest_mod_name + "." + dest_port_name;
-        return "Add(" + fq_src_port_name + ", ", fq_dst_port_name + ")";
+        auto key = m_link->key();
+        return "Add(" + fqpn(*key.src()) + ", " + fqpn(*key.dest()) + ")";
     }
 
 private:
 
-    const Module *m_src_mod;
-    const Module *m_dest_mod;
+    // const Module *m_src_mod;
+    // const Module *m_dest_mod;
     const Link *m_link;
 
 };
@@ -531,10 +572,8 @@ class Alias : public Action {
 
 public:
 
-    Alias(const Module *src_mod, const Module *dest_mod, const Link *link)
-    : m_src_mod(src_mod),
-      m_dest_mod(dest_mod),
-      m_link(link)
+    Alias(const Link *link)
+    : m_link(link)
     {}
 
     virtual void do_it()
@@ -544,24 +583,16 @@ public:
 
     virtual std::string repr() const
     {
-        auto src_port = m_link->key().first;
-        auto dest_port = m_link->key().second;
-        auto src_mod_name = module_name(*m_src_mod);
-        auto dest_mod_name = module_name(*m_dest_mod);
-        auto src_port_name = port_name(*src_port);
-        auto dest_port_name = port_name(*dest_port);
-        auto fq_src_port_name = src_mod_name + "." + src_port_name;
-        auto fq_dst_port_name = dest_mod_name + "." + dest_port_name;
-        return "Alias(" + fq_src_port_name + ", ", fq_dst_port_name + ")";
+        auto key = m_link->key();
+        return "Alias(" + fqpn(*key.src()) + ", " + fqpn(*key.dest()) + ")";
     }
 
 private:
 
-    const Module *m_src_mod;
-    const Module *m_dest_mod;
     const Link *m_link;
 
 };
+
 
 // -- SignalGraph -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 // XXX write something
@@ -601,18 +632,18 @@ public:
     SignalGraph& connection(Link *link)
     {
         auto key = link->key();
-        auto src = key.first;
-        auto dest = key.second;
+        auto src = key.src();
+        auto dest = key.dest();
 
-        if (dynamic_cast<Control *>(dest)) {
-            // can't have two links between the same src and control dest.
+        if (dynamic_cast<Controlled *>(dest)) {
+            // can't have two links with the same key.
             assert(m_link_map.find(key) == m_link_map.end());
         } else {
             // can't have two links to the same signal dest.
             assert(!any_of(m_link_map.begin(),
                            m_link_map.end(),
                            [=] (std::pair<Link::Key, Link *> item) {
-                               return item.first.second == dest;
+                               return item.first.dest() == dest;
                            }
                        ));
         }
@@ -623,10 +654,12 @@ public:
         return *this;
     }
 
-    SignalGraph& disconnect(OutputPort& src, InputPort& dest)
+    SignalGraph& disconnect(OutputPort& src,
+                            InputPort& dest,
+                            Control *control = nullptr)
     {
         // Get link position in m_link_map.
-        Link::Key key = std::make_pair(&src, &dest);
+        auto key = Link::Key(&src, &dest, control);
         auto link_map_pos = m_link_map.find(key);
 
         // Verify src and dest are connected.
@@ -667,7 +700,7 @@ public:
         ModuleSet not_done(m_modules.begin(), m_modules.end());
 
         auto is_active = [&] (OutputPort *src, InputPort *dest) {
-            auto key = std::make_pair(src, dest);
+            auto key = Link::Key(src, dest);
             return m_link_map.at(key)->is_active();
         };
 
@@ -722,7 +755,7 @@ public:
                 for (auto dest : m_module_inputs[mod]) {
                     bool any_active = false;
                     for (auto src : m_port_sources[dest]) {
-                        if (m_link_map[std::make_pair(src, dest)]->is_active())
+                        if (m_link_map[Link::Key(src, dest)]->is_active())
                             any_active = true;
                     }
                     if (!any_active)
@@ -740,7 +773,7 @@ public:
             for (auto src_mod : ready) {
                 for (auto out : m_module_outputs[src_mod]) {
                     for (auto dest : m_port_destinations[out]) {
-                        auto link = m_link_map[std::make_pair(out, dest)];
+                        auto link = m_link_map[Link::Key(out, dest)];
                         if (dynamic_cast<ControlLink *>(link) &&
                             link->is_active())
                         {
@@ -864,25 +897,30 @@ public:
 
         std::cout << "m_links = [" << std::endl;
         for (auto it = m_links.begin(); it != m_links.end(); it++) {
-            auto key = it->get()->key();
-            std::cout << "    ("
-                      << fqpn(*key.first)
+            auto link = it->get();
+            auto key = link->key();
+            std::cout << "    "
+                      << type_name(*link)
+                      << "("
+                      << fqpn(*key.src())
                       << ", "
-                      << fqpn(*key.second)
+                      << fqpn(*key.dest())
                       << "),"
                       << std::endl;
         }
         std::cout << "]\n" << std::endl;
 
         std::cout << "m_link_map = {" << std::endl;
-        for (auto i : m_link_map) {
-            std::cout << "    ("
-                      << fqpn(*i.first.first)
+        for (auto pr : m_link_map) {
+            auto link = pr.second;
+            auto key = link->key();
+            std::cout << "    "
+                      << type_name(*link)
+                      << "("
+                      << fqpn(*key.src())
                       << ", "
-                      << fqpn(*i.first.second)
-                      << "): "
-                      << type_name(*i.second)
-                      << ","
+                      << fqpn(*key.dest())
+                      << "),"
                       << std::endl;
         }
         std::cout << "}\n" << std::endl;

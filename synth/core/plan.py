@@ -4,11 +4,11 @@ from pprint import pprint
 # This is an outline of the synth core components, how they relate
 # and interact.
 #
-#   Port and its subclasses: Control, Input, ControlInput, Output,
+#   Port and its subclasses: Controlled, Input, ControlInput, Output,
 #   ControlOutput.  In the real thing, the concrete subclasses are
 #   templated by signal type.
 #
-#   Link and its subclass, ControlLink.
+#   Link and its subclasses, SimpleLink and ControlLink.
 #
 #   Module and some toy example subclasses: BLOscillator,
 #   Attenuator, Mixer.
@@ -38,29 +38,36 @@ class Port:
     def fqpn(self):             # "fully qualified port name"
         return f'{repr(self.module)}.{repr(self)}'
 
-class Control:                  # mixin for control ports
+class Controlled:                  # mixin for control ports
     pass
 
 class Input(Port):
     pass
 
-class ControlInput(Input, Control):
+class ControlInput(Input, Controlled):
     pass
 
 class Output(Port):
     pass
 
-class ControlOutput(Output, Control):
+class ControlOutput(Output, Controlled):
     pass
 
 #       #       #       #       #       #       #       #       #       #
 
 class Link(namedtuple('Link', 'src dest control', defaults=(None, ))):
+    def __new__(cls, *args, **kwargs):
+        if cls is Link:
+            raise TypeError("can't instantiate Link")
+        return super().__new__(cls, *args, **kwargs)
     def __repr__(self):
         rest = f', {self[2]}' if self[2] is not None else ''
         return f'{type(self).__name__}({self[0]!r}, {self[1]!r}{rest})'
     def is_active(self):
         return True
+
+class SimpleLink(Link):
+    pass
 
 class ControlLink(Link):
     def __init__(self, src, dest, control=None):
@@ -71,7 +78,7 @@ class ControlLink(Link):
         return self.enabled and self.intensity != 0
 
 def make_link(src, dest, control=None):
-    if isinstance(dest, Control):
+    if isinstance(dest, Controlled):
         return ControlLink(src, dest, control)
     else:
         return Link(src, dest)
@@ -158,19 +165,19 @@ class SignalGraph:
 
     def connect(self, src, dest):
         # create an unnamed link, add it to the graph, and retain ownership.
-        link = Link(src, dest)
+        link = SimpleLink(src, dest)
         self.connection(link)   # do this first; it may assert.
         self.owned_links.append(link)
         return self
 
     # A ControlInput can have many ControlLinks.
-    # A ControlInput can have no (signal)Links.
-    # A (signal)Input can have one (signal)Link.
+    # A ControlInput can have no SimpleLinks.
+    # A (signal)Input can have one SimpleLink.
     # A (signal)Input can have no ControlLinks.
 
     # A ControlOutput can feed many ControlLinks.
-    # A ControlOutput can feed many (signal)Links.
-    # A (signal)Output can feed many (signal)Links.
+    # A ControlOutput can feed many SimpleLinks.
+    # A (signal)Output can feed many SimpleLinks.
     # A (signal)Output can feed many ControlLinks.
 
     def connection(self, link):
