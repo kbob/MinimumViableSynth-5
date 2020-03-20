@@ -499,7 +499,7 @@ class Copy : public Action {
 
 public:
 
-    Copy(Link *link)
+    Copy(const Link *link)
     : m_link(link)
     {}
 
@@ -518,7 +518,7 @@ public:
 
 private:
 
-    Link *m_link;
+    const Link *m_link;
 
 };
 
@@ -676,7 +676,7 @@ public:
     }
 
     // Add a non-owned link to the graph.
-    SignalGraph& add_connection(Link *link)
+    SignalGraph& add_connection(const Link *link)
     {
 #ifndef NDEBUG
         auto key = link->key();
@@ -691,14 +691,14 @@ public:
             // can't have two links with the same key.
             assert(std::find_if(m_links.begin(),
                                 m_links.end(),
-                                [&] (Link *& l) {
+                                [&] (const Link *& l) {
                                     return l->key() == key;
                                 }) == m_links.end());
         } else {
             // can't have two links to the same signal dest.
             assert(std::none_of(m_links.begin(),
                                 m_links.end(),
-                                [&] (Link *& l) {
+                                [&] (const Link *& l) {
                                     return l->key().dest() == dest;
                                 }));
         }
@@ -716,11 +716,11 @@ public:
         // Find in m_links.
         auto links_pos = std::find_if(m_links.begin(),
                                       m_links.end(),
-                                      [&](Link *& p) {
+                                      [&](const Link *& p) {
                                           return p->key() == key;
                                       });
         assert(links_pos != m_links.end());
-        Link *link = *links_pos;
+        const Link *link = *links_pos;
 
         // If link is in m_owned_links, remove and delete it.
         auto owned_links_pos = std::find_if(m_owned_links.begin(),
@@ -752,11 +752,11 @@ public:
 
         // `ports` maps port indices to Ports.  port indices
         // are used in `port_sources`.
-        std::array<Port *, MAX_PORTS> ports;
+        std::array<const Port *, MAX_PORTS> ports;
         ports.fill(nullptr);
         size_t port_idx = 0;
-        for (auto m : m_modules) {
-            for (auto p : m->ports()) {
+        for (const auto *m : m_modules) {
+            for (const auto *p : m->ports()) {
                 assert(port_idx < MAX_PORTS);
                 ports[port_idx++] = p;
             }
@@ -779,7 +779,7 @@ public:
 
         // iterate through the links and fill in both
         // `module_predecessors` and `port_sources`.
-        for (auto link : m_links) {
+        for (const auto& link : m_links) {
             auto key = link->key();
             auto src = key.src();
             auto dest = key.dest();
@@ -804,14 +804,14 @@ public:
         //             if no links to dest: gen Clear action
         //             if one simple link to dest: gen Alias action
         //
-        for (auto mod : m_modules) {
-            for (auto port : mod->ports()) {
+        for (const auto *mod : m_modules) {
+            for (auto *port : mod->ports()) {
                 InputPort *dest = dynamic_cast<InputPort *>(port);
                 if (!dest)
                     continue;
                 size_t link_count = 0;
-                Link *a_link = nullptr;
-                for (auto link : m_links) {
+                const Link *a_link = nullptr;
+                for (const auto *link : m_links) {
                     if (link->key().dest() == dest) {
                         link_count++;
                         a_link = link;
@@ -820,7 +820,7 @@ public:
                 if (link_count == 0) {
                     plan.push_back_prep(new Clear(dest));
                 } else if (link_count == 1 &&
-                           !dynamic_cast<ControlLink *>(a_link)) {
+                           !dynamic_cast<const ControlLink *>(a_link)) {
                     plan.push_back_prep(new Alias(a_link));
                 }
             }
@@ -859,16 +859,15 @@ public:
                 if (!(ready_mask & 1 << i))
                     continue;
                 const Module *mod = m_modules[i];
-                // for (auto dest : m_module_inputs[mod]) {
-                for (auto port : mod->ports()) {
+                for (auto *port : mod->ports()) {
                     InputPort *dest = dynamic_cast<InputPort *>(port);
                     if (!dest)
                         continue;
                     bool copied = false;
-                    for (auto link : m_links) {
+                    for (const auto *link : m_links) {
                         if (link->key().dest() != dest)
                             continue;
-                        if (!dynamic_cast<ControlLink *>(link))
+                        if (!dynamic_cast<const ControlLink *>(link))
                             continue;
                         Action *act;
                         if (!copied) {
@@ -894,12 +893,12 @@ public:
     void dump_maps() const
     {
         std::cout << "m_modules = [" << std::endl;
-        for (auto i : m_modules)
-            std::cout << "    " << module_name(*i) << "," << std::endl;
+        for (const auto *mod : m_modules)
+            std::cout << "    " << module_name(*mod) << "," << std::endl;
         std::cout << "]\n" << std::endl;
 
         std::cout << "m_links = [" << std::endl;
-        for (auto link : m_links) {
+        for (const auto *link : m_links) {
             auto key = link->key();
             std::cout << "    "
                       << type_name(*link)
@@ -934,7 +933,7 @@ private:
     size_t count_ports()
     {
         size_t count = 0;
-        for (auto m : m_modules) {
+        for (const auto *m : m_modules) {
             count += m->ports().size();
         }
         return count;
@@ -954,7 +953,7 @@ private:
     std::vector<const Module *> m_modules;
 
     // all links (edges) in the graph.
-    std::vector<Link *> m_links;
+    std::vector<const Link *> m_links;
 
     // some links are anonymous and owned by the SignalGraph.
     // Store those here so they will be deleted with the graph.

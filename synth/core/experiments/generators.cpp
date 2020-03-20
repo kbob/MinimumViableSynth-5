@@ -103,6 +103,7 @@ private:
         }
         bool operator != (const iter& that) { return !(*this == that); }
         int operator * () { return m_value; }
+        const int& operator * () const { return m_value; }
         iter& operator ++ () { m_pos = advance(m_pos); return *this; }
 
         // ++ calls f and stores its value
@@ -160,7 +161,7 @@ int main()
     }
 
     std::array<uint16_t, 5> a = { 0, 1, 0x12F8, 0x8000, 0xFFFF };
-    for (auto word : a) {
+    for (auto& word : a) {
         std::cout << std::hex << word << ": ";
         for (auto bit : set_bits<uint16_t>(word)) {
             std::cout << bit << " ";

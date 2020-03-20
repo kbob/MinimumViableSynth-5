@@ -178,14 +178,6 @@ static void print_plan(const Plan& plan)
     std::cout << ")\n" << std::endl;
 }
 
-// static void print_order(const SignalGraph::Order& order)
-// {
-//     std::cout << "order = [\n";
-//     for (auto a : order)
-//         std::cout << "    " << a->repr() << "\n";
-//     std::cout << "]\n" << std::endl;
-// }
-
 int main()
 {
     StupidSynth ss;
@@ -193,15 +185,6 @@ int main()
 
     Plan plan = ss.graph().make_plan();
     print_plan(plan);
-    // SignalGraph::Order order = ss.graph().plan();
-    // std::cout << "# With attenuator gain disabled" << std::endl;
-    // print_order(order);
-
-    // ss.enable_attenuator_gain();
-    //
-    // order = ss.graph().plan();
-    // std::cout << "# With attenuator gain enabled" << std::endl;
-    // print_order(order);
 
     return 0;
 }
