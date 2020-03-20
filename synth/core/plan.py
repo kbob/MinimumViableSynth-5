@@ -409,13 +409,11 @@ class StupidSynth:
 
 def dump_plan(plan):
     print('plan = (')
-    sep = int
     for member in ('prep', 'order'):
-        sep()
-        sep = print
         print(f'    {member} = [')
         for action in getattr(plan, member):
             print(f'        {action}')
+        print('    ],')
     print(')\n')
 
 ss = StupidSynth()

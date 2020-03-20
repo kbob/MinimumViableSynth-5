@@ -127,8 +127,8 @@ public:
          .module(m)
          .connect(o.out, a.in)
          .connect(a.out, m.in[0])
-         .connection(gain_link.get())
-         .connection(gain_link_2.get())
+         .add_connection(gain_link.get())
+         .add_connection(gain_link_2.get())
          // .disconnect(o.out, a.in)
          ;
     }
@@ -191,7 +191,7 @@ int main()
     StupidSynth ss;
     ss.graph().dump_maps();
 
-    Plan plan = ss.graph().new_plan();
+    Plan plan = ss.graph().make_plan();
     print_plan(plan);
     // SignalGraph::Order order = ss.graph().plan();
     // std::cout << "# With attenuator gain disabled" << std::endl;
