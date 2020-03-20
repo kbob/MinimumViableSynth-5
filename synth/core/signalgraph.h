@@ -18,8 +18,6 @@
 #include "synth/util/span-map.h"
 #include "synth/util/vec-map.h"
 
-// const size_t  MAX_MODULES        = 32;
-// const size_t  MAX_PORTS          = 32;
 const double  DEFAULT_RANGE      =  1.0;
 const double  DEFAULT_INTENSITY  =  1.0;
 const bool    DEFAULT_ENABLEMENT = false;
@@ -214,7 +212,101 @@ template <class ElementType = double>
 class ControlOutput : public Output<ElementType>, public Controlled {};
 
 
+// -- Modules  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
+//
+// A module is a unit of audio processing.  It is very much analogous to
+// a module in a modular synth: it accepts several continuous data
+// streams, has several controls, and emits one or more continuous data
+// streams.
+
+//
+// Data flows into and out of a module through ports (see above).
+// The ports should be declared as public data members of the module.
+//
+// A module has a `render` member function.  The `render` function
+// processes a block of samples.  It reads from its input ports
+// and write to its output ports for every sample.
+//
+// A module may need to keep state around between renderings.  If so,
+// it can define a `State` which derives from `Module::State` and
+// define the member function `create_state` to initialze one.
+//
+// Note that a module does not have any other state -- there is one
+// instance of the `Module` object, even though a polyphonic or
+// multitimbral synth may have many modules for each note.
+//
+// A module's constructor
+
+// `Module` is an abstract base class for modules.
+class Module {
+
+public:
+
+    void name(const std::string& name)
+    {
+        m_name = name;
+    }
+
+    const std::string& name() const
+    {
+        return m_name;
+    }
+
+    const std::vector<Port *>& ports() const
+    {
+        return m_ports;
+    }
+
+
+    struct State {
+        virtual ~State() {}
+    };
+
+    // XXX Should thie be `State`'s emplace constructor?
+    virtual State *create_state() const { return nullptr; }
+
+    virtual void render(State *, size_t frame_count) const = 0;
+
+protected:
+
+    // Abstract base class.  Must subclass to use.
+    Module() {}
+    virtual ~Module() {}
+
+    template <typename... Types>
+    void ports(Port& p, Types&... rest)
+    {
+        m_ports.push_back(&p);
+        p.module(*this);
+        ports(rest...);
+    }
+
+    void ports() {}
+
+private:
+
+    std::string m_name;
+    std::vector<Port *> m_ports;
+
+    // Modules cannot be copied, assigned, or moved.
+    Module(const Module&) = delete;
+    Module& operator = (const Module&) = delete;
+
+};
+
+std::string module_name(const Module& m)
+{
+    return m.name().empty() ? type_name(m) : m.name();
+}
+
+std::string fqpn(const Port& p)
+{
+    return module_name(p.module()) + "." + port_name(p);
+}
+
+
 // -- Controls -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
+//
 // Controls are an abstraction for any input to a synth.  A control
 // can be mapped to a MIDI event or a GUI parameter.  That is all
 // I know at this point.
@@ -225,6 +317,7 @@ class Control {};
 
 
 // -- Links -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
+//
 // Modules' ports are connected by Links.  (Aka connections, but we
 // call them links here.)  A link is like a patch cord -- it connects
 // modules together.
@@ -251,8 +344,6 @@ class Control {};
 // source and destination, an optional control, a scale, an input
 // transform, and an output range.  This will probably evolve
 // as more modules and synths are written.
-
-// XXX move Link section below Module.
 
 class Link {
 
@@ -355,99 +446,6 @@ Link *make_link(OutputPort& src, InputPort& dest)
         return new ControlLink(src, dest);
     else
         return new SimpleLink(src, dest);
-}
-
-
-// -- Modules  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
-//
-// A module is a unit of audio processing.  It is very much analogous to
-// a module in a modular synth: it accepts several continuous data
-// streams, has several controls, and emits one or more continuous data
-// streams.
-
-//
-// Data flows into and out of a module through ports (see above).
-// The ports should be declared as public data members of the module.
-//
-// A module has a `render` member function.  The `render` function
-// processes a block of samples.  It reads from its input ports
-// and write to its output ports for every sample.
-//
-// A module may need to keep state around between renderings.  If so,
-// it can define a `State` which derives from `Module::State` and
-// define the member function `create_state` to initialze one.
-//
-// Note that a module does not have any other state -- there is one
-// instance of the `Module` object, even though a polyphonic or
-// multitimbral synth may have many modules for each note.
-//
-// A module's constructor
-
-// `Module` is an abstract base class for modules.
-class Module {
-
-public:
-
-    void name(const std::string& name)
-    {
-        m_name = name;
-    }
-
-    const std::string& name() const
-    {
-        return m_name;
-    }
-
-    const std::vector<Port *>& ports() const
-    {
-        return m_ports;
-    }
-
-
-    struct State {
-        virtual ~State() {}
-    };
-
-    // XXX Should thie be `State`'s emplace constructor?
-    virtual State *create_state() const { return nullptr; }
-
-    virtual void render(State *, size_t frame_count) const = 0;
-
-protected:
-
-    // Abstract base class.  Must subclass to use.
-    Module() {}
-    virtual ~Module() {}
-
-    template <typename... Types>
-    void ports(Port& p, Types&... rest)
-    {
-        m_ports.push_back(&p);
-        p.module(*this);
-        ports(rest...);
-    }
-
-    void ports() {}
-
-private:
-
-    std::string m_name;
-    std::vector<Port *> m_ports;
-
-    // Modules cannot be copied, assigned, or moved.
-    Module(const Module&) = delete;
-    Module& operator = (const Module&) = delete;
-
-};
-
-std::string module_name(const Module& m)
-{
-    return m.name().empty() ? type_name(m) : m.name();
-}
-
-std::string fqpn(const Port& p)
-{
-    return module_name(p.module()) + "." + port_name(p);
 }
 
 
@@ -649,6 +647,9 @@ class SignalGraph {
 public:
 
     // These can be increased by switching to uint64_t.
+    // And the ports can be separated into separate input
+    // port indices and output port indices.
+    //
     // After that, it'll be necessary to write a multi-precision
     // bitmap class.  `std::vector<bool>` doesn't cut it, because
     // it does not have vector-level union/intersection/difference
