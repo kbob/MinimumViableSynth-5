@@ -282,7 +282,7 @@ class SignalGraph:
                 # print(f'    links = {links}')
                 if links:
                     link = links[0]
-                    if len(links) == 1 and type(link) == Link:
+                    if len(links) == 1 and type(link) == SimpleLink:
                         src_mod = link.src.module
                         prep.append(Alias(src_mod, mod, link))
                 else:

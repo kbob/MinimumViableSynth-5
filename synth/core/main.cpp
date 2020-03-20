@@ -115,13 +115,20 @@ public:
     StupidSynth()
     {
         o.name("Osc1");
-        gain_link = std::unique_ptr<Link>(make_link(o.out, a.gain));
+
+        Link *link;
+        link = new ControlLink(o.out, a.gain, new Control());
+        gain_link = std::unique_ptr<Link>(link);
+        link = new ControlLink(o.out, a.gain, new Control());
+        gain_link_2 = std::unique_ptr<Link>(link);
+
         g.module(o)
          .module(a)
          .module(m)
          .connect(o.out, a.in)
          .connect(a.out, m.in[0])
          .connection(gain_link.get())
+         .connection(gain_link_2.get())
          // .disconnect(o.out, a.in)
          ;
     }
@@ -145,32 +152,56 @@ private:
     QBLOscillator o;
     Mixer<1> m;
     std::unique_ptr<Link> gain_link;
+    std::unique_ptr<Link> gain_link_2;
     SignalGraph g;
 
 };
 
-static void print_order(const SignalGraph::Order& order)
+static void print_plan(const Plan& plan)
 {
-    std::cout << "order = [\n";
-    for (auto a : order)
-        std::cout << "    " << a->repr() << "\n";
-    std::cout << "]\n" << std::endl;
+    std::cout << "plan = (" << std::endl;
+
+    std::cout << "    prep = [" << std::endl;
+    for (size_t i = 0; i < plan.prep().size(); i++) {
+        const Action *a = plan.prep()[i].get();
+        std::cout << "        " << a->repr() << "\n";
+    }
+    std::cout << "    ]," << std::endl;
+
+    std::cout << "    order = [" << std::endl;
+    for (size_t i = 0; i < plan.order().size(); i++) {
+        const Action *a = plan.order()[i].get();
+        std::cout << "        " << a->repr() << "\n";
+    }
+    std::cout << "    ]," << std::endl;
+
+    std::cout << ")\n" << std::endl;
 }
+
+// static void print_order(const SignalGraph::Order& order)
+// {
+//     std::cout << "order = [\n";
+//     for (auto a : order)
+//         std::cout << "    " << a->repr() << "\n";
+//     std::cout << "]\n" << std::endl;
+// }
 
 int main()
 {
     StupidSynth ss;
     ss.graph().dump_maps();
 
-    SignalGraph::Order order = ss.graph().plan();
-    std::cout << "# With attenuator gain disabled" << std::endl;
-    print_order(order);
+    Plan plan = ss.graph().new_plan();
+    print_plan(plan);
+    // SignalGraph::Order order = ss.graph().plan();
+    // std::cout << "# With attenuator gain disabled" << std::endl;
+    // print_order(order);
 
-    ss.enable_attenuator_gain();
-
-    order = ss.graph().plan();
-    std::cout << "# With attenuator gain enabled" << std::endl;
-    print_order(order);
+    // ss.enable_attenuator_gain();
+    //
+    // order = ss.graph().plan();
+    // std::cout << "# With attenuator gain enabled" << std::endl;
+    // print_order(order);
 
     return 0;
 }

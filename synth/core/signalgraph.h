@@ -2,6 +2,7 @@
 #define SIGNALGRAPH_included
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdlib>
 #include <iostream>
@@ -13,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include "synth/util/set-bits.h"
 #include "synth/util/span-map.h"
 #include "synth/util/vec-map.h"
 
@@ -222,6 +224,7 @@ class Control {};
 // XXX write something
 // XXX discuss src/dest, input/output, predecessor/successor.
 // XXX a link is like a patch cord.
+// XXX move Link section below Module.
 
 class Link {
 
@@ -280,6 +283,7 @@ private:
     OutputPort *m_src;
     InputPort *m_dest;
     Control *m_control;
+
 };
 
 class SimpleLink : public Link {
@@ -298,9 +302,10 @@ public:
 
     ControlLink(OutputPort& src,
                 InputPort& dest,
+                Control *control = nullptr,
                 double intensity = DEFAULT_INTENSITY,
                 bool enabled = DEFAULT_ENABLEMENT)
-    : Link(src, dest),
+    : Link(src, dest, control),
       m_intensity(intensity),
       m_enabled(enabled)
     {}
@@ -546,9 +551,8 @@ class Clear : public Action {
 
 public:
 
-    Clear(const Module *module, InputPort *port)
-    : m_module(module),
-      m_port(port)
+    Clear(InputPort *port)
+    : m_port(port)
     {}
 
     virtual void do_it()
@@ -558,16 +562,11 @@ public:
 
     virtual std::string repr() const
     {
-        return "Clear(" +
-               module_name(*m_module) +
-               "." +
-               port_name(*m_port) +
-               ")";
+        return "Clear(" + fqpn(*m_port) + ")";
     }
 
 private:
 
-    const Module *m_module;
     InputPort *m_port;
 
 };
@@ -607,6 +606,16 @@ public:
 
     typedef std::vector<std::unique_ptr<Action>> action_sequence;
 
+    Plan()                         = default;
+    Plan(const Plan&)              = delete;
+    Plan(Plan&&)                   = default;
+    Plan& operator = (const Plan&) = delete;
+    Plan& operator = (Plan&&)      = default;
+    // ~Plan()
+    // {
+    //     std::cout << "delete Plan at " << this << std::endl;
+    // }
+
     const action_sequence& prep() const
     {
         return m_prep;
@@ -624,9 +633,8 @@ public:
 
     void push_back_order(Action *action)
     {
-        m_prep.emplace_back(action);
+        m_order.emplace_back(action);
     }
-
 
 private:
 
@@ -638,7 +646,6 @@ private:
 // -- SignalGraph -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 // XXX write something
 
-// XXX would this be better implemented as an adjacency matrix?
 class SignalGraph {
 
 public:
@@ -675,6 +682,10 @@ public:
         auto key = link->key();
         auto src = key.src();
         auto dest = key.dest();
+
+        // Verify source and dest modules are in m_modules.
+        assert(module_index(&src->module()) != -1);
+        assert(module_index(&dest->module()) != -1);
 
         if (dynamic_cast<Controlled *>(dest)) {
             // can't have two links with the same key.
@@ -736,17 +747,143 @@ public:
         return *this;
     }
 
-    // Plan new_plan()
-    // {
-    //     const size_t n_modules = m_modules.size();
-    //     assert(n_modules <= MAX_MODULES);
-    //     int32_t module_predecessor_mask = 0;
-    //     span_map<Port *, Port *> port_sources;
-    //     port_sources.reserve(MAX_PORTS);
-    //     port_sources.values_reserve(MAX_PORTS);
-    //
-    //     for (auto it : self.link_map)
-    // }
+    Plan new_plan()
+    {
+        const size_t n_modules = m_modules.size();
+        const size_t n_ports = count_ports();
+
+        typedef std::uint32_t module_mask;
+        const size_t max_modules = std::numeric_limits<module_mask>::digits;
+        assert(n_modules <= max_modules);
+        std::array<module_mask, max_modules> module_predecessors;
+        module_predecessors.fill(0);
+
+        typedef std::uint32_t port_mask;
+        const size_t max_ports = std::numeric_limits<port_mask>::digits;
+        std::array<Port *, max_ports> ports;
+        ports.fill(nullptr);
+        std::array<port_mask, max_ports> port_sources;
+        port_sources.fill(0);
+        size_t port_idx = 0;
+        for (auto m : m_modules) {
+            for (auto p : m->ports()) {
+                // std::cout << "p = " << fqpn(*p) << std::endl;
+                assert(port_idx < max_ports);
+                ports[port_idx++] = p;
+            }
+        }
+
+        auto port_index = [&] (const Port *p) -> ssize_t {
+            for (size_t i = 0; i < n_ports; i++) {
+                if (ports[i] == p)
+                    return i;
+            }
+            return -1;
+        };
+
+        for (auto link : m_links) {
+            auto key = link->key();
+            auto src = key.src();
+            auto dest = key.dest();
+            auto pred_index = module_index(&src->module());
+            auto succ_index = module_index(&dest->module());
+            assert(pred_index != -1 && succ_index != -1);
+            module_predecessors[succ_index] |= 1 << pred_index;
+            auto src_index = port_index(src);
+            auto dest_index = port_index(dest);
+            assert(src_index != -1 && dest_index != -1);
+            port_sources[dest_index] |= 1 << src_index;
+        }
+
+        auto plan = Plan();
+
+        // for mod in modules:
+        //     for dest in mod inputs:
+        //         if no links to dest: gen Clear action
+        //         if one simple link to dest: gen Alias action
+        for (auto mod : m_modules) {
+            for (auto port : mod->ports()) {
+                InputPort *dest = dynamic_cast<InputPort *>(port);
+                if (!dest)
+                    continue;
+                size_t link_count = 0;
+                Link *a_link = nullptr;
+                for (auto link : m_links) {
+                    if (link->key().dest() == dest) {
+                        link_count++;
+                        a_link = link;
+                    }
+                }
+                if (link_count == 0) {
+                    auto action = new Clear(dest);
+                    // std::cout << "push " << action->repr() << std::endl;
+                    plan.push_back_prep(action);
+                } else if (link_count == 1 &&
+                           !dynamic_cast<ControlLink *>(a_link)) {
+                    auto action = new Alias(a_link);
+                    // std::cout << "push " << action->repr() << std::endl;
+                    plan.push_back_prep(action);
+                }
+            }
+        }
+
+        // done = {}
+        // while done != {all}:
+        //     ready = {modules whose predecessors are done}
+        //     create actions for ready modules
+        //     done |= ready
+        module_mask done_mask = 0;
+        const module_mask all_done_mask = (1 << n_modules) - 1;
+        while (done_mask != all_done_mask) {
+
+            // Collect all modules ready to process.
+            module_mask ready_mask = 0;
+            for (size_t i = 0; i < n_modules; i++) {
+                if ((module_predecessors[i] & ~done_mask) == 0) {
+                    ready_mask |= 1 << i;
+                }
+            }
+            ready_mask &= ~done_mask;
+            assert(ready_mask && "cycle in signal graph");
+
+            // for mod in ready modules:
+            //     for dest in mod inputs:
+            //         for link in links to dest:
+            //             copy first link; add other links
+            //     render mod
+            for (size_t i = 0; i < n_modules; i++) {
+                if (!(ready_mask & 1 << i))
+                    continue;
+                const Module *mod = m_modules[i];
+                // for (auto dest : m_module_inputs[mod]) {
+                for (auto port : mod->ports()) {
+                    InputPort *dest = dynamic_cast<InputPort *>(port);
+                    if (!dest)
+                        continue;
+                    bool copied = false;
+                    for (auto link : m_links) {
+                        if (link->key().dest() != dest)
+                            continue;
+                        if (!dynamic_cast<ControlLink *>(link))
+                            continue;
+                        Action *act;
+                        if (!copied) {
+                            act = new Copy(link);
+                            copied = true;
+                        } else {
+                            act = new Add(link);
+                        }
+                        plan.push_back_order(act);
+                    }
+                }
+                auto render = new Render(mod);
+                plan.push_back_order(render);
+            }
+            done_mask |= ready_mask;
+        }
+
+        return plan;
+    }
 
     // XXX actions allocated here are leaked.
     typedef std::vector<Action *> Order;
@@ -819,7 +956,7 @@ public:
                             any_active = true;
                     }
                     if (!any_active)
-                        order.push_back(new Clear(mod, dest));
+                        order.push_back(new Clear(dest));
                 }
             }
 
@@ -908,53 +1045,53 @@ public:
             std::cout << "    " << module_name(*i) << "," << std::endl;
         std::cout << "]\n" << std::endl;
 
-        std::cout << "m_module_inputs = {" << std::endl;
-        for (auto mod : m_modules) {
-            std::cout << "    " << module_name(*mod) << ": [";
-            const char *sep = "";
-            for (auto p : m_module_inputs.at(mod)) {
-                std::cout << sep << port_name(*p);
-                sep = ", ";
-            }
-            std::cout << "]," << std::endl;
-        }
-        std::cout << "}\n" << std::endl;
+        // std::cout << "m_module_inputs = {" << std::endl;
+        // for (auto mod : m_modules) {
+        //     std::cout << "    " << module_name(*mod) << ": [";
+        //     const char *sep = "";
+        //     for (auto p : m_module_inputs.at(mod)) {
+        //         std::cout << sep << port_name(*p);
+        //         sep = ", ";
+        //     }
+        //     std::cout << "]," << std::endl;
+        // }
+        // std::cout << "}\n" << std::endl;
 
-        std::cout << "m_module_outputs = {" << std::endl;
-        for (auto mod : m_modules) {
-            std::cout << "    " << module_name(*mod) << ": [";
-            const char *sep = "";
-            for (auto p : m_module_outputs.at(mod)) {
-                std::cout << sep << port_name(*p);
-                sep = ", ";
-            }
-            std::cout << "]," << std::endl;
-        }
-        std::cout << "}\n" << std::endl;
+        // std::cout << "m_module_outputs = {" << std::endl;
+        // for (auto mod : m_modules) {
+        //     std::cout << "    " << module_name(*mod) << ": [";
+        //     const char *sep = "";
+        //     for (auto p : m_module_outputs.at(mod)) {
+        //         std::cout << sep << port_name(*p);
+        //         sep = ", ";
+        //     }
+        //     std::cout << "]," << std::endl;
+        // }
+        // std::cout << "}\n" << std::endl;
 
-        std::cout << "m_port_destinations = {" << std::endl;
-        for (auto i : m_port_destinations) {
-            std::cout << "    " << fqpn(*i.first) << ": [";
-            const char *sep = "";
-            for (auto p : i.second) {
-                std::cout << sep << fqpn(*p);
-                sep = ", ";
-            }
-            std::cout << "]," << std::endl;
-        }
-        std::cout << "}\n" << std::endl;
+        // std::cout << "m_port_destinations = {" << std::endl;
+        // for (auto i : m_port_destinations) {
+        //     std::cout << "    " << fqpn(*i.first) << ": [";
+        //     const char *sep = "";
+        //     for (auto p : i.second) {
+        //         std::cout << sep << fqpn(*p);
+        //         sep = ", ";
+        //     }
+        //     std::cout << "]," << std::endl;
+        // }
+        // std::cout << "}\n" << std::endl;
 
-        std::cout << "m_port_sources = {" << std::endl;
-        for (auto i : m_port_sources) {
-            std::cout << "    " << fqpn(*i.first) << ": [";
-            const char *sep = "";
-            for (auto p : i.second) {
-                std::cout << sep << fqpn(*p);
-                sep = ", ";
-            }
-            std::cout << "]," << std::endl;
-        }
-        std::cout << "}\n" << std::endl;
+        // std::cout << "m_port_sources = {" << std::endl;
+        // for (auto i : m_port_sources) {
+        //     std::cout << "    " << fqpn(*i.first) << ": [";
+        //     const char *sep = "";
+        //     for (auto p : i.second) {
+        //         std::cout << sep << fqpn(*p);
+        //         sep = ", ";
+        //     }
+        //     std::cout << "]," << std::endl;
+        // }
+        // std::cout << "}\n" << std::endl;
 
         std::cout << "m_links = [" << std::endl;
         for (auto link : m_links) {
@@ -987,6 +1124,24 @@ public:
     }
 
 private:
+
+    size_t count_ports()
+    {
+        size_t count = 0;
+        for (auto m : m_modules) {
+            count += m->ports().size();
+        }
+        return count;
+    }
+
+    ssize_t module_index(const Module *m)
+    {
+        for (size_t i = 0; i < m_modules.size(); i++)
+            if (m_modules.at(i) == m)
+                return i;
+        return -1;
+    };
+
 
     std::vector<const Module *> m_modules;
     std::map<const Module *, std::vector<InputPort *>> m_module_inputs;
