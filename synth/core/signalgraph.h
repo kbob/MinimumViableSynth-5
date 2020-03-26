@@ -105,18 +105,15 @@ protected:
 
     // Abstract base class.  Must subclass to use.
     Port() {}
-
-    virtual ~Port() {}
+    Port(const Port&) = delete;
+    Port& operator = (const Port&) = delete;
+    virtual ~Port() = default;
 
 private:
 
     const class Module *m_module;
 
     std::string m_name;
-
-    // Ports cannot be copied, assigned, or moved.
-    Port(const Port&) = delete;
-    Port& operator = (const Port&) = delete;
 
 };
 
@@ -259,7 +256,7 @@ public:
 
 
     struct State {
-        virtual ~State() {}
+        virtual ~State() = default;
     };
 
     // XXX Should thie be `State`'s emplace constructor?
@@ -271,7 +268,9 @@ protected:
 
     // Abstract base class.  Must subclass to use.
     Module() {}
-    virtual ~Module() {}
+    Module(const Module&) = delete;
+    Module& operator = (const Module&) = delete;
+    virtual ~Module() = default;
 
     template <typename... Types>
     void ports(Port& p, Types&... rest)
@@ -287,10 +286,6 @@ private:
 
     std::string m_name;
     std::vector<Port *> m_ports;
-
-    // Modules cannot be copied, assigned, or moved.
-    Module(const Module&) = delete;
-    Module& operator = (const Module&) = delete;
 
 };
 
@@ -366,7 +361,7 @@ public:
 
     };
 
-    virtual ~Link() {}
+    virtual ~Link() = default;
 
     Key key() const
     {
@@ -456,7 +451,7 @@ class Action {
 
 public:
 
-    virtual ~Action() {}
+    virtual ~Action() = default;
 
     virtual void do_it() = 0;
 
@@ -479,12 +474,12 @@ public:
     : m_module(module)
     {}
 
-    virtual void do_it()
+    virtual void do_it() override
     {
         assert(false && "not implemented");
     }
 
-    virtual std::string repr() const
+    virtual std::string repr() const override
     {
         return "Render(" + module_name(*m_module) + ")";
     }
@@ -503,12 +498,12 @@ public:
     : m_link(link)
     {}
 
-    virtual void do_it()
+    virtual void do_it() override
     {
         assert(false && "not implemented");
     }
 
-    virtual std::string repr() const
+    virtual std::string repr() const override
     {
         auto key = m_link->key();
         auto src = key.src();
@@ -530,12 +525,12 @@ public:
     : m_link(link)
     {}
 
-    virtual void do_it()
+    virtual void do_it() override
     {
         assert (false && "not implemented");
     }
 
-    virtual std::string repr() const
+    virtual std::string repr() const override
     {
         auto key = m_link->key();
         return "Add(" + fqpn(*key.src()) + ", " + fqpn(*key.dest()) + ")";
@@ -555,12 +550,12 @@ public:
     : m_port(port)
     {}
 
-    virtual void do_it()
+    virtual void do_it() override
     {
         assert(false && "not implemented");
     }
 
-    virtual std::string repr() const
+    virtual std::string repr() const override
     {
         return "Clear(" + fqpn(*m_port) + ")";
     }
@@ -579,12 +574,12 @@ public:
     : m_link(link)
     {}
 
-    virtual void do_it()
+    virtual void do_it() override
     {
         assert(false && "not implemented");
     }
 
-    virtual std::string repr() const
+    virtual std::string repr() const override
     {
         auto key = m_link->key();
         return "Alias(" + fqpn(*key.src()) + ", " + fqpn(*key.dest()) + ")";

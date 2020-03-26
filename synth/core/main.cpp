@@ -21,7 +21,7 @@ public:
     Output<> out;
     ControlInput<> gain;
 
-    virtual void render(State *, size_t frame_count) const
+    virtual void render(State *, size_t frame_count) const override
     {
         for (size_t i = 0; i < frame_count; i++) {
             // out[i] = gain[i] * in[i];
@@ -59,7 +59,7 @@ public:
     ControlInput<> pitch_bend;
     ControlInput<> modulation;
 
-    virtual void render(Module::State *, size_t) const
+    virtual void render(Module::State *, size_t) const override
     {
         // auto state = dynamic_cast<State *>(modstate);
         // state->note = modulation[0];
@@ -103,7 +103,7 @@ public:
     ControlInput<> gain[ChannelsIn];
     Output<> out;
 
-    virtual void render(Module::State *, size_t) const
+    virtual void render(Module::State *, size_t) const override
     {}
 
 };
