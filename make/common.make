@@ -22,32 +22,32 @@ r := $(r:/=)
       TESTGEN := $(CXXTEST)/bin/cxxtestgen
  TESTGENFLAGS := --have-eh --error-printer
      TEST_INC := $(CXXTEST)
-       DFILES += $(TESTS:%=%.d)
 
-# all:        test programs images
-all:        $(SUBDIRS:%=%/all) $(TESTS) run-tests $(PROGRAM) $(IMAGES)
-ifneq ($r,)
-project:
-	    make -C $r all
+all:        $(SUBDIRS:%=%/all) $(TESTS) run-tests $(PROGRAMS) $(IMAGES)
+ifeq ($r,)
+world:      all
+else
+world:
+	    make -C $r world
 endif
-programs:   $(SUBDIRS:%=%/programs) $(PROGRAM)
+programs:   $(SUBDIRS:%=%/programs) $(PROGRAMS)
 images:     $(SUBDIRS:%=%/images) $(IMAGES)
 test:       $(SUBDIRS:%=%/test) $(TESTS) run-tests
 tests:      $(SUBDIRS:%=%/tests) $(TESTS)
 clean:      $(SUBDIRS:%=%/clean)
-	    rm -f *.d *.o *.out test-*.cpp $(PROGRAM) $(TESTS) $(FILTH)
+	    rm -f *.d *.o *.out test-*.cpp $(PROGRAMS) $(TESTS) $(FILTH)
 help: general-help local-help
+
 general-help:
 	    @echo ''
 	    @echo 'Common Targets'
 	    @echo ''
 	    @echo '    all              - build programs and images, run tests'
-ifneq ($r,)
-	    @echo '    project          - build whole project, run all tests'
-endif
+	    @echo '    world            - build whole project, run all tests'
 	    @echo '    programs         - build all programs'
 	    @echo '    images           - build all firmware images'
 	    @echo '    test             - build and run all tests'
+	    @echo '    run-tests        - build and run all tests'
 	    @echo '    tests            - build all test programss'
 	    @echo '    clean            - remove all generated files'
 	    @echo '    help             - print this text'
@@ -59,10 +59,10 @@ endif
 	    @echo ''
 
 local-help:
-ifneq ($(PROGRAM),)
+ifneq ($(PROGRAMS),)
 	    @echo 'Programs in this directory'
 	    @echo ''
-	    @for p in $(PROGRAM); do echo "    $$p"; done
+	    @for p in $(PROGRAMS); do echo "    $$p"; done
 	    @echo ''
 endif
 ifneq ($(IMAGES),)
@@ -72,13 +72,17 @@ ifneq ($(IMAGES),)
 	    @echo ''
 endif
 ifneq ($(TESTS),)
-	    @echo 'Test programs in this directory'
+	    @echo 'Tests in this directory'
 	    @echo ''
+	    @echo '  Build:'
 	    @for t in $(TESTS); do echo "    $$t"; done
+	    @echo ''
+	    @echo '  Run:'
+	    @for t in $(TESTS); do echo "    run-$$t"; done
 	    @echo ''
 endif
 
-PHONY:     all project programs images test tests clean
+PHONY:     all world programs images test tests clean
 .PHONY:     help general-help local-help
 
 # Recurse into subdirectories.
@@ -93,8 +97,25 @@ $(foreach a, $(R_ACTIONS), $(eval $(call recur_template,$a)))
 
 # Build program from $(SOURCES)
 
-$(PROGRAM): $(OFILES)
-	    $(LINK.cpp) $^ $(LOADLIBES) $(LDLIBS) -o $@
+define program_template
+       $1-CFILES := $(filter %.c, $($1-SOURCES))
+     $1-CXXFILES := $(filter %.cpp, $($1-SOURCES))
+       $1-OFILES := $$($1-CFILES:.c=.o) $$($1-CXXFILES:.cpp=.o)
+          DFILES += $$($1-OFILES:.o=.d)
+
+$1:	    $$($1-OFILES)
+	    $(LINK.cpp) $$^ $(LOADLIBS) $(LDLIBS) -o $$@
+endef
+$(foreach p, $(PROGRAMS), $(eval $(call program_template,$p)))
+
+# $(info PROGRAMS = $(PROGRAMS))
+# $(info a.out-SOURCES = $(a.out-SOURCES))
+# $(info a.out-CXXFILES = $(a.out-CXXFILES))
+# $(info a.out-OFILES = $(a.out-OFILES))
+# $(info DFILES = $(DFILES))
+
+# $(PROGRAM): $(OFILES)
+# 	    $(LINK.cpp) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 # Build and run test runner from test-foo.h.
 
@@ -103,12 +124,36 @@ $(PROGRAM): $(OFILES)
 run-tests:  $(RUN_TESTS)
 run-test-%: test-%
 	    ./$<
-test-%:     CXX := $(HOSTCXX)
-test-%:     CXXFLAGS += -I$(TEST_INC)
-test-%:     test-%.cpp
-	    $(LINK.cpp) $< $(LOADLIBES) $(LDLIBS) -o $@
-test-%.cpp: test-%.h
-	    $(TESTGEN) $(TESTGENFLAGS) $< -o $@
+
+define test_template =
+       $1-CFILES := $(filter %.c, $$($1-SOURCES))
+     $1-CXXFILES := $1.cpp $(filter %.cpp, $$($1-SOURCES))
+     $1-CXXFILES := $1.cpp $$($1-SOURCES)
+       $1-OFILES := $$($1-CFILES:.c=.o) $$($1-CXXFILES:.cpp=.o)
+          DFILES += $$($1-OFILES:.o=.d)
+
+$1.cpp:     $1.h
+	    $(TESTGEN) $(TESTGENFLAGS) $$< -o $$@
+$1:          CXX := $(HOSTCXX)
+$1:     CXXFLAGS += -I$(TEST_INC)
+$1:         $$($1-OFILES)
+	    $$(LINK.cpp) $$^ $(LOADLIBES) $(LDLIBS) -o $$@
+endef
+$(foreach t, $(TESTS), $(eval $(call test_template,$t)))
+
+# $(info TESTS = $(TESTS))
+# $(info test-mod-network-SOURCES = $(test-mod-network-SOURCES))
+# $(info test-mod-network-CXXFILES = $(test-mod-network-CXXFILES))
+# $(info test-mod-network-OFILES = $(test-mod-network-OFILES))
+# $(info DFILES = $(DFILES))
+
+# test-%:     CXX := $(HOSTCXX)
+# test-%:     CXXFLAGS += -I$(TEST_INC)
+# test-%:     test-%.cpp $($@-SOURCES)
+# #	    $(LINK.cpp) $* $(LOADLIBES) $(LDLIBS) -o $@
+# 	    $(LINK.cpp) $< $(test-%-SOURCES) $(LOADLIBES) $(LDLIBS) -o $@
+# test-%.cpp: test-%.h
+# 	    $(TESTGEN) $(TESTGENFLAGS) $< -o $@
 
 .PHONY:     run-tests
 
@@ -119,7 +164,6 @@ define check_submodule
   missing_submodule += $1
  endif
 endef
-
 $(foreach sm, $(SUBMODULES), $(eval $(call check_submodule,$(sm))))
 
 ifdef missing_submodule
@@ -138,4 +182,5 @@ endif
 
 # These come last.
 
--include $(DFILES)
+# sort to remove duplicates.
+-include $(sort $(DFILES))

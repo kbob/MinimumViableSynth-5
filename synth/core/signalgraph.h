@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include "synth/util/noalloc.h"
 #include "synth/util/set-bits.h"
 #include "synth/util/span-map.h"
 #include "synth/util/vec-map.h"
@@ -105,7 +106,7 @@ protected:
 
     // Abstract base class.  Must subclass to use.
     Port() {}
-    Port(const Port&) = delete;
+    Port(const Port&) = default;
     Port& operator = (const Port&) = delete;
     virtual ~Port() = default;
 
@@ -117,7 +118,7 @@ private:
 
 };
 
-std::string port_name(const Port& p)
+inline std::string port_name(const Port& p)
 {
     return p.name().empty() ? type_name(p) : p.name();
 }
@@ -239,6 +240,9 @@ class Module {
 
 public:
 
+    static const size_t MAX_PORTS = 8;
+    typedef fixed_vector<Port *, MAX_PORTS> port_vector;
+
     void name(const std::string& name)
     {
         m_name = name;
@@ -249,27 +253,21 @@ public:
         return m_name;
     }
 
-    const std::vector<Port *>& ports() const
+    const port_vector& ports() const
     {
         return m_ports;
     }
 
+    virtual void render(size_t frame_count) const = 0;
 
-    struct State {
-        virtual ~State() = default;
-    };
-
-    // XXX Should thie be `State`'s emplace constructor?
-    virtual State *create_state() const { return nullptr; }
-
-    virtual void render(State *, size_t frame_count) const = 0;
+    virtual Module *clone() const = 0;
 
 protected:
 
     // Abstract base class.  Must subclass to use.
-    Module() {}
-    Module(const Module&) = delete;
-    Module& operator = (const Module&) = delete;
+    // Module() {}
+    // Module(const Module&) = delete;
+    // Module& operator = (const Module&) = delete;
     virtual ~Module() = default;
 
     template <typename... Types>
@@ -285,16 +283,17 @@ protected:
 private:
 
     std::string m_name;
-    std::vector<Port *> m_ports;
+    //std::vector<Port *> m_ports;
+    port_vector m_ports;
 
 };
 
-std::string module_name(const Module& m)
+inline std::string module_name(const Module& m)
 {
     return m.name().empty() ? type_name(m) : m.name();
 }
 
-std::string fqpn(const Port& p)
+inline std::string fqpn(const Port& p)
 {
     return module_name(p.module()) + "." + port_name(p);
 }
@@ -435,7 +434,7 @@ private:
 
 };
 
-Link *make_link(OutputPort& src, InputPort& dest)
+inline Link *make_link(OutputPort& src, InputPort& dest)
 {
     if (dynamic_cast<Controlled *>(&dest))
         return new ControlLink(src, dest);
@@ -595,17 +594,17 @@ private:
 // -- Plan  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 // XXX write something
 
-class Plan {
+class XXX_Plan {
 
 public:
 
     typedef std::vector<std::unique_ptr<Action>> action_sequence;
 
-    Plan()                         = default;
-    Plan(const Plan&)              = delete;
-    Plan(Plan&&)                   = default;
-    Plan& operator = (const Plan&) = delete;
-    Plan& operator = (Plan&&)      = default;
+    XXX_Plan()                         = default;
+    XXX_Plan(const XXX_Plan&)              = delete;
+    XXX_Plan(XXX_Plan&&)                   = default;
+    XXX_Plan& operator = (const XXX_Plan&) = delete;
+    XXX_Plan& operator = (XXX_Plan&&)      = default;
 
     const action_sequence& prep() const
     {
@@ -732,7 +731,7 @@ public:
         return *this;
     }
 
-    Plan make_plan()
+    XXX_Plan make_plan()
     {
         const size_t n_modules = m_modules.size();
         const size_t n_ports = count_ports();
@@ -788,7 +787,7 @@ public:
             port_sources[dest_index] |= 1 << src_index;
         }
 
-        auto plan = Plan();
+        auto plan = XXX_Plan();
 
         // Load necessary prep work into `plan.prep`.
         // Unconnected ports are cleared; simply-connected

@@ -17,11 +17,13 @@ public:
         ports(in, out, gain);
     }
 
+    virtual Attenuator *clone() const override { return new Attenuator(*this); }
+
     Input<> in;
     Output<> out;
     ControlInput<> gain;
 
-    virtual void render(State *, size_t frame_count) const override
+    virtual void render(size_t frame_count) const override
     {
         for (size_t i = 0; i < frame_count; i++) {
             // out[i] = gain[i] * in[i];
@@ -56,10 +58,15 @@ public:
         ports(pitch_bend, modulation);
     }
 
+    virtual QBLOscillator *clone() const override
+    {
+        return new QBLOscillator(*this);
+    }
+
     ControlInput<> pitch_bend;
     ControlInput<> modulation;
 
-    virtual void render(Module::State *, size_t) const override
+    virtual void render(size_t) const override
     {
         // auto state = dynamic_cast<State *>(modstate);
         // state->note = modulation[0];
@@ -72,9 +79,7 @@ public:
 
 private:
 
-    struct State : public super::State {
-        uint8_t note;
-    };
+    // uint8_t note;
 
 };
 
@@ -99,11 +104,13 @@ public:
         ports(out);
     }
 
+    virtual Mixer *clone() const override { return new Mixer(*this); }
+
     Input<> in[ChannelsIn];
     ControlInput<> gain[ChannelsIn];
     Output<> out;
 
-    virtual void render(Module::State *, size_t) const override
+    virtual void render(size_t) const override
     {}
 
 };
@@ -157,7 +164,7 @@ private:
 
 };
 
-static void print_plan(const Plan& plan)
+static void print_plan(const XXX_Plan& plan)
 {
     std::cout << "plan = (" << std::endl;
 
@@ -183,7 +190,7 @@ int main()
     StupidSynth ss;
     ss.graph().dump_maps();
 
-    Plan plan = ss.graph().make_plan();
+    XXX_Plan plan = ss.graph().make_plan();
     print_plan(plan);
 
     return 0;
