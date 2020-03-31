@@ -5,6 +5,7 @@
 
 class ClearAction {
     uint8_t m_in_port_index;
+    friend class ActionsUnitTest;
 public:
     ClearAction() = default;
     ClearAction(uint8_t in_port_index)
@@ -21,6 +22,7 @@ public:
 class AliasAction {
     uint8_t m_out_port_index;
     uint8_t m_in_port_index;
+    friend class ActionsUnitTest;
 public:
     AliasAction() = default;
     AliasAction(uint8_t out_port_index, uint8_t in_port_index)
@@ -37,6 +39,7 @@ public:
 };
 
 enum class PrepActionType {
+    NONE,
     CLEAR,
     ALIAS,
 };
@@ -50,7 +53,9 @@ class PrepAction {
         ClearAction clear;
         AliasAction alias;
     } m_u;
+    friend class ActionsUnitTest;
 public:
+    PrepAction() : m_tag(PrepActionType::NONE) {}
     PrepAction(const ClearAction& clear)
     : m_tag(PrepActionType::CLEAR), m_u(clear)
     {}
@@ -73,15 +78,18 @@ public:
     }
 };
 
-// -- Process Actions - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
+// -- Run Actions -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 
 class CopyAction {
-    uint8_t m_out_port_index;
-    uint8_t m_in_port_index;
-    void   *m_control;
+    uint8_t            m_out_port_index;
+    uint8_t            m_in_port_index;
+    class ControlLink *m_control;
+    friend class ActionsUnitTest;
 public:
     CopyAction() = default;
-    CopyAction(uint8_t out_port_index, uint8_t in_port_index, void *control)
+    CopyAction(uint8_t      out_port_index,
+               uint8_t      in_port_index,
+               ControlLink *control)
     : m_out_port_index(out_port_index),
       m_in_port_index(in_port_index),
       m_control(control)
@@ -99,12 +107,15 @@ public:
 };
 
 class AddAction {
-    uint8_t m_out_port_index;
-    uint8_t m_in_port_index;
-    void   *m_control;
+    uint8_t            m_out_port_index;
+    uint8_t            m_in_port_index;
+    class ControlLink *m_control;
+    friend class ActionsUnitTest;
 public:
     AddAction() = default;
-    AddAction(uint8_t out_port_index, uint8_t in_port_index, void *control)
+    AddAction(uint8_t out_port_index,
+              uint8_t in_port_index,
+              ControlLink *control)
     : m_out_port_index(out_port_index),
       m_in_port_index(in_port_index),
       m_control(control)
@@ -123,6 +134,7 @@ public:
 
 class RenderAction {
     uint8_t m_mod_index;
+    friend class ActionsUnitTest;
 public:
     RenderAction() = default;
     RenderAction(uint8_t mod_index) : m_mod_index(mod_index) {}
@@ -135,13 +147,15 @@ public:
 };
 
 enum class RunActionType {
+    NONE,
     COPY,
     ADD,
     RENDER,
 };
 
 class RunAction {
-public:
+    friend class ActionsUnitTest;
+private:
     RunActionType m_tag;
     union u {
         u() = default;
@@ -153,6 +167,7 @@ public:
         RenderAction render;
     } m_u;
 public:
+    RunAction() : m_tag(RunActionType::NONE) {}
     RunAction(const CopyAction& copy)
     : m_tag(RunActionType::COPY), m_u(copy)
     {}
