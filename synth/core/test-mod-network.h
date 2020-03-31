@@ -25,8 +25,7 @@ public:
 
     void test_instantiate()
     {
-        ModNetwork n;
-        *&n = n;
+        (void)ModNetwork();
     }
 
     void test_module()

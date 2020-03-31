@@ -2,7 +2,7 @@
 
 #include <cxxtest/TestSuite.h>
 
-class PlsnUnitTest : public CxxTest::TestSuite {
+class PlanUnitTest : public CxxTest::TestSuite {
 
 public:
 
@@ -11,4 +11,5 @@ public:
         (void)Plan();
     }
 
+    // XXX more tests!
 };

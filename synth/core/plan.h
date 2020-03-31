@@ -35,7 +35,7 @@ public:
         m_prep.push_back(action);
     }
 
-    void push_back_run(RunAction& action)
+    void push_back_run(const RunAction& action)
     {
         m_run.push_back(action);
     }

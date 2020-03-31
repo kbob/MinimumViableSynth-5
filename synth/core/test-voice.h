@@ -16,8 +16,7 @@ public:
 
     void test_instantiation()
     {
-        Voice v;
-        v = *&v;
+        (void)Voice();
     }
 
     void test_add_module()
@@ -44,6 +43,8 @@ public:
         TS_ASSERT(m.at(0) == &foo1);
         TS_ASSERT(m.at(1) == &foo2);
     }
+
+    // XXX test port enumeration
 
     void test_clone()
     {

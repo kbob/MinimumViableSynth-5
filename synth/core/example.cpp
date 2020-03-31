@@ -55,7 +55,7 @@ public:
     virtual Amp *clone() const override { return new Amp(*this); }
     virtual void render(size_t frame_count) const override
     {
-        *&frame_count = frame_count;
+        (void)frame_count;
         // for (size_t i = 0; i < frame_count; i++)
         //     out[i] = gain[i] * in[i];
     }

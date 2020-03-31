@@ -16,6 +16,9 @@ public:
 
     typedef fixed_vector<Module *, MAX_MODULES> module_vector;
 
+    // XXX enumerate the ports.  I kind of like a higher-level
+    // data structure than fixed_vector<> for m_modules.
+
     void module(Module *m)
     {
         m_modules.push_back(m);
