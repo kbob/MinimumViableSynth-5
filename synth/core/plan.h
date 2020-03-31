@@ -1,6 +1,8 @@
 #ifndef PLAN_included
 #define PLAN_included
 
+#include <iostream>
+
 #include "synth/core/actions.h"
 #include "synth/util/noalloc.h"
 

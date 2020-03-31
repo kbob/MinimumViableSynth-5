@@ -2,41 +2,11 @@
 
 #include "synth/core/actions.h"
 
-class ModNetwork::port_map {
-
-public:
-
-    Port *at(size_t index) const
-    {
-        return m_ports[index];
-    }
-
-    ssize_t at(Port *port) const
-    {
-        for (size_t i = 0; i < m_ports.size(); i++)
-            if (m_ports.at(i) == port)
-                return i;
-        return -1;
-    }
-
-    void push_back(Port *p)
-    {
-        m_ports.push_back(p);
-    }
-
-private:
-
-    fixed_vector<Port *, ModNetwork::MAX_PORTS> m_ports;
-
-};
-
 Plan ModNetwork::make_plan() const
 {
     size_t n_modules = m_modules.size();
 
-    // map port index to port pointer
-    port_map ports;
-    init_ports(ports);
+    auto ports = m_modules.ports();
 
     module_adjacency_matrix mod_predecessors;
     init_mod_predecessors(mod_predecessors);
@@ -74,10 +44,10 @@ Plan ModNetwork::make_plan() const
                 }
             }
             if (link_count == 0) {
-                plan.push_back_prep(ClearAction(ports.at(dest)));
+                plan.push_back_prep(ClearAction(ports.index(dest)));
             } else if (link_count == 1 && s_link) {
-                size_t src_index = ports.at(s_link->key().src());
-                size_t dest_index = ports.at(s_link->key().dest());
+                size_t src_index = ports.index(s_link->key().src());
+                size_t dest_index = ports.index(s_link->key().dest());
                 plan.push_back_prep(AliasAction(src_index, dest_index));
             }
         }
@@ -116,7 +86,7 @@ Plan ModNetwork::make_plan() const
         for (size_t i = 0; i < n_modules; i++) {
             if (!(ready_mask & 1 << i))
                 continue;
-            const Module *mod = m_modules[i];
+            const Module *mod = m_modules.at(i);
             for (auto *port: mod->ports()) {
                 InputPort *dest = dynamic_cast<InputPort *>(port);
                 if (!dest)
@@ -139,9 +109,8 @@ Plan ModNetwork::make_plan() const
                 for (const auto& link: m_simple_links) {
                     if (link.key().dest() != dest)
                         continue;
-                    ssize_t src_index = ports.at(link.key().src());
-                    ssize_t dest_index = ports.at(link.key().dest());
-                    assert(src_index != -1 && dest_index != -1);
+                    ssize_t src_index = ports.index(link.key().src());
+                    ssize_t dest_index = ports.index(link.key().dest());
                     if (port_sources[dest_index] == 1 << src_index) {
                         // This port is simply-connected.  Do not
                         // emit actions for it.
@@ -152,29 +121,18 @@ Plan ModNetwork::make_plan() const
                 for (auto *link: m_control_links) {
                     if (link->key().dest() != dest)
                         continue;
-                    ssize_t src_index = ports.at(link->key().src());
-                    ssize_t dest_index = ports.at(link->key().dest());
-                    assert(src_index != -1 && dest_index != -1);
+                    ssize_t src_index = ports.index(link->key().src());
+                    ssize_t dest_index = ports.index(link->key().dest());
                     copy_or_add(src_index, dest_index, link);
                 }
             }
             plan.push_back_run(RenderAction(i));
         }
 
-
-        break;
+        done_mask |= ready_mask;
     }
 
     return plan;
-}
-
-void ModNetwork::init_ports(port_map& ports) const
-{
-    for (const auto *m: m_modules) {
-        for (auto *p: m->ports()) {
-            ports.push_back(p);
-        }
-    }
 }
 
 void
@@ -186,27 +144,21 @@ const
         auto key = link.key();
         auto src = key.src();
         auto dest = key.dest();
-        auto pred_index = module_index(&src->module());
-        auto succ_index = module_index(&dest->module());
-        // std::cout << "\n\n";
-        // std::cout << "src = " << port_name(*src) << "\n";
-        // std::cout << "src module = " << module_name(src->module()) << "\n";
-        // std::cout << "\n\n" << std::endl;
-        assert(pred_index != -1 && succ_index != -1);
+        auto pred_index = m_modules.index(&src->module());
+        auto succ_index = m_modules.index(&dest->module());
         mod_predecessors[succ_index] |= 1 << pred_index;
     }
     for (const auto *link: m_control_links) {
         auto key = link->key();
         auto src = key.src();
         auto dest = key.dest();
-        auto pred_index = module_index(&src->module());
-        auto succ_index = module_index(&dest->module());
-        assert(pred_index != -1 && succ_index != -1);
+        auto pred_index = m_modules.index(&src->module());
+        auto succ_index = m_modules.index(&dest->module());
         mod_predecessors[succ_index] |= 1 << pred_index;
     }
 }
 
-void ModNetwork::init_port_sources(const port_map& ports,
+void ModNetwork::init_port_sources(const port_vector& ports,
                                    port_adjacency_matrix& port_sources) const
 {
     port_sources.fill(0);
@@ -214,17 +166,8 @@ void ModNetwork::init_port_sources(const port_map& ports,
         auto key = link.key();
         auto src = key.src();
         auto dest = key.dest();
-        auto src_index = ports.at(src);
-        auto dest_index = ports.at(dest);
-        assert(src_index != -1 && dest_index != -1);
+        auto src_index = ports.index(src);
+        auto dest_index = ports.index(dest);
         port_sources[dest_index] |= 1 << src_index;
     }
-}
-
-ssize_t ModNetwork::module_index(const Module *mod) const
-{
-    for (size_t i = 0; i < m_modules.size(); i++)
-        if (m_modules.at(i) == mod)
-            return i;
-    return -1;
 }

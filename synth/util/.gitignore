@@ -1,2 +1,4 @@
+test-bijection
+test-noalloc
 test-span-map
 test-vec-map
