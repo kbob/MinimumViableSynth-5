@@ -101,9 +101,25 @@ public:
          .simple_connection(foo1.out, foo2.in);
         Plan p = n.make_plan();
 
-        // TS_ASSERT(p.prep().size() == 2);
-        // auto *a0 = p.prep().at(0);
-        // auto *a1 = p.prep().at(1);
-
+        TS_ASSERT(p.prep().size() == 2);
+        TS_ASSERT(p.prep().at(0).type() == PrepActionType::CLEAR);
+        TS_ASSERT(p.prep().at(1).type() == PrepActionType::ALIAS);
+        std::cout << "run size = " << p.run().size() << std::endl;
+        TS_ASSERT(p.run().size() == 2);
+        TS_ASSERT(p.run().at(0).type() == RunActionType::RENDER);
+        TS_ASSERT(p.run().at(1).type() == RunActionType::RENDER);
     }
+
+    void test_cycle()
+    {
+        ModNetwork n;
+        FooModule foo1, foo2;
+        n.module(foo1)
+         .module(foo2)
+         .simple_connection(foo1.out, foo2.in)
+         .simple_connection(foo2.out, foo1.in);
+
+        TS_ASSERT_THROWS(n.make_plan(), std::runtime_error);
+    }
+
 };

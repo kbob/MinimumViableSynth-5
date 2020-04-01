@@ -62,6 +62,7 @@ public:
     PrepAction(const AliasAction& alias)
     : m_tag(PrepActionType::ALIAS), m_u(alias)
     {}
+    PrepActionType type() const { return m_tag; }
     void do_it() const
     {
         switch (m_tag) {
@@ -74,7 +75,6 @@ public:
         default:
             assert(0 && "invalid prep type");
         }
-
     }
 };
 
@@ -177,6 +177,7 @@ public:
     RunAction(const RenderAction& render)
     : m_tag(RunActionType::RENDER), m_u(render)
     {}
+    RunActionType type() const { return m_tag; }
     void do_it() const
     {
         switch (m_tag) {

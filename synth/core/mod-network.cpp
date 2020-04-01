@@ -61,7 +61,7 @@ Plan ModNetwork::make_plan() const
     //     done = {}
     //     while done != {all}:
     //         ready = {modules whose predecessors are done}
-    //         create actions for ready modules
+    //         emit actions for ready modules
     //         done |= ready
     //
     module_mask done_mask = 0;
@@ -76,11 +76,14 @@ Plan ModNetwork::make_plan() const
             }
         }
         ready_mask &= ~done_mask;
-        assert(ready_mask && "cycle in signal graph");
+        // std::cout << "\nready = " << std::hex << ready_mask << std::endl;
+        // std::cout << "done  = " << done_mask << std::dec << std::endl;
+        if (ready_mask == 0)
+            throw std::runtime_error("cycle in mod network");
 
         // for mod in ready modules:
         //     for dest in mod inputs:
-        //         for link in links to dest:
+        //         for link in non-simple links to dest:
         //             copy first link; add other links
         //     render mod
         for (size_t i = 0; i < n_modules; i++) {
