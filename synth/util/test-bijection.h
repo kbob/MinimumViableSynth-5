@@ -35,10 +35,10 @@ public:
         u.push_back(Color::RED);
         u.push_back(Color::BLUE);
 
-        TS_ASSERT(u.at(Color::RED) == 1);
-        TS_ASSERT(u.at(Color::GREEN) == 0);
-        TS_ASSERT(u.at(Color::BLUE) == 2);
-        TS_ASSERT_THROWS(u.at(Color::PURPLE), std::domain_error);
+        TS_ASSERT(u.index(Color::RED) == 1);
+        TS_ASSERT(u.index(Color::GREEN) == 0);
+        TS_ASSERT(u.index(Color::BLUE) == 2);
+        TS_ASSERT_THROWS(u.index(Color::PURPLE), std::domain_error);
     }
 
 };
