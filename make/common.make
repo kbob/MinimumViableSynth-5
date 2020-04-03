@@ -50,8 +50,10 @@ r := $(r:/=)
         BUILD := debug
           OPT := $($(BUILD)_OPT)
      CPPFLAGS := -I../.. -MMD $(EXTRA_CPPFLAGS)
+       CFLAGS := -std=c99 -Wall -Wextra -Werror $(OPT)
      CXXFLAGS := -std=c++11 -Wall -Wextra -Werror $(OPT)
 
+       HOSTCC := cc
       HOSTCXX := c++
       CXXTEST := $r/submodules/cxxtest
       TESTGEN := $(CXXTEST)/bin/cxxtestgen
@@ -117,7 +119,7 @@ ifneq ($(TESTS),)
 	    @echo ''
 endif
 
-PHONY:     all world programs images test tests clean
+.PHONY:     all world programs images test tests clean
 .PHONY:     help general-help local-help
 
 # Recurse into subdirectories.
