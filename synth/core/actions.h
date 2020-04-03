@@ -80,6 +80,15 @@ public:
 
 // -- Run Actions -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 
+// voice/global
+// const/varying
+// copy/add
+// ctl? scale? src<type>? dest<type>
+//
+// -ctl -src -> const (move to prep)
+// nonvarying ctl -src -> const
+
+
 class CopyAction {
     uint8_t            m_out_port_index;
     uint8_t            m_in_port_index;

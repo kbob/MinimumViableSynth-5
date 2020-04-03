@@ -1,7 +1,7 @@
 #ifndef MOD_VECTOR_included
 #define MOD_VECTOR_included
 
-#include "synth/core/signalgraph.h"
+#include "synth/core/module.h"
 #include "synth/util/bijection.h"
 #include "synth/util/noalloc.h"
 

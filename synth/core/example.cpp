@@ -1,6 +1,6 @@
 #include "synth/core/signalgraph.h"
 
-class Oscillator : public Module {
+class Oscillator : public XXX_Module {
 public:
     Oscillator()
     {
@@ -29,7 +29,7 @@ public:
 private:
 };
 
-class Filter : public Module {
+class Filter : public XXX_Module {
 public:
     Filter()
     {
@@ -45,7 +45,7 @@ public:
 
 };
 
-class Amp : public Module {
+class Amp : public XXX_Module {
 public:
     Amp()
     {
@@ -66,7 +66,7 @@ public:
 
 class Voice {
 public:
-    Voice& module(Module& m)
+    Voice& module(XXX_Module& m)
     {
         m_modules.push_back(&m);
         return *this;
@@ -77,7 +77,7 @@ public:
         return *this;
     }
 private:
-    std::vector<Module *> m_modules;
+    std::vector<XXX_Module *> m_modules;
     std::vector<SimpleLink> m_links;
 };
 

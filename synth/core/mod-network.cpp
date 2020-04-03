@@ -1,5 +1,7 @@
 #include "synth/core/mod-network.h"
 
+#include <array>
+
 #include "synth/core/actions.h"
 
 Plan ModNetwork::make_plan() const
@@ -147,16 +149,16 @@ const
         auto key = link.key();
         auto src = key.src();
         auto dest = key.dest();
-        auto pred_index = m_modules.index(&src->module());
-        auto succ_index = m_modules.index(&dest->module());
+        auto pred_index = m_modules.index(src->module());
+        auto succ_index = m_modules.index(dest->module());
         mod_predecessors[succ_index] |= 1 << pred_index;
     }
     for (const auto *link: m_control_links) {
         auto key = link->key();
         auto src = key.src();
         auto dest = key.dest();
-        auto pred_index = m_modules.index(&src->module());
-        auto succ_index = m_modules.index(&dest->module());
+        auto pred_index = m_modules.index(src->module());
+        auto succ_index = m_modules.index(dest->module());
         mod_predecessors[succ_index] |= 1 << pred_index;
     }
 }

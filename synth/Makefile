@@ -1,3 +1,3 @@
-SUBDIRS := core util
+SUBDIRS := core midi util
 
 include ../make/common.make

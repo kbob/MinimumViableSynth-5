@@ -1,9 +1,10 @@
 #ifndef MOD_NETWORK_included
 #define MOD_NETWORK_included
 
+#include "links.h"
+#include "synth/core/module.h"
 #include "synth/core/mod-vector.h"
 #include "synth/core/plan.h"
-#include "synth/core/signalgraph.h"
 #include "synth/core/voice.h"
 #include "synth/util/bijection.h"
 

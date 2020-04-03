@@ -7,7 +7,7 @@ public:
     virtual FooModule *clone() const override { return new FooModule(*this); }
     Input<> in;
     Output<> out;
-    virtual void render(size_t) const override {}
+    virtual void render(size_t) override {}
 };
 
 class VoiceUnitTest : public CxxTest::TestSuite {

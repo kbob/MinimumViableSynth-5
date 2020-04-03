@@ -99,8 +99,8 @@ public:
         return *this;
     }
 
-    const class Module& module() const { return *m_module; }
-    void module(const class Module& module) { m_module = &module; }
+    const class XXX_Module& module() const { return *m_module; }
+    void module(const class XXX_Module& module) { m_module = &module; }
 
 protected:
 
@@ -112,7 +112,7 @@ protected:
 
 private:
 
-    const class Module *m_module;
+    const class XXX_Module *m_module;
 
     std::string m_name;
 
@@ -236,7 +236,7 @@ class ControlOutput : public Output<ElementType>, public Controlled {};
 // A module's constructor
 
 // `Module` is an abstract base class for modules.
-class Module {
+class XXX_Module {
 
 public:
 
@@ -260,7 +260,7 @@ public:
 
     virtual void render(size_t frame_count) const = 0;
 
-    virtual Module *clone() const = 0;
+    virtual XXX_Module *clone() const = 0;
 
 protected:
 
@@ -268,7 +268,7 @@ protected:
     // Module() {}
     // Module(const Module&) = delete;
     // Module& operator = (const Module&) = delete;
-    virtual ~Module() = default;
+    virtual ~XXX_Module() = default;
 
     template <typename... Types>
     void ports(Port& p, Types&... rest)
@@ -288,7 +288,7 @@ private:
 
 };
 
-inline std::string module_name(const Module& m)
+inline std::string module_name(const XXX_Module& m)
 {
     return m.name().empty() ? type_name(m) : m.name();
 }
@@ -469,7 +469,7 @@ class Render : public Action {
 
 public:
 
-    Render(const Module *module)
+    Render(const XXX_Module *module)
     : m_module(module)
     {}
 
@@ -485,7 +485,7 @@ public:
 
 private:
 
-    const Module *m_module;
+    const XXX_Module *m_module;
 
 };
 
@@ -653,7 +653,7 @@ public:
     static const size_t MAX_MODULES = std::numeric_limits<module_mask>::digits;
     static const size_t MAX_PORTS = std::numeric_limits<port_mask>::digits;
 
-    SignalGraph& module(const Module& mod)
+    SignalGraph& module(const XXX_Module& mod)
     {
         assert(m_modules.size() < MAX_MODULES);
         m_modules.push_back(&mod);
@@ -852,7 +852,7 @@ public:
             for (size_t i = 0; i < n_modules; i++) {
                 if (!(ready_mask & 1 << i))
                     continue;
-                const Module *mod = m_modules[i];
+                const XXX_Module *mod = m_modules[i];
                 for (auto *port : mod->ports()) {
                     InputPort *dest = dynamic_cast<InputPort *>(port);
                     if (!dest)
@@ -935,7 +935,7 @@ private:
 
     // map module pointer to index in m_modules
     // (and in the adjacency matrix).
-    ssize_t module_index(const Module *m)
+    ssize_t module_index(const XXX_Module *m)
     {
         for (size_t i = 0; i < m_modules.size(); i++)
             if (m_modules.at(i) == m)
@@ -944,7 +944,7 @@ private:
     };
 
     // all modules (vertices) in the graph
-    std::vector<const Module *> m_modules;
+    std::vector<const XXX_Module *> m_modules;
 
     // all links (edges) in the graph.
     std::vector<const Link *> m_links;

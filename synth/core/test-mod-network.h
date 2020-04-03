@@ -1,7 +1,5 @@
 #include "synth/core/mod-network.h"
 
-// #include "synth/core/signalgraph.h"
-
 #include <cxxtest/TestSuite.h>
 
 class FooModule : public Module {
@@ -15,8 +13,7 @@ public:
     virtual FooModule *clone() const override { return new FooModule(*this); }
     Input<> in;
     Output<> out;
-    virtual void render(size_t) const override {}
-
+    virtual void render(size_t) override {}
 };
 
 class ModNetworkUnitTest : public CxxTest::TestSuite {

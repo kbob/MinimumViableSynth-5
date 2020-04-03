@@ -5,7 +5,7 @@
 #include <memory>
 #include <sstream>
 
-class Attenuator : public Module {
+class Attenuator : public XXX_Module {
 
 public:
 
@@ -31,7 +31,7 @@ public:
     }
 };
 
-class Oscillator : public Module {
+class Oscillator : public XXX_Module {
 
 public:
 
@@ -84,7 +84,7 @@ private:
 };
 
 template <unsigned ChannelsIn>
-class Mixer : public Module {
+class Mixer : public XXX_Module {
 
 public:
 
