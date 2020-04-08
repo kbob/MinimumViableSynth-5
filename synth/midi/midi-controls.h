@@ -159,42 +159,42 @@ float note_to_freq<float>(uint8_t note)
     return 440.0f * powf(2.0f, (note - 69) * (1.0f / 12.0f));
 }
 
-class NoteFreqControl : public TypedControl<> {
+class NoteFreqControl : public ControlType<> {
     // Combine note number, pitch bend, and portamento.
 };
 
-class AttackVelocityControl : public TypedControl<> {
+class AttackVelocityControl : public ControlType<> {
 
 };
 
-class ReleaseVelocityControl : public TypedControl<> {
+class ReleaseVelocityControl : public ControlType<> {
 
 };
 
-class PolyPressureControl : public TypedControl<> {
+class PolyPressureControl : public ControlType<> {
 
 };
 
-class ChannelPressureControl : public TypedControl<> {
+class ChannelPressureControl : public ControlType<> {
 
 };
 
-class PitchBendControl : public TypedControl<> {
+class PitchBendControl : public ControlType<> {
 
 };
 
 template <uint8_t N>
-class CCControl : public TypedControl<> {
+class CCControl : public ControlType<> {
 
 };
 
 template <unsigned char MSB, unsigned char LSB>
-class RPNControl : public TypedControl<> {
+class RPNControl : public ControlType<> {
     static_assert(MSB < 128 && LSB < 128, "illegal RPN");
 };
 
 template <class MSB, class LSB>
-class NRPNControl : public TypedControl<> {
+class NRPNControl : public ControlType<> {
 
 };
 
