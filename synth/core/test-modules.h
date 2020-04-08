@@ -2,7 +2,7 @@
 
 #include <cxxtest/TestSuite.h>
 
-class FooModule : public Module<FooModule> {
+class FooModule : public ModuleType<FooModule> {
 public:
     FooModule()
     {
@@ -38,7 +38,7 @@ public:
     {
         FooModule foo;
         foo.name("Fonzie");
-        ModuleBase *bar = foo.clone();
+        Module *bar = foo.clone();
         TS_ASSERT(bar->name() == "Fonzie");
         TS_ASSERT(dynamic_cast<FooModule *>(bar));
     }

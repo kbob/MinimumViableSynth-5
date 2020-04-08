@@ -34,8 +34,8 @@
 // A module's constructor must "declare" the module's ports by
 // passing them to `ports()`.
 
-// ModuleBase is an abstract base class for modules.
-class ModuleBase : public Ported {
+// Module is an abstract base class for modules.
+class Module : public Ported {
 
 public:
 
@@ -51,7 +51,7 @@ public:
         return m_name;
     }
 
-    virtual ModuleBase *clone() const = 0;
+    virtual Module *clone() const = 0;
     virtual void init() {}
     virtual action make_render_action() = 0;
 
@@ -59,7 +59,7 @@ public:
 
 protected:
 
-    virtual ~ModuleBase() = default;
+    virtual ~Module() = default;
 
 private:
 
@@ -69,14 +69,14 @@ private:
 
 };
 
-// `Module` is a templated class for modules.  It uses the curiously
+// `ModuleType` is a templated class for modules.  It uses the cursously
 // recursive template pattern.
 template <class M>
-class Module : public ModuleBase {
+class ModuleType : public Module {
 
 public:
 
-    ModuleBase *clone() const override
+    Module *clone() const override
     {
         return new M(static_cast<const M&>(*this));
     }

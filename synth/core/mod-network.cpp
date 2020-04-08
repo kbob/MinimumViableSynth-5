@@ -94,7 +94,7 @@ Plan ModNetwork::make_plan() const
         for (size_t i = 0; i < n_modules; i++) {
             if (!(ready_mask & 1 << i))
                 continue;
-            const ModuleBase *mod = m_modules.at(i);
+            const Module *mod = m_modules.at(i);
             for (auto *port: mod->ports()) {
                 InputPort *dest = dynamic_cast<InputPort *>(port);
                 if (!dest)
@@ -152,8 +152,8 @@ const
         auto key = link.key();
         auto src = key.src();
         auto dest = key.dest();
-        auto src_mod = dynamic_cast<const ModuleBase *>(src->owner());
-        auto dest_mod = dynamic_cast<const ModuleBase *>(dest->owner());
+        auto src_mod = dynamic_cast<const Module *>(src->owner());
+        auto dest_mod = dynamic_cast<const Module *>(dest->owner());
         assert(src_mod && dest_mod);
         auto pred_index = m_modules.index(src_mod);
         auto succ_index = m_modules.index(dest_mod);
@@ -163,8 +163,8 @@ const
         auto key = link->key();
         auto src = key.src();
         auto dest = key.dest();
-        auto src_mod = dynamic_cast<const ModuleBase *>(src->owner());
-        auto dest_mod = dynamic_cast<const ModuleBase *>(dest->owner());
+        auto src_mod = dynamic_cast<const Module *>(src->owner());
+        auto dest_mod = dynamic_cast<const Module *>(dest->owner());
         assert(src_mod && dest_mod);
         auto pred_index = m_modules.index(src_mod);
         auto succ_index = m_modules.index(dest_mod);

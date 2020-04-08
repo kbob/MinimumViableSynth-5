@@ -2,7 +2,7 @@
 
 #include <cxxtest/TestSuite.h>
 
-class FooModule : public Module<FooModule> {
+class FooModule : public ModuleType<FooModule> {
 public:
     FooModule()
     {

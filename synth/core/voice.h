@@ -14,9 +14,9 @@ public:
     static const size_t MAX_MODULES = 16;
     static const size_t MAX_LINKS   = 16;
 
-    typedef fixed_vector<ModuleBase *, MAX_MODULES> module_vector;
+    typedef fixed_vector<Module *, MAX_MODULES> module_vector;
 
-    void module(ModuleBase *m)
+    void module(Module *m)
     {
         m_modules.push_back(m);
     }

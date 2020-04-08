@@ -4,12 +4,12 @@
 
 #include "modules.h"
 
-class EmptyModule : public Module<EmptyModule> {
+class EmptyModule : public ModuleType<EmptyModule> {
 public:
     void render(size_t) {}
 };
 
-class IOModule : public Module<IOModule> {
+class IOModule : public ModuleType<IOModule> {
 public:
     IOModule()
     {

@@ -20,7 +20,7 @@ public:
     typedef std::uint16_t port_mask;
 
 
-    ModNetwork& module(ModuleBase& m) { m_modules.push_back(&m); return *this; }
+    ModNetwork& module(Module& m) { m_modules.push_back(&m); return *this; }
 
     ModNetwork& simple_connection(OutputPort& src, InputPort& dest)
     {

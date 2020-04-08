@@ -2,7 +2,7 @@
 
 #include <cxxtest/TestSuite.h>
 
-class FooModule : public Module<FooModule> {
+class FooModule : public ModuleType<FooModule> {
 public:
     FooModule()
     {
@@ -100,7 +100,6 @@ public:
         TS_ASSERT(p.prep().size() == 2);
         TS_ASSERT(p.prep().at(0).type() == PrepActionType::CLEAR);
         TS_ASSERT(p.prep().at(1).type() == PrepActionType::ALIAS);
-        std::cout << "run size = " << p.run().size() << std::endl;
         TS_ASSERT(p.run().size() == 2);
         TS_ASSERT(p.run().at(0).type() == RunActionType::RENDER);
         TS_ASSERT(p.run().at(1).type() == RunActionType::RENDER);
