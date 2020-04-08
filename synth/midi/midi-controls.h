@@ -159,35 +159,8 @@ float note_to_freq<float>(uint8_t note)
     return 440.0f * powf(2.0f, (note - 69) * (1.0f / 12.0f));
 }
 
-class NoteControl : public TypedControl<> {
-public:
-    // virtual void copy(size_t frame_count,
-    //                   InputPort *dest,
-    //                   const ControlLink&) override
-    // {
-    //     if (!m_freq)
-    //         m_freq = note_to_freq(m_note);
-    //     auto d = dynamic_cast<Input<DEFAULT_SAMPLE_TYPE> *>(dest);
-    //     if (!d)
-    //         throw std::runtime_error("type_error");
-    //     auto buf = d->buf();
-    //     for (size_t i = 0; i < frame_count; i++)
-    //         buf[i] = m_freq;
-    // }
-    // virtual void add(size_t,
-    //                  InputPort *,
-    //                  const ControlLink&) override
-    // {
-    //     if (!m_freq)
-    //         m_freq = note_to_freq(m_note);
-    //     auto d = dynamic_cast<Input<DEFAULT_SAMPLE_TYPE> *>(dest);
-    //     if (!d)
-    //         throw std::runtime_error("type_error");
-    //     auto buf = d->buf();
-    //     for (size_t i = 0; i < frame_count; i++)
-    //         buf[i] = m_freq;
-    // }
-private:
+class NoteFreqControl : public TypedControl<> {
+    // Combine note number, pitch bend, and portamento.
 };
 
 class AttackVelocityControl : public TypedControl<> {

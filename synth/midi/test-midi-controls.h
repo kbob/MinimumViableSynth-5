@@ -10,7 +10,7 @@ public:
 
     void test_instantiate()
     {
-        (void)NoteControl();
+        (void)NoteFreqControl();
     }
 
 };
