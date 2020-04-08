@@ -1,6 +1,7 @@
 #ifndef CONTROLS_included
 #define CONTROLS_included
 
+// #include ""
 // #include "synth/core/links.h"
 // #include "synth/core/ports.h"
 
@@ -32,12 +33,12 @@ protected:
 };
 
 template <class ElementType = DEFAULT_SAMPLE_TYPE>
-class TypedControl : public Control {
+class ControlType : public Control {
 
 protected:
 
-    TypedControl() = default;
-    virtual ~TypedControl() = default;
+    ControlType() = default;
+    virtual ~ControlType() = default;
 
 };
 

@@ -7,7 +7,7 @@
 
 enum class Color { RED, GREEN, BLUE, PURPLE };
 
-class ConcreteControl : public TypedControl<Color> {
+class ConcreteControl : public ControlType<Color> {
 public:
     // virtual void copy(InputPort *, const ControlLink&) const override {}
     // virtual void add (InputPort *, const ControlLink&) const override {}
