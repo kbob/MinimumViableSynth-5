@@ -40,27 +40,27 @@ public:
         return *this;
     }
 
-    const class Module *module() const
+    const class Ported *owner() const
     {
-        return m_module;
+        return m_owner;
     }
 
-    void module(const class Module& module)
+    void owner(const class Ported& owner)
     {
-        m_module = &module;
+        m_owner = &owner;
     }
 
 protected:
 
     // Abstract base class.  Must subclass to use.
-    Port() : m_module(nullptr) {}
+    Port() : m_owner(nullptr) {}
     Port(const Port&) = default;
     Port& operator = (const Port&) = delete;
     virtual ~Port() = default;
 
 private:
 
-    const class Module *m_module;
+    const class Ported *m_owner;
 
     std::string m_name;
 
@@ -105,6 +105,7 @@ public:
 private:
 
     ElementType m_buf[MAX_FRAMES];
+
 };
 
 // `Output<T>` is a signal output port.

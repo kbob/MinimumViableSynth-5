@@ -4,6 +4,9 @@
 
 #include "synth/core/actions.h"
 
+// XXX should work backward from output.  Then modules that
+// aren't connected won't get scheduled.
+
 Plan ModNetwork::make_plan() const
 {
     size_t n_modules = m_modules.size();
@@ -91,7 +94,7 @@ Plan ModNetwork::make_plan() const
         for (size_t i = 0; i < n_modules; i++) {
             if (!(ready_mask & 1 << i))
                 continue;
-            const Module *mod = m_modules.at(i);
+            const ModuleBase *mod = m_modules.at(i);
             for (auto *port: mod->ports()) {
                 InputPort *dest = dynamic_cast<InputPort *>(port);
                 if (!dest)
@@ -149,16 +152,22 @@ const
         auto key = link.key();
         auto src = key.src();
         auto dest = key.dest();
-        auto pred_index = m_modules.index(src->module());
-        auto succ_index = m_modules.index(dest->module());
+        auto src_mod = dynamic_cast<const ModuleBase *>(src->owner());
+        auto dest_mod = dynamic_cast<const ModuleBase *>(dest->owner());
+        assert(src_mod && dest_mod);
+        auto pred_index = m_modules.index(src_mod);
+        auto succ_index = m_modules.index(dest_mod);
         mod_predecessors[succ_index] |= 1 << pred_index;
     }
     for (const auto *link: m_control_links) {
         auto key = link->key();
         auto src = key.src();
         auto dest = key.dest();
-        auto pred_index = m_modules.index(src->module());
-        auto succ_index = m_modules.index(dest->module());
+        auto src_mod = dynamic_cast<const ModuleBase *>(src->owner());
+        auto dest_mod = dynamic_cast<const ModuleBase *>(dest->owner());
+        assert(src_mod && dest_mod);
+        auto pred_index = m_modules.index(src_mod);
+        auto succ_index = m_modules.index(dest_mod);
         mod_predecessors[succ_index] |= 1 << pred_index;
     }
 }

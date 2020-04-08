@@ -1,6 +1,7 @@
-       TESTS := test-actions test-controls test-links			\
-                test-mod-network test-mod-vector test-module		\
-                test-plan test-ports test-voice
+       TESTS := test-actions test-controls test-links                   \
+                test-mod-network test-mod-vector test-modules           \
+                test-plan test-ported test-ports test-timbre            \
+                test-voice
     PROGRAMS := a.out example
  TARGET_ARCH := -march=native
 

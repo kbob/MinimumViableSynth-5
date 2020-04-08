@@ -2,7 +2,7 @@
 #define MOD_NETWORK_included
 
 #include "links.h"
-#include "synth/core/module.h"
+#include "synth/core/modules.h"
 #include "synth/core/mod-vector.h"
 #include "synth/core/plan.h"
 #include "synth/core/voice.h"
@@ -20,7 +20,7 @@ public:
     typedef std::uint16_t port_mask;
 
 
-    ModNetwork& module(Module& m) { m_modules.push_back(&m); return *this; }
+    ModNetwork& module(ModuleBase& m) { m_modules.push_back(&m); return *this; }
 
     ModNetwork& simple_connection(OutputPort& src, InputPort& dest)
     {

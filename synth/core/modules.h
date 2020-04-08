@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "synth/core/ported.h"
 #include "synth/core/ports.h"
 #include "synth/util/noalloc.h"
 
@@ -12,7 +13,6 @@
 // a module in a modular synth: it accepts several continuous data
 // streams, has several controls, and emits one or more continuous data
 // streams.
-
 //
 // Data flows into and out of a module through ports (see above).
 // The ports should be declared as public data members of the module.
@@ -34,14 +34,12 @@
 // A module's constructor must "declare" the module's ports by
 // passing them to `ports()`.
 
-// `Module` is an abstract base class for modules.
-class Module {
+// ModuleBase is an abstract base class for modules.
+class ModuleBase : public Ported {
 
 public:
 
-    static const size_t MAX_PORTS = 4;
-
-    typedef fixed_vector<Port *, MAX_PORTS> port_vector;
+    typedef std::function<void(size_t)> action;
 
     void name(const std::string& name)
     {
@@ -53,36 +51,44 @@ public:
         return m_name;
     }
 
-    const port_vector& ports() const
-    {
-        return m_ports;
-    }
-
-    virtual Module *clone() const = 0;
-
+    virtual ModuleBase *clone() const = 0;
     virtual void init() {}
+    virtual action make_render_action() = 0;
 
-    virtual void render(size_t frame_count) = 0;
+    // virtual void render(size_t frame_count) = 0;
 
 protected:
 
-    virtual ~Module() = default;
-
-    template <typename... Types>
-    void ports(Port& p, Types&... rest)
-    {
-        m_ports.push_back(&p);
-        p.module(*this);
-        ports(rest...);
-    }
-
-    // void ports() {}
+    virtual ~ModuleBase() = default;
 
 private:
 
     std::string m_name;
-    port_vector m_ports;
-    friend class ModuleUnitTest;
+
+    friend class ModulesUnitTest;
+
+};
+
+// `Module` is a templated class for modules.  It uses the curiously
+// recursive template pattern.
+template <class M>
+class Module : public ModuleBase {
+
+public:
+
+    ModuleBase *clone() const override
+    {
+        return new M(static_cast<const M&>(*this));
+    }
+
+    action make_render_action() override
+    {
+        return [this] (size_t frame_count) {
+            static_cast<M *>(this)->render(frame_count);
+        };
+    }
+
+    friend class ModulesUnitTest;
 
 };
 

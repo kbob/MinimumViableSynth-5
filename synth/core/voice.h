@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "synth/core/module.h"
+#include "synth/core/modules.h"
 #include "synth/core/plan.h"
 #include "synth/util/noalloc.h"
 
@@ -14,9 +14,9 @@ public:
     static const size_t MAX_MODULES = 16;
     static const size_t MAX_LINKS   = 16;
 
-    typedef fixed_vector<Module *, MAX_MODULES> module_vector;
+    typedef fixed_vector<ModuleBase *, MAX_MODULES> module_vector;
 
-    void module(Module *m)
+    void module(ModuleBase *m)
     {
         m_modules.push_back(m);
     }

@@ -2,12 +2,11 @@
 
 #include <cxxtest/TestSuite.h>
 
-class FooModule : public Module {
+class FooModule : public Module<FooModule> {
 public:
-    virtual FooModule *clone() const override { return new FooModule(*this); }
     Input<> in;
     Output<> out;
-    virtual void render(size_t) override {}
+    void render(size_t) {}
 };
 
 class VoiceUnitTest : public CxxTest::TestSuite {

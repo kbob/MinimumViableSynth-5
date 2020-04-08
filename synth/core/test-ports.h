@@ -2,27 +2,22 @@
 
 #include <cxxtest/TestSuite.h>
 
-#include "module.h"
+#include "modules.h"
 
-class EmptyModule : public Module {
+class EmptyModule : public Module<EmptyModule> {
 public:
-    virtual EmptyModule *clone() const override
-    {
-        return new EmptyModule(*this);
-    }
-    virtual void render(size_t) override {}
+    void render(size_t) {}
 };
 
-class IOModule : public Module {
+class IOModule : public Module<IOModule> {
 public:
     IOModule()
     {
         ports(in, out);
     }
-    virtual IOModule *clone() const override { return new IOModule(*this); }
     Input<> in;
     Output<> out;
-    virtual void render(size_t) override {}
+    void render(size_t) {}
 };
 
 class PortsUnitTest : public CxxTest::TestSuite {
@@ -48,12 +43,12 @@ public:
         Input<> i;
         Output<> o;
         EmptyModule m;
-        TS_ASSERT(i.module() == nullptr);
-        TS_ASSERT(o.module() == nullptr);
-        i.module(m);
-        o.module(m);
-        TS_ASSERT(i.module() == &m);
-        TS_ASSERT(o.module() == &m);
+        TS_ASSERT(i.owner() == nullptr);
+        TS_ASSERT(o.owner() == nullptr);
+        i.owner(m);
+        o.owner(m);
+        TS_ASSERT(i.owner() == &m);
+        TS_ASSERT(o.owner() == &m);
     }
 
     void test_module_ports()
@@ -61,8 +56,8 @@ public:
         IOModule m;
         TS_ASSERT(m.ports().at(0) == &m.in);
         TS_ASSERT(m.ports().at(1) == &m.out);
-        TS_ASSERT(m.in.module() == &m);
-        TS_ASSERT(m.out.module() == &m);
+        TS_ASSERT(m.in.owner() == &m);
+        TS_ASSERT(m.out.owner() == &m);
     }
 
     void test_types()
