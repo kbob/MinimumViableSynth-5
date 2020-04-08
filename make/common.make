@@ -38,6 +38,13 @@
 #
 #
 # Firmware images' variables are TBD.
+#
+#
+# Advanced Trickery
+#
+# No makefile?  Use this file directly.
+#
+#   $ make -f ../make/common.make PROGRAMS=a.out a.out-SOURCES='a.cpp b.c'
 
 # Derive project root as this file's grandparent.
 r := $(lastword $(MAKEFILE_LIST))
@@ -163,9 +170,9 @@ define test_template =
 $1.cpp:     $1.h
 	    $(TESTGEN) $(TESTGENFLAGS) $$< -o $$@
 $1:          CXX := $(HOSTCXX)
-$1:     CXXFLAGS += -I$(TEST_INC)
-$1:         $$($1-OFILES)
-	    $$(LINK.cpp) $$^ $(LOADLIBES) $(LDLIBS) -o $$@
+$1:     CPPFLAGS += -I$(TEST_INC)
+$1:        $1.cpp $$($1-SOURCES)
+	    $$(LINK.cpp) $1.cpp $$($1-SOURCES) $(LOADLIBES) $(LDLIBS) -o $$@
 endef
 $(foreach t, $(TESTS), $(eval $(call test_template,$t)))
 
