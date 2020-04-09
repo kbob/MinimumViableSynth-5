@@ -55,7 +55,7 @@ protected:
     // Abstract base class.  Must subclass to use.
     Port() : m_owner(nullptr) {}
     Port(const Port&) = default;
-    Port& operator = (const Port&) = delete;
+    Port& operator = (const Port&) = default;
     virtual ~Port() = default;
 
 private:
@@ -72,9 +72,7 @@ class InputPort : public Port {
 protected:
 
     // Abstract base class.  Must subclass to use.
-    InputPort() {}
-
-    // virtual void copy_in(size_t, const class Voice *) = 0;
+    InputPort() = default;
 
 };
 
@@ -84,7 +82,7 @@ class OutputPort : public Port {
 protected:
 
     // Abstract base class.  Must subclass to use.
-    OutputPort() {}
+    OutputPort() = default;
 
 };
 

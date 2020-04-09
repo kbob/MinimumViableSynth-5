@@ -1,29 +1,20 @@
 #ifndef CONTROLS_included
 #define CONTROLS_included
 
-// #include ""
-// #include "synth/core/links.h"
-// #include "synth/core/ports.h"
+#include "synth/core/ported.h"
+#include "synth/core/ports.h"
 
 typedef float DEFAULT_SAMPLE_TYPE;
 
 // ABC for controls.
 //
 // parameterized by type.
-// subclassed for MIDI, GUI.
+// subclassed for MIDI, GUI, others?
 // further subclassed for note, velocity, CC, NRPN, etc.
 //
-// a control knows how to apply itself through a ControlLink.
+// A control writes its value to its `out` port.
 
-class Control {
-
-    // virtual void copy(size_t frame_count,
-    //                   class InputPort *,
-    //                   const class ControlLink&) = 0;
-    //
-    // virtual void add (size_t frame_count,
-    //                   class InputPort *,
-    //                   const class ControlLink&) = 0;
+class Control : public Ported {
 
 protected:
 
@@ -35,9 +26,17 @@ protected:
 template <class ElementType = DEFAULT_SAMPLE_TYPE>
 class ControlType : public Control {
 
+public:
+
+    Output<ElementType> out;
+
 protected:
 
-    ControlType() = default;
+    ControlType()
+    {
+        out.name("out");
+        ports(out);
+    }
     virtual ~ControlType() = default;
 
 };

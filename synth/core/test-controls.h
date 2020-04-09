@@ -2,15 +2,10 @@
 
 #include <cxxtest/TestSuite.h>
 
-#include "links.h"
-#include "ports.h"
-
 enum class Color { RED, GREEN, BLUE, PURPLE };
 
 class ConcreteControl : public ControlType<Color> {
 public:
-    // virtual void copy(InputPort *, const ControlLink&) const override {}
-    // virtual void add (InputPort *, const ControlLink&) const override {}
 };
 
 class ControlsUnitTest : public CxxTest::TestSuite {
@@ -22,6 +17,25 @@ public:
         (void)ConcreteControl();
     }
 
-    // XXX now what?
+    void test_copy()
+    {
+        ConcreteControl c1;
+        ConcreteControl c2(c1);
+    }
+
+    void test_assign()
+    {
+        ConcreteControl c1, c2;
+        c2 = c1;
+    }
+
+    void test_port()
+    {
+        ConcreteControl c;
+        Ported::port_vector ports = c.ports();
+        TS_ASSERT(ports.size() == 1);
+        TS_ASSERT(ports.at(0) == &c.out);
+        TS_ASSERT(c.out.name() == "out");
+    }
 
 };
