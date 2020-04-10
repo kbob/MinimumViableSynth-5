@@ -4,7 +4,6 @@
 #include "synth/core/ports.h"
 #include "synth/util/noalloc.h"
 
-
 // Ported is a mixin class for objects that have ports.
 class Ported {
 

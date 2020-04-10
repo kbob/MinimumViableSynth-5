@@ -4,6 +4,7 @@
 #include <cassert>
 #include <memory>
 #include <type_traits>
+#include <vector>
 
 // vector_pool<T, N> is an allocator for vectors that can't
 // grow beyond N elements.  Use it like this.

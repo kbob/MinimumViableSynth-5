@@ -1,4 +1,4 @@
-#include "synth/core/plan.h"
+#include "plan.h"
 
 #include <cxxtest/TestSuite.h>
 

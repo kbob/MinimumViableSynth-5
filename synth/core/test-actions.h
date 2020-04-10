@@ -1,4 +1,4 @@
-#include "synth/core/actions.h"
+#include "actions.h"
 
 #include <cxxtest/TestSuite.h>
 

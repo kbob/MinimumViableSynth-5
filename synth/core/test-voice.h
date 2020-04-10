@@ -1,4 +1,4 @@
-#include "synth/core/voice.h"
+#include "voice.h"
 
 #include <cxxtest/TestSuite.h>
 

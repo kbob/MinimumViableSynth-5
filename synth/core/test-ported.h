@@ -2,8 +2,6 @@
 
 #include <cxxtest/TestSuite.h>
 
-#include "ports.h"
-
 class MockPort : public Port {
 
 };
