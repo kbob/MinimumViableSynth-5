@@ -95,11 +95,6 @@ public:
     ElementType operator [] (size_t i) const;
     ElementType *buf() { return m_buf; }
 
-    // virtual void copy_in(size_t, ControlLink&, const class Voice& voice)
-    // {
-    //     link.copy<ElementType>(m_buf, frame_count, voice);
-    // }
-
 private:
 
     ElementType m_buf[MAX_FRAMES];
@@ -116,5 +111,12 @@ public:
 
 };
 
+// It is useful to define the null output type -- see links.h.
+// But it is not useful to instantiate it.
+template <>
+class Output<void> : public OutputPort {
+private:
+    Output() = delete;
+};
 
 #endif /* !PORTS_included */

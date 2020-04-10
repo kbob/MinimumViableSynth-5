@@ -90,15 +90,15 @@ public:
 
 
 class CopyAction {
-    uint8_t            m_out_port_index;
-    uint8_t            m_in_port_index;
-    class ControlLink *m_control;
+    uint8_t     m_out_port_index;
+    uint8_t     m_in_port_index;
+    class Link *m_control;
     friend class ActionsUnitTest;
 public:
     CopyAction() = default;
-    CopyAction(uint8_t      out_port_index,
-               uint8_t      in_port_index,
-               ControlLink *control)
+    CopyAction(uint8_t  out_port_index,
+               uint8_t  in_port_index,
+               Link    *control)
     : m_out_port_index(out_port_index),
       m_in_port_index(in_port_index),
       m_control(control)
@@ -116,15 +116,15 @@ public:
 };
 
 class AddAction {
-    uint8_t            m_out_port_index;
-    uint8_t            m_in_port_index;
-    class ControlLink *m_control;
+    uint8_t     m_out_port_index;
+    uint8_t     m_in_port_index;
+    class Link *m_control;
     friend class ActionsUnitTest;
 public:
     AddAction() = default;
-    AddAction(uint8_t out_port_index,
-              uint8_t in_port_index,
-              ControlLink *control)
+    AddAction(uint8_t  out_port_index,
+              uint8_t  in_port_index,
+              Link    *control)
     : m_out_port_index(out_port_index),
       m_in_port_index(in_port_index),
       m_control(control)

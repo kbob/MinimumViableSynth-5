@@ -36,25 +36,22 @@ Plan ModNetwork::make_plan() const
             if (!dest)
                 continue;
             size_t link_count = 0;
-            const SimpleLink *s_link = nullptr;
-            for (const auto& link : m_simple_links) {
-                if (link.key().dest() == dest) {
+            const Link *s_link = nullptr;
+            for (const auto *link: m_links) {
+                if (link->dest() == dest) {
                     link_count++;
-                    s_link = &link;
-                }
-            }
-            for (const auto *link : m_control_links) {
-                if (link->key().dest() == dest) {
-                    link_count++;
+                    if (link->is_simple())
+                        s_link = link;
                 }
             }
             if (link_count == 0) {
                 plan.push_back_prep(ClearAction(ports.index(dest)));
             } else if (link_count == 1 && s_link) {
-                size_t src_index = ports.index(s_link->key().src());
-                size_t dest_index = ports.index(s_link->key().dest());
+                size_t src_index = ports.index(s_link->src());
+                size_t dest_index = ports.index(s_link->dest());
                 plan.push_back_prep(AliasAction(src_index, dest_index));
             }
+            // XXX also need to handle case w/ all constant links.
         }
     }
 
@@ -99,11 +96,12 @@ Plan ModNetwork::make_plan() const
                 InputPort *dest = dynamic_cast<InputPort *>(port);
                 if (!dest)
                     continue;   // not an input port
+                ssize_t dest_index = ports.index(dest);
 
                 // The first source is copied to the destination;
                 // the rest are added to it.
                 bool copied = false;
-                auto copy_or_add = [&] (size_t si, size_t di, ControlLink *lk) {
+                auto copy_or_add = [&] (size_t si, size_t di, Link *lk) {
                     RunAction act;
                     if (!copied) {
                         act = CopyAction(si, di, lk);
@@ -113,24 +111,20 @@ Plan ModNetwork::make_plan() const
                     }
                     plan.push_back_run(act);
                 };
-
-                for (const auto& link: m_simple_links) {
-                    if (link.key().dest() != dest)
+                for (auto *link: m_links) {
+                    if (link->dest() != dest)
                         continue;
-                    ssize_t src_index = ports.index(link.key().src());
-                    ssize_t dest_index = ports.index(link.key().dest());
-                    if (port_sources[dest_index] == 1 << src_index) {
+                    auto src = link->src();
+                    if (!src)
+                        continue; // XXX handle source-less links.
+                    ssize_t src_index = ports.index(src);
+                    if (link->is_simple() &&
+                        port_sources[dest_index] == 1 << src_index)
+                    {
                         // This port is simply-connected.  Do not
                         // emit actions for it.
-                        break;
-                    }
-                    copy_or_add(src_index, dest_index, nullptr);
-                }
-                for (auto *link: m_control_links) {
-                    if (link->key().dest() != dest)
                         continue;
-                    ssize_t src_index = ports.index(link->key().src());
-                    ssize_t dest_index = ports.index(link->key().dest());
+                    }
                     copy_or_add(src_index, dest_index, link);
                 }
             }
@@ -148,21 +142,11 @@ ModNetwork::init_mod_predecessors(module_adjacency_matrix& mod_predecessors)
 const
 {
     mod_predecessors.fill(0);
-    for (const auto& link: m_simple_links) {
-        auto key = link.key();
-        auto src = key.src();
-        auto dest = key.dest();
-        auto src_mod = dynamic_cast<const Module *>(src->owner());
-        auto dest_mod = dynamic_cast<const Module *>(dest->owner());
-        assert(src_mod && dest_mod);
-        auto pred_index = m_modules.index(src_mod);
-        auto succ_index = m_modules.index(dest_mod);
-        mod_predecessors[succ_index] |= 1 << pred_index;
-    }
-    for (const auto *link: m_control_links) {
-        auto key = link->key();
-        auto src = key.src();
-        auto dest = key.dest();
+    for (const auto *link: m_links) {
+        auto src = link->src();
+        if (!src)
+            continue;
+        auto dest = link->dest();
         auto src_mod = dynamic_cast<const Module *>(src->owner());
         auto dest_mod = dynamic_cast<const Module *>(dest->owner());
         assert(src_mod && dest_mod);
@@ -176,10 +160,11 @@ void ModNetwork::init_port_sources(const port_vector& ports,
                                    port_adjacency_matrix& port_sources) const
 {
     port_sources.fill(0);
-    for (const auto& link: m_simple_links) {
-        auto key = link.key();
-        auto src = key.src();
-        auto dest = key.dest();
+    for (const auto *link: m_links) {
+        auto src = link->src();
+        if (!src)
+            continue;
+        auto dest = link->dest();
         auto src_index = ports.index(src);
         auto dest_index = ports.index(dest);
         port_sources[dest_index] |= 1 << src_index;

@@ -1,6 +1,9 @@
 #ifndef LINKS_included
 #define LINKS_included
 
+#include <cstddef>
+
+#include "synth/core/controls.h"
 #include "synth/core/ports.h"
 
 class Control;
@@ -9,6 +12,8 @@ const double  DEFAULT_SCALE =  1.0;
 // typedef float DEFAULT_SAMPLE_TYPE;
 
 // -- Links -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
+//
+// XXX is any of this info current?
 //
 // Modules' ports are connected by Links.  (Aka connections, but we
 // call them links here.)  A link is like a patch cord -- it connects
@@ -39,107 +44,105 @@ const double  DEFAULT_SCALE =  1.0;
 
 class Link {
 
-    typedef std::tuple<OutputPort *, InputPort *, Control *> key_base;
-
 public:
 
-    // XXX use a better name than "Key".
-    class Key : public key_base {
+    bool is_constant() const { return !m_src && !m_ctl; }
+    bool is_simple()   const { return  m_src && !m_ctl && m_scale == 1; }
 
-    public:
-
-        Key(OutputPort *src, InputPort *dest, Control *control = nullptr)
-        : key_base(src, dest, control)
-        {}
-
-        OutputPort  *src() const { return std::get<0>(*this); }
-        InputPort  *dest() const { return std::get<1>(*this); }
-        Control *control() const { return std::get<2>(*this); }
-
-    };
-
-    virtual ~Link() = default;
-
-    Key key() const
-    {
-        return Key(m_src, m_dest, m_control);
-    }
+    InputPort *dest() const { return m_dest; }
+    OutputPort *src() const { return m_src; }
+    OutputPort *ctl() const { return m_ctl; }
+    float     scale() const { return m_scale; }
 
 protected:
 
-    Link(OutputPort& src, InputPort& dest, Control *control = nullptr)
-    : m_src(&src),
-      m_dest(&dest),
-      m_control(control)
-    {}
-
-    OutputPort *m_src;
-    InputPort *m_dest;
-    Control *m_control;
-
-};
-
-class SimpleLink : public Link {
-
-public:
-
-    SimpleLink(OutputPort& src, InputPort& dest)
-    : Link(src, dest)
-    {}
-
-};
-
-class ControlLink : public Link {
-
-public:
-
-    ControlLink(OutputPort& src,
-                InputPort& dest,
-                Control *control = nullptr,
-                double scale = DEFAULT_SCALE)
-    : Link(src, dest, control),
-      m_scale(scale)
-    {}
-    ControlLink& scale(double scale)
-    {
-        m_scale = scale;
-        return *this;
-    }
-
-    double scale() const
-    {
-        return m_scale;
-    }
-
-    // // We know src, dest, control, element type.
-    // // XXX the conditional logic here should be folded into the action.
-    // template <class ElementType>
-    // void copy(size_t frame_count, ElementType *dest_buf, class Voice *voice)
-    // {
-    //     ElementType ctl[OutputPort::MAX_FRAMES];
-    //     if (m_src && m_control) {
-    //         const ElementType *src = m_src->get_buf();
-    //         m_control->get(ctl, frame_count, voice);
-    //         for (size_t i = 0; i < frame_count; i++)
-    //             dest[i] = src[i] * ctl[i] * m_scale;
-    //     } else if (m_src) {
-    //         const ElementType *src = m_src->get_buf();
-    //         for (size_t i = 0; i < frame_count; i++)
-    //             dest[i] = src[i] * m_scale;
-    //     } else if (m_control) {
-    //         m_control->get(ctl, frame_count, voice);
-    //         for (size_t i = 0; i < frame_count; i++)
-    //             dest[i] = ctl[i] * m_scale;
-    //     } else {
-    //         for (size_t i = 0; i < frame_count; i++)
-    //             dest[i] = m_scale;
-    //     }
-    // }
+    Link(InputPort *dest, OutputPort *src, OutputPort *ctl, float scale)
+    : m_dest(dest), m_src(src), m_ctl(ctl), m_scale(scale) {}
+    virtual ~Link() = default;
 
 private:
 
-    double m_scale;
+    InputPort  *m_dest;
+    OutputPort *m_src;
+    OutputPort *m_ctl;
+    float       m_scale;
 
 };
+
+template <class D, class S, class C>
+class LinkType : public Link {
+
+public:
+
+    LinkType(Input<D> *dest, Output<S> *src, Output<C> *ctl, float scale)
+    : Link(dest, src, ctl, scale) {}
+
+
+};
+
+// There are six version of `make_link`.  The source may be present
+// or null, and the control may be either a control, an output port,
+// or null.
+//
+// When the control is a `Control`, we use its `out` member.
+template <class D, class S, class C>
+LinkType<D, S, C>
+make_link(Input<D>       *dest,
+          Output<S>      *src,
+          ControlType<C> *ctl,
+          float           scale = 1.0f)
+{
+    return LinkType<D, S, C>(dest, src, &ctl->out, scale);
+}
+
+template <class D, class S, class C>
+LinkType<D, S, C>
+make_link(Input<D>       *dest,
+          Output<S>      *src,
+          Output<C>      *ctl,
+          float           scale = 1.0f)
+{
+    return LinkType<D, S, C>(dest, src, ctl, scale);
+}
+
+template <class D, class C>
+LinkType<D, void, C>
+make_link(Input<D>       *dest,
+          std::nullptr_t,
+          ControlType<C> *ctl,
+          float           scale = 1.0f)
+{
+    return LinkType<D, void, C>(dest, nullptr, &ctl->out, scale);
+}
+
+template <class D, class C>
+LinkType<D, void, C>
+make_link(Input<D>       *dest,
+          std::nullptr_t,
+          Output<C>      *ctl,
+          float           scale = 1.0f)
+{
+    return LinkType<D, void, C>(dest, nullptr, ctl, scale);
+}
+
+template <class D, class S>
+LinkType<D, S, void>
+make_link(Input<D>       *dest,
+          Output<S>      *src,
+          std::nullptr_t,
+          float           scale = 1.0f)
+{
+    return LinkType<D, S, void>(dest, src, nullptr, scale);
+}
+
+template <class D>
+LinkType<D, void, void>
+make_link(Input<D>       *dest,
+          std::nullptr_t,
+          std::nullptr_t,
+          float           scale = 1.0f)
+{
+    return LinkType<D, void, void>(dest, nullptr, nullptr, scale);
+}
 
 #endif /* !LINKS_included */

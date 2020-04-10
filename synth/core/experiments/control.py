@@ -54,24 +54,72 @@ class Module(named, ported):
         for p in ports:
             p.owner = self
 
-class Link: ...
-class SimpleLink(Link):
-    def __init__(self, src, dest):
-        self.src = src
+# class Link: ...
+# class SimpleLink(Link):
+#     def __init__(self, src, dest):
+#         self.src = src
+#         self.dest = dest
+#     def __repr__(self):
+#         return f'{self.src} -> {self.dest}'
+# class ControlLink(Link):
+#     def __init__(self, src, dest, ctl=None, scale=1):
+#         self.src = src
+#         self.dest = dest
+#         self.ctl = ctl
+#         self.scale = scale
+#     def __repr__(self):
+#         factors = [repr(x) for x in (self.src, self.ctl) if x is not None]
+#         if self.scale != 1:
+#             factors.append(str(self.scale))
+#         return f'{" * ".join(factors)} -> {self.dest}'
+
+class Link:
+    ...
+class LinkType(Link):
+    def __init__(self, d_type, s_type, c_type, dest, src, ctl, scale=1):
+        self.d_type = d_type
+        self.s_type = s_type
+        self.c_type = c_type
         self.dest = dest
-    def __repr__(self):
-        return f'{self.src} -> {self.dest}'
-class ControlLink(Link):
-    def __init__(self, src, dest, ctl=None, scale=1):
         self.src = src
-        self.dest = dest
         self.ctl = ctl
         self.scale = scale
     def __repr__(self):
-        factors = [repr(x) for x in (self.src, self.ctl) if x is not None]
+        def type_name(x_type):
+            if x_type == type(None):
+                return '-'
+            return x_type.__name__
+        if self.c_type not in (float, type(None)):
+            nt = 3
+        elif self.s_type not in (float, type(None)):
+            nt = 2
+        elif self.d_type is not float:
+            nt = 1
+        else:
+            nt = 0
+        rep = f'Link<'
+        if nt >= 1:
+            rep += f'{type_name(self.d_type)}'
+        if nt >= 2:
+            rep += f', {type_name(self.s_type)}'
+        if nt >= 3:
+            rep += f', {type_name(self.c_type)}'
+        rep += f'>({self.dest}'
+        if self.src or self.ctl:
+            rep += f', {self.src}'
+            if self.ctl:
+                rep += f', {self.ctl}'
         if self.scale != 1:
-            factors.append(str(self.scale))
-        return f'{" * ".join(factors)} -> {self.dest}'
+            rep += f', scale={self.scale}'
+        rep += ')'
+        return rep
+
+def make_link(dest, src=None, ctl=None, scale=1):
+    d_type = dest.type
+    s_type = src.type if src else type(None)
+    c_type = ctl.type if ctl else type(None)
+
+    return LinkType(d_type, s_type, c_type, dest, src, ctl, scale)
 
 # A `ControlLink` has:
 #     a destination, which is an `Input<D>`.
@@ -129,6 +177,10 @@ class Timbre(named):
     #     a plan
     #     per timbre modules
     #     per timbre controls
+    #     an exec
+    # A Timbre can:
+    #     create a patch
+    #     apply a patch
     # The plan is recomputed when the patch changes (replaced or modified).
     # To compute the plan, the timbre needs reference to the voice moudles
     # and controls.
@@ -142,7 +194,8 @@ class Timbre(named):
         self.patch = patch
     def init_voice(self, voice): ...
     def update_voice(self, voice): ...
-
+    def create_patch(self): ...
+    def apply_patch(self, patch): ...
 
 class Synth(named):
     # Synth has:
@@ -151,12 +204,12 @@ class Synth(named):
     #     per timbre modules
     #     per voice controls
     #     per timbre controls
-    #     permanent connections
+    #     XXX NO permanent connections
     #     ref to an output port
     #
     # Synth can:
-    #     create patch
-    #     create plan from patch
+    #     XXX NO create patch
+    #     XXX NO create plan from patch
     #     allocate voices
     def __init__(self, polyphony=1,timbrality=1):
         super().__init__()
@@ -167,7 +220,7 @@ class Synth(named):
         self.vmodules    = []
         self.tcontrols   = []
         self.vcontrols   = []
-        self.links       = []
+        # self.links       = []
         self.output_port = None
         self.voice_alloc = None
 
@@ -191,14 +244,14 @@ class Synth(named):
         assert not self.finalized
         self.vcontrols.append(control)
         return self
-    def connection(self, src, dest):
-        assert not self.finalized
-        self.links.append(SimpleLink(src, dest))
-        return self
-    def control_connection(self, src, dest, ctl=None):
-        assert not self.finalized
-        self.links.append(ControlLink(src, dest, ctl))
-        return self
+    # def connection(self, src, dest):
+    #     assert not self.finalized
+    #     self.links.append(make_link(dest, src))
+    #     return self
+    # def control_connection(self, src, dest, ctl=None):
+    #     assert not self.finalized
+    #     self.links.append(make_link(dest, src, ctl))
+    #     return self
     def finalize(self, output):
         assert not self.finalized
         self.output_port = output
@@ -227,7 +280,7 @@ class Patch:
         self.synth = synth
         self.links = []
     def connect(self, dest, src=None, ctl=None, scale=1):
-        self.links.append(ControlLink(src, dest, ctl, scale))
+        self.links.append(make_link(dest, src, ctl, scale))
         return self
 
 def main():
@@ -271,7 +324,8 @@ def main():
     env = AREnvelope().name('Env1')
     osc1 = QBLOscillator().name('Osc1')
     filter = Filter()
-    amp = Amp()
+    dca = Amp().name('DCA')
+    main = Amp().name('main')
     mpitch = MIDINotePitchControl()
     mexp = MIDIExpressionControl()
     mmod = MIDIModulationControl()
@@ -282,17 +336,22 @@ def main():
          .voice_module(env)
          .voice_module(osc1)
          .voice_module(filter)
-         .voice_module(amp)
+         .voice_module(dca)
+         .timbre_module(main)
          .vcontrol(mpitch)
          .tcontrol(mexp)
          .tcontrol(mmod)
-         .connection(osc1.out, filter.in_)
-         .connection(filter.out, amp.in_)
-         .connection(env.out, amp.gain)
-         .finalize(amp.out)
+         # .connection(osc1.out, filter.in_)
+         # .connection(filter.out, amp.in_)
+         # .connection(env.out, amp.gain)
+         .finalize(main.out)
         )
-    p = s.make_patch()
-    p.connect(osc1.pitch, env.out, lfo1.out, 0.3)
+    p = (s.make_patch()
+         .connect(osc1.pitch, env.out, lfo1.out, 0.3)
+         .connect(filter.in_, osc1.out)
+         .connect(dca.in_, filter.out)
+         .connect(dca.gain, env.out)
+         .connect(main.in_, dca.out))
     s.timbres[0].set_patch(p)
     print(s)
     print(f'  polyphony     = {s.polyphony}')
@@ -302,19 +361,27 @@ def main():
     print(f'  t controls    = {s.tcontrols}')
     print(f'  v modules     = {s.vmodules}')
     print(f'  v controls    = {s.vcontrols}')
-    print(f'  links         = {s.links}')
-    print('  voices')
+    # print(f'  links         = [')
+    # for l in s.links:
+    #     print(f'                    {l},')
+    # print(f'                  ]')
+    print(f'  voices        = [')
     for v in s.voices:
-        print(f'    voice       = {v}')
-        print(f'      vmodules  = {v.vmodules}')
-        print(f'      vcontrols = {v.vcontrols}')
-    print('  timbres')
+        print(f'    voice           = {v}')
+        print(f'      vmodules      = {v.vmodules}')
+        print(f'      vcontrols     = {v.vcontrols}')
+    print(f'                  ]')
+    print(f'  timbres       = [')
     for t in s.timbres:
-        print(f'    timbre      = {t}')
-        print(f'      patch     = {t.patch}')
-        print(f'        links   = {t.patch.links}')
-        print(f'      tmodules  = {t.tmodules}')
-        print(f'      tcontrols = {t.tcontrols}')
+        print(f'    timbre          = {t}')
+        print(f'      patch         = {t.patch}')
+        print(f'        links       = [')
+        for l in t.patch.links:
+            print(f'                        {l},')
+        print(f'                      ]')
+        print(f'      tmodules      = {t.tmodules}')
+        print(f'      tcontrols     = {t.tcontrols}')
+    print(f'                  ]')
     print()
 
 if __name__ == '__main__':

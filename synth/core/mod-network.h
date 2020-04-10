@@ -5,6 +5,7 @@
 #include "synth/core/modules.h"
 #include "synth/core/mod-vector.h"
 #include "synth/core/plan.h"
+#include "synth/core/ported.h"
 #include "synth/core/voice.h"
 #include "synth/util/bijection.h"
 
@@ -21,27 +22,7 @@ public:
 
 
     ModNetwork& module(Module& m) { m_modules.push_back(&m); return *this; }
-
-    ModNetwork& simple_connection(OutputPort& src, InputPort& dest)
-    {
-        // assert (src, dest) not in simple_connections
-        m_simple_links.push_back(SimpleLink(src, dest));
-        return *this;
-    }
-
-    ModNetwork& control_connection(ControlLink& link)
-    {
-        m_control_links.push_back(&link);
-        return *this;
-    }
-
-    Voice *make_voice() const
-    {
-        auto v = new Voice();
-        for (const auto *m : m_modules)
-            v->module(m->clone());
-        return v;
-    }
+    ModNetwork& connection(Link& l) { m_links.push_back(&l); return *this; }
 
     Plan make_plan() const;
 
@@ -52,8 +33,7 @@ private:
     typedef std::array<port_mask, MAX_PORTS> port_adjacency_matrix;
 
     mod_vector m_modules;
-    fixed_vector<SimpleLink, MAX_LINKS> m_simple_links;
-    fixed_vector<ControlLink *, MAX_LINKS> m_control_links;
+    fixed_vector<Link *, MAX_LINKS> m_links;
 
     void init_mod_predecessors(module_adjacency_matrix&) const;
     void init_port_sources(const port_vector& ports,
