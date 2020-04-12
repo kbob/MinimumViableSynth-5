@@ -3,7 +3,8 @@
 #include <cxxtest/TestSuite.h>
 
 class MockPort : public Port {
-
+public:
+    std::type_index data_type() const override { return typeid(void); }
 };
 
 class MockPorted : public Ported {

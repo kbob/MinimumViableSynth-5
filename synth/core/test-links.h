@@ -107,4 +107,22 @@ public:
         TS_ASSERT(l6.scale() == 0.6f);
     }
 
+    void test_simple()
+    {
+        Input<Color> dest;
+        Output<Color> src;
+        Output<Emotion> other;
+        auto l1 = make_link(&dest, &src, nullptr, 1.0f);
+        auto l2 = make_link(&dest, nullptr, nullptr, 1.0f);
+        auto l3 = make_link(&dest, &other, nullptr, 1.0f);
+        auto l4 = make_link(&dest, &src, &src, 1.0f);
+        auto l5 = make_link(&dest, &src, nullptr, 0.5f);
+
+        TS_ASSERT(l1.is_simple());
+        TS_ASSERT(not l2.is_simple());
+        TS_ASSERT(not l3.is_simple());
+        TS_ASSERT(not l4.is_simple());
+        TS_ASSERT(not l5.is_simple());
+    }
+
 };

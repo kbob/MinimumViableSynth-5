@@ -10,6 +10,7 @@ class Control;
 
 const double  DEFAULT_SCALE =  1.0;
 // typedef float DEFAULT_SAMPLE_TYPE;
+typedef float SCALE_TYPE;
 
 // -- Links -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 //
@@ -47,25 +48,31 @@ class Link {
 public:
 
     bool is_constant() const { return !m_src && !m_ctl; }
-    bool is_simple()   const { return  m_src && !m_ctl && m_scale == 1; }
+    bool is_simple() const
+    {
+        return m_src &&
+              !m_ctl &&
+               m_src->data_type() == m_dest->data_type() &&
+               m_scale == 1.0f;
+    }
 
-    InputPort *dest() const { return m_dest; }
-    OutputPort *src() const { return m_src; }
-    OutputPort *ctl() const { return m_ctl; }
-    float     scale() const { return m_scale; }
+    InputPort  *dest() const { return m_dest; }
+    OutputPort  *src() const { return m_src; }
+    OutputPort  *ctl() const { return m_ctl; }
+    SCALE_TYPE scale() const { return m_scale; }
 
 protected:
 
-    Link(InputPort *dest, OutputPort *src, OutputPort *ctl, float scale)
-    : m_dest(dest), m_src(src), m_ctl(ctl), m_scale(scale) {}
+    Link(InputPort *dest, OutputPort *src, OutputPort *ctl, SCALE_TYPE scale)
+    : m_dest{dest}, m_src{src}, m_ctl{ctl}, m_scale{scale} {}
     virtual ~Link() = default;
 
 private:
 
-    InputPort  *m_dest;
-    OutputPort *m_src;
-    OutputPort *m_ctl;
-    float       m_scale;
+    InputPort       *m_dest;
+    OutputPort      *m_src;
+    OutputPort      *m_ctl;
+    const SCALE_TYPE m_scale;
 
 };
 
@@ -74,7 +81,7 @@ class LinkType : public Link {
 
 public:
 
-    LinkType(Input<D> *dest, Output<S> *src, Output<C> *ctl, float scale)
+    LinkType(Input<D> *dest, Output<S> *src, Output<C> *ctl, SCALE_TYPE scale)
     : Link(dest, src, ctl, scale) {}
 
 
@@ -90,7 +97,7 @@ LinkType<D, S, C>
 make_link(Input<D>       *dest,
           Output<S>      *src,
           ControlType<C> *ctl,
-          float           scale = 1.0f)
+          SCALE_TYPE      scale = 1.0f)
 {
     return LinkType<D, S, C>(dest, src, &ctl->out, scale);
 }
@@ -100,7 +107,7 @@ LinkType<D, S, C>
 make_link(Input<D>       *dest,
           Output<S>      *src,
           Output<C>      *ctl,
-          float           scale = 1.0f)
+          SCALE_TYPE      scale = 1.0f)
 {
     return LinkType<D, S, C>(dest, src, ctl, scale);
 }
@@ -110,7 +117,7 @@ LinkType<D, void, C>
 make_link(Input<D>       *dest,
           std::nullptr_t,
           ControlType<C> *ctl,
-          float           scale = 1.0f)
+          SCALE_TYPE      scale = 1.0f)
 {
     return LinkType<D, void, C>(dest, nullptr, &ctl->out, scale);
 }
@@ -120,7 +127,7 @@ LinkType<D, void, C>
 make_link(Input<D>       *dest,
           std::nullptr_t,
           Output<C>      *ctl,
-          float           scale = 1.0f)
+          SCALE_TYPE      scale = 1.0f)
 {
     return LinkType<D, void, C>(dest, nullptr, ctl, scale);
 }
@@ -130,7 +137,7 @@ LinkType<D, S, void>
 make_link(Input<D>       *dest,
           Output<S>      *src,
           std::nullptr_t,
-          float           scale = 1.0f)
+          SCALE_TYPE      scale = 1.0f)
 {
     return LinkType<D, S, void>(dest, src, nullptr, scale);
 }
@@ -140,7 +147,7 @@ LinkType<D, void, void>
 make_link(Input<D>       *dest,
           std::nullptr_t,
           std::nullptr_t,
-          float           scale = 1.0f)
+          SCALE_TYPE      scale = 1.0f)
 {
     return LinkType<D, void, void>(dest, nullptr, nullptr, scale);
 }

@@ -43,6 +43,7 @@ public:
         Input<> i;
         Output<> o;
         EmptyModule m;
+
         TS_ASSERT(i.owner() == nullptr);
         TS_ASSERT(o.owner() == nullptr);
         i.owner(m);
@@ -54,6 +55,7 @@ public:
     void test_module_ports()
     {
         IOModule m;
+
         TS_ASSERT(m.ports().at(0) == &m.in);
         TS_ASSERT(m.ports().at(1) == &m.out);
         TS_ASSERT(m.in.owner() == &m);
@@ -64,6 +66,16 @@ public:
     {
         Input<bool> i;
         Output<char> o;
+    }
+
+    void test_data_type()
+    {
+        Input<bool> ib;
+        Input<short> is;
+
+        TS_ASSERT(ib.data_type() == typeid(bool));
+        TS_ASSERT(is.data_type() == typeid(short));
+        TS_ASSERT(ib.data_type() != is.data_type());
     }
 
     // XXX need more tests - use the [] operators.
