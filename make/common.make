@@ -70,9 +70,12 @@ r := $(r:/=)
 all:        $(SUBDIRS:%=%/all) $(TESTS) run-tests $(PROGRAMS) $(IMAGES)
 ifeq ($r,)
 world:      all
+clean-world: clean
 else
 world:
 	    make -C $r world
+clean-world:
+	    make -C $r clean
 endif
 programs:   $(SUBDIRS:%=%/programs) $(PROGRAMS)
 images:     $(SUBDIRS:%=%/images) $(IMAGES)
@@ -94,6 +97,7 @@ general-help:
 	    @echo '    run-tests        - build and run all tests'
 	    @echo '    tests            - build all test programss'
 	    @echo '    clean            - remove all generated files'
+	    @echo '    clean-world      - clean whole project'
 	    @echo '    help             - print this text'
 	    @echo ''
 	    @echo 'Common Variables'
