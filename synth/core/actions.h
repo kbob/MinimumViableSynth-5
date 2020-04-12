@@ -1,41 +1,50 @@
 #ifndef ACTIONS_included
 #define ACTIONS_included
 
+typedef float SCALE_TYPE;
+
 // -- Prep Actions - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 
 class ClearAction {
-    uint8_t m_in_port_index;
-    friend class ActionsUnitTest;
 public:
     ClearAction() = default;
-    ClearAction(uint8_t in_port_index)
-    : m_in_port_index{in_port_index}
+    ClearAction(uint8_t dest_port_index, SCALE_TYPE scale)
+    : m_dest_port_index{dest_port_index}, m_scale{scale}
     {}
     void do_it() const
     {
         std::cout << "clear "
-                  << int(m_in_port_index)
+                  << int(m_dest_port_index)
+                  << " to "
+                  << m_scale
                   << std::endl;
     }
+private:
+    uint8_t    m_dest_port_index;
+    SCALE_TYPE m_scale;
+
+    friend class ActionsUnitTest;
 };
 
 class AliasAction {
-    uint8_t m_out_port_index;
-    uint8_t m_in_port_index;
-    friend class ActionsUnitTest;
 public:
     AliasAction() = default;
-    AliasAction(uint8_t out_port_index, uint8_t in_port_index)
-    : m_out_port_index(out_port_index), m_in_port_index(in_port_index)
+    AliasAction(uint8_t dest_port_index, uint8_t src_port_index)
+    : m_dest_port_index{dest_port_index}, m_src_port_index{src_port_index}
     {}
     void do_it() const
     {
         std::cout << "alias "
-                  << int(m_in_port_index)
+                  << int(m_dest_port_index)
                   << " to "
-                  << int(m_out_port_index)
+                  << int(m_src_port_index)
                   << std::endl;
     }
+private:
+    uint8_t m_dest_port_index;
+    uint8_t m_src_port_index;
+
+    friend class ActionsUnitTest;
 };
 
 enum class PrepActionType {
@@ -45,22 +54,13 @@ enum class PrepActionType {
 };
 
 class PrepAction {
-    PrepActionType m_tag;
-    union u {
-        u() = default;
-        u(const ClearAction& clear) : clear(clear) {}
-        u(const AliasAction& alias) : alias(alias) {}
-        ClearAction clear;
-        AliasAction alias;
-    } m_u;
-    friend class ActionsUnitTest;
 public:
-    PrepAction() : m_tag(PrepActionType::NONE) {}
+    PrepAction() : m_tag{PrepActionType::NONE} {}
     PrepAction(const ClearAction& clear)
-    : m_tag(PrepActionType::CLEAR), m_u(clear)
+    : m_tag{PrepActionType::CLEAR}, m_u{clear}
     {}
     PrepAction(const AliasAction& alias)
-    : m_tag(PrepActionType::ALIAS), m_u(alias)
+    : m_tag{PrepActionType::ALIAS}, m_u{alias}
     {}
     PrepActionType type() const { return m_tag; }
     void do_it() const
@@ -76,6 +76,17 @@ public:
             assert(0 && "invalid prep type");
         }
     }
+private:
+    PrepActionType m_tag;
+    union u {
+        u() = default;
+        u(const ClearAction& clear) : clear{clear} {}
+        u(const AliasAction& alias) : alias{alias} {}
+        ClearAction clear;
+        AliasAction alias;
+    } m_u;
+
+    friend class ActionsUnitTest;
 };
 
 // -- Run Actions -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
@@ -90,55 +101,68 @@ public:
 
 
 class CopyAction {
-    uint8_t     m_out_port_index;
-    uint8_t     m_in_port_index;
-    class Link *m_control;
-    friend class ActionsUnitTest;
 public:
     CopyAction() = default;
-    CopyAction(uint8_t  out_port_index,
-               uint8_t  in_port_index,
-               Link    *control)
-    : m_out_port_index(out_port_index),
-      m_in_port_index(in_port_index),
-      m_control(control)
+    CopyAction(uint8_t    dest_port_index,
+               uint8_t    src_port_index,
+               uint8_t    ctl_port_index,
+               SCALE_TYPE scale)
+    : m_dest_port_index{dest_port_index},
+      m_src_port_index{src_port_index},
+      m_ctl_port_index{ctl_port_index},
+      m_scale{scale}
     {}
     void do_it() const
     {
         std::cout << "copy "
-                  << int(m_out_port_index)
+                  << int(m_src_port_index)
+                  << " and "
+                  << int(m_ctl_port_index)
                   << " to "
-                  << int(m_in_port_index)
-                  << " using "
-                  << (const char *)m_control
+                  << int(m_dest_port_index)
+                  << " scaled "
+                  << m_scale
                   << std::endl;
     }
+private:
+    uint8_t    m_dest_port_index;
+    uint8_t    m_src_port_index;
+    uint8_t    m_ctl_port_index;
+    SCALE_TYPE m_scale;
+    friend class ActionsUnitTest;
 };
 
 class AddAction {
-    uint8_t     m_out_port_index;
-    uint8_t     m_in_port_index;
-    class Link *m_control;
-    friend class ActionsUnitTest;
 public:
     AddAction() = default;
-    AddAction(uint8_t  out_port_index,
-              uint8_t  in_port_index,
-              Link    *control)
-    : m_out_port_index(out_port_index),
-      m_in_port_index(in_port_index),
-      m_control(control)
+    AddAction(uint8_t    dest_port_index,
+              uint8_t    src_port_index,
+              uint8_t    ctl_port_index,
+              SCALE_TYPE scale)
+    : m_dest_port_index{dest_port_index},
+      m_src_port_index{src_port_index},
+      m_ctl_port_index{ctl_port_index},
+      m_scale{scale}
     {}
     void do_it() const
     {
         std::cout << "add "
-                  << int(m_out_port_index)
+                  << int(m_src_port_index)
+                  << " and "
+                  << int(m_ctl_port_index)
                   << " to "
-                  << int(m_in_port_index)
-                  << " using "
-                  << (const char *)m_control
+                  << int(m_dest_port_index)
+                  << " scaled "
+                  << m_scale
                   << std::endl;
     }
+private:
+    uint8_t     m_dest_port_index;
+    uint8_t     m_src_port_index;
+    uint8_t     m_ctl_port_index;
+    SCALE_TYPE  m_scale;
+
+    friend class ActionsUnitTest;
 };
 
 class RenderAction {
@@ -146,7 +170,7 @@ class RenderAction {
     friend class ActionsUnitTest;
 public:
     RenderAction() = default;
-    RenderAction(uint8_t mod_index) : m_mod_index(mod_index) {}
+    RenderAction(uint8_t mod_index) : m_mod_index{mod_index} {}
     void do_it() const
     {
         std::cout << "render "
@@ -168,23 +192,23 @@ private:
     RunActionType m_tag;
     union u {
         u() = default;
-        u(const CopyAction& copy) : copy(copy) {}
-        u(const AddAction& add) : add(add) {}
-        u(const RenderAction& render) : render(render) {}
+        u(const CopyAction& copy) : copy{copy} {}
+        u(const AddAction& add) : add{add} {}
+        u(const RenderAction& render) : render{render} {}
         CopyAction copy;
         AddAction add;
         RenderAction render;
     } m_u;
 public:
-    RunAction() : m_tag(RunActionType::NONE) {}
+    RunAction() : m_tag{RunActionType::NONE} {}
     RunAction(const CopyAction& copy)
-    : m_tag(RunActionType::COPY), m_u(copy)
+    : m_tag{RunActionType::COPY}, m_u{copy}
     {}
     RunAction(const AddAction& add)
-    : m_tag(RunActionType::ADD), m_u(add)
+    : m_tag{RunActionType::ADD}, m_u{add}
     {}
     RunAction(const RenderAction& render)
-    : m_tag(RunActionType::RENDER), m_u(render)
+    : m_tag{RunActionType::RENDER}, m_u{render}
     {}
     RunActionType type() const { return m_tag; }
     void do_it() const

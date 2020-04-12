@@ -3,7 +3,7 @@
 from copy import copy
 from enum import Enum, auto
 
-# An action is simply a std::function<void()>.
+# An exec is simply a std::function<void()>.
 # Or a callable in Python.
 
 class named:
@@ -47,6 +47,8 @@ class Control(named, ported):
 class MIDINotePitchControl(Control): ...
 class MIDIModulationControl(Control): ...
 class MIDIExpressionControl(Control): ...
+
+class Action: ...
 
 class Module(named, ported):
     def ports(self, *ports):
@@ -138,10 +140,46 @@ class Plan:
         self.prep.append(action)
     def add_run(self, action):
         self.run.append(action)
-    def prep_voice(self, voice, timbre):
+    def prep_timbre(self, timbre): ...
+    def prep_voice(self, voice, timbre): ...
+    def make_timbre_exec(self, timbre): ...
+    def make_voice_exec(self, voice, timbre): ...
+
+# The plan has a sequence of actions
+# The actions have indices for porteds.
+# The links know the ports' types.
+# The actions hold the links.
+# The plan.make_foo method can map indices to objects.
+#
+# Given action:
+#   action -> needed indices (action)
+#   indices -> objects (make_foo)
+#   objects -> function (action)
+#
+def lookup(index):
+    ...
+
+class ClearAction(Action):
+    def make_exec(self, lookup):
+        port = lookup(self.dest_port_index)
+        buf = port.buf
+        n = len(buf)
+        value = type(buf[0])(self.scale)
+        def exec():
+            for i in range(n):
+                buf[i] = value
+        return exec
+
+# InputPort<T> should have a clear method.
+# InputPort<T> should have an alias/unalias method.
+
+class ModNetwork:
+    def __init__(self, tc, tm, vc, vm):
         ...
-    def make_exec(self, voice, timbre):
-        ...
+    def make_plan(self): ...
+    def apply(self, timbre): ...
+    def apply(self, voice): ...
+
 
 class VoiceState(Enum):
     Idle = auto()

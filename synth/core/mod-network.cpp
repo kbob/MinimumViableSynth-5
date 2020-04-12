@@ -45,13 +45,14 @@ Plan ModNetwork::make_plan() const
                 }
             }
             if (link_count == 0) {
-                plan.push_back_prep(ClearAction(ports.index(dest)));
+                plan.push_back_prep(ClearAction(ports.index(dest), 0.0f));
             } else if (link_count == 1 && s_link) {
                 size_t src_index = ports.index(s_link->src());
                 size_t dest_index = ports.index(s_link->dest());
-                plan.push_back_prep(AliasAction(src_index, dest_index));
+                plan.push_back_prep(AliasAction(dest_index, src_index));
             }
             // XXX also need to handle case w/ all constant links.
+            // It should be an error to have more than one on a port.
         }
     }
 
@@ -104,10 +105,10 @@ Plan ModNetwork::make_plan() const
                 auto copy_or_add = [&] (size_t si, size_t di, Link *lk) {
                     RunAction act;
                     if (!copied) {
-                        act = CopyAction(si, di, lk);
+                        act = CopyAction(di, si, 0, 1.0f); // XXX use link
                         copied = true;
                     } else {
-                        act = AddAction(si, di, lk);
+                        act = AddAction(di, si, lk ? 0 : 1, 1.0f); // XXX
                     }
                     plan.push_back_run(act);
                 };
