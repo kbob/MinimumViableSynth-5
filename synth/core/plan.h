@@ -4,6 +4,8 @@
 #include <iostream>
 
 #include "synth/core/actions.h"
+#include "synth/core/modules.h"
+#include "synth/core/resolver.h"
 #include "synth/util/noalloc.h"
 
 class Plan {
@@ -46,6 +48,7 @@ private:
 
     prep_action_sequence m_prep;
     run_action_sequence m_run;
+    Resolver m_resolver;
 
 };
 

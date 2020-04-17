@@ -61,13 +61,14 @@ public:
     OutputPort  *ctl() const { return m_ctl; }
     SCALE_TYPE scale() const { return m_scale; }
 
+    virtual std::function<void(size_t)> make_copy_action() = 0;
+    virtual std::function<void(size_t)> make_add_action() = 0;
+
 protected:
 
     Link(InputPort *dest, OutputPort *src, OutputPort *ctl, SCALE_TYPE scale)
     : m_dest{dest}, m_src{src}, m_ctl{ctl}, m_scale{scale} {}
     virtual ~Link() = default;
-
-private:
 
     InputPort       *m_dest;
     OutputPort      *m_src;
@@ -84,6 +85,97 @@ public:
     LinkType(Input<D> *dest, Output<S> *src, Output<C> *ctl, SCALE_TYPE scale)
     : Link(dest, src, ctl, scale) {}
 
+    std::function<void(size_t)> make_copy_action() override
+    {
+        auto dest_buf = static_cast<Input<D> *>(m_dest)->buf();
+        auto src_buf = m_src ? static_cast<Output<S> *>(m_src)->buf() : nullptr;
+        auto ctl_buf = m_ctl ? static_cast<Output<C> *>(m_ctl)->buf() : nullptr;
+        bool scaled = m_scale != 1.0f;
+        float scale = m_scale;
+        if (src_buf && ctl_buf && scaled)
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] = src_buf[i] * ctl_buf[i] * scale;
+            };
+        else if (src_buf && ctl_buf)
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] = src_buf[i] * ctl_buf[i];
+            };
+        else if (src_buf && scaled)
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] = src_buf[i] * ctl_buf[i];
+            };
+        else if (ctl_buf && scaled)
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] = ctl_buf[i] * scale;
+            };
+        else if (src_buf)
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] = src_buf[i];
+            };
+        else if (ctl_buf)
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] = ctl_buf[i];
+            };
+        else {
+            // handle both scaled and unscaled cases here.
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] = scale;
+            };
+        }
+    }
+
+    std::function<void(size_t)> make_add_action() override
+    {
+        auto dest_buf = static_cast<Input<D> *>(m_dest)->buf();
+        auto src_buf = m_src ? static_cast<Output<S> *>(m_src)->buf() : nullptr;
+        auto ctl_buf = m_ctl ? static_cast<Output<C> *>(m_ctl)->buf() : nullptr;
+        bool scaled = m_scale != 1.0f;
+        float scale = m_scale;
+        if (src_buf && ctl_buf && scaled)
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] += src_buf[i] * ctl_buf[i] * scale;
+            };
+        else if (src_buf && ctl_buf)
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] += src_buf[i] * ctl_buf[i];
+            };
+        else if (src_buf && scaled)
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] += src_buf[i] * ctl_buf[i];
+            };
+        else if (ctl_buf && scaled)
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] += ctl_buf[i] * scale;
+            };
+        else if (src_buf)
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] += src_buf[i];
+            };
+        else if (ctl_buf)
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] += ctl_buf[i];
+            };
+        else {
+            // handle both scaled and unscaled cases here.
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] += scale;
+            };
+        }
+    }
 
 };
 

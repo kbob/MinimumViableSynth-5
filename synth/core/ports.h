@@ -149,6 +149,10 @@ private:
 // But it is not useful to instantiate it.
 template <>
 class Output<void> : public OutputPort {
+public:
+    // This can be int -- int is a complete numeric type, and we can't
+    // call it anyway.
+    const int *buf() const { return nullptr; }
 private:
     Output() = delete;
 };
