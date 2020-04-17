@@ -42,9 +42,16 @@
 #
 # Advanced Trickery
 #
-# No makefile?  Use this file directly.
+#   SOURCES is magic.  If you define SOURCES on the command line,
+#   we build a.out from SOURCES.
 #
-#   $ make -f ../make/common.make PROGRAMS=a.out a.out-SOURCES='a.cpp b.c'
+#     $ make SOURCES='foo.c bar.cpp' && ./a.out
+#
+#   No makefile?  Use this file directly.
+#
+#     $ make -f ../make/common.make PROGRAMS=foo foo-SOURCES=foo.c
+#     $ make -f ../make/common.make SOURCES=foo.c        # makes a.out
+
 
 # Derive project root as this file's grandparent.
 r := $(lastword $(MAKEFILE_LIST))
@@ -52,7 +59,7 @@ r := $(r:make/common.make=)
 r := $(r:/=)
 
 # invoke make with BUILD=release for release build.
-    debug_OPT := -O0 -fsanitize=bounds
+    debug_OPT := -O0 -fsanitize=bounds -g
   release_OPT := -O3 -DNDEBUG
         BUILD := debug
           OPT := $($(BUILD)_OPT)
@@ -66,6 +73,11 @@ r := $(r:/=)
       TESTGEN := $(CXXTEST)/bin/cxxtestgen
  TESTGENFLAGS := --have-eh --error-printer
      TEST_INC := $(CXXTEST)
+
+ifneq ($(SOURCES),)
+ .DEFAULT_GOAL := a.out
+ a.out-SOURCES := $(SOURCES)
+endif
 
 all:        $(SUBDIRS:%=%/all) $(TESTS) run-tests $(PROGRAMS) $(IMAGES)
 ifeq ($r,)
@@ -82,7 +94,7 @@ images:     $(SUBDIRS:%=%/images) $(IMAGES)
 test:       $(SUBDIRS:%=%/test) $(TESTS) run-tests
 tests:      $(SUBDIRS:%=%/tests) $(TESTS)
 clean:      $(SUBDIRS:%=%/clean)
-	    rm -f *.d *.o *.out test-*.cpp $(PROGRAMS) $(TESTS) $(FILTH)
+	    rm -f *.d *.o *.out test-*.cpp *.DSYM/ $(PROGRAMS) $(TESTS) $(FILTH)
 help: general-help local-help
 
 general-help:

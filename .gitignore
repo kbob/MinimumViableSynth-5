@@ -2,3 +2,5 @@ test-*.cpp
 *.d
 *.o
 a.out
+*.dSYM/
+__pycache__
