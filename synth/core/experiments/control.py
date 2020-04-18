@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
+from collections import namedtuple
 from copy import copy
 from enum import Enum, auto
 
 from relations import Relation, Universe
-
-# An exec is simply a std::function<void()>.
-# Or a callable in Python.
 
 
 class _named:
@@ -27,6 +25,7 @@ class _typed:
         self.type = typ
         super().__init__()
 
+
 class Port:
     def __repr__(self):
         for (k, v) in self.owner.__dict__.items():
@@ -34,7 +33,6 @@ class Port:
                 return f'{self.owner}.{k.strip("_")}'
 
         return type(self).__name__
-
 
 class InputPort(Port): ...
 
@@ -71,11 +69,7 @@ class Control(_typed, _named, Ported):
         self.out = Output(typ)
         self.ports = (self.out, )
 
-
 class MIDINotePitchControl(Control): ...
-
-
-mnpc = MIDINotePitchControl()
 
 class MIDIModulationControl(Control): ...
 
@@ -154,55 +148,8 @@ class Resolver:
         return self.port_map[index]
 
 
-class Plan:
-    def __init__(self):
-        self.tprep = []
-        self.vprep = []
-        self.trun = []
-        self.vrun = []
-    def add_tprep(self, action):
-        self.tprep.append(action)
-    def add_vprep(self, action):
-        self.vprep.append(action)
-    def add_trun(self, action):
-        self.trun.append(action)
-    def add_vrun(self, action):
-        self.vrun.append(action)
-    def prep_timbre(self, timbre):
-        mod_map, t_mod_count = self._make_mod_map(timbre, None)
-        port_map, t_port_count = self._make_port_map(timbre, None)
-        resolver = Resolver(mod_map, port_map)
-        for a in self.tprep:
-            a.do_prep(resolver)
-    def prep_voice(self, voice, timbre): ...
-    def make_timbre_exec(self, timbre): ...
-    def make_voice_exec(self, voice, timbre): ...
-
-    def _make_mod_map(self, timbre, voice):
-        map = []
-        for m in timbre.modules:
-            map.append(m)
-        timbre_mod_count = len(map)
-        if voice:
-            for m in voice.modules:
-                map.append(m)
-        return map, timbre_mod_count
-
-    def _make_port_map(self, timbre, voice):
-        map = []
-        for m in timbre.modules:
-            for p in m.ports:
-                map.append(p)
-        timbre_port_count = len(map)
-        if voice:
-            for m in voice.modules:
-                for p in m.ports:
-                    map.append(p)
-        return map, timbre_port_count
-
-
 # The plan has a sequence of actions
-# The actions have indices for porteds.
+# The actions have indices for modules, ports, and controls.
 # The links know the ports' types.
 # The actions hold the links.
 # The plan.make_foo method can map indices to objects.
@@ -267,6 +214,42 @@ class RenderAction(Action):
         self.mod = mod
     def __repr__(self):
         return f'render({self.mod})'
+
+
+class Plan(namedtuple('Plan', 't_prep v_prep pre_run v_run post_run')):
+
+    def prep_timbre(self, timbre):
+        mod_map, t_mod_count = self._make_mod_map(timbre, None)
+        port_map, t_port_count = self._make_port_map(timbre, None)
+        resolver = Resolver(mod_map, port_map)
+        for a in self.tprep:
+            a.do_prep(resolver)
+    def prep_voice(self, voice, timbre): ...
+    def make_timbre_exec(self, timbre): ...
+    def make_voice_exec(self, voice, timbre): ...
+
+    def _make_mod_map(self, timbre, voice):
+        map = []
+        for m in timbre.modules:
+            map.append(m)
+        timbre_mod_count = len(map)
+        if voice:
+            for m in voice.modules:
+                map.append(m)
+        return map, timbre_mod_count
+
+    def _make_port_map(self, timbre, voice):
+        map = []
+        for m in timbre.modules:
+            for p in m.ports:
+                map.append(p)
+        timbre_port_count = len(map)
+        if voice:
+            for m in voice.modules:
+                for p in m.ports:
+                    map.append(p)
+        return map, timbre_port_count
+
 
 # InputPort<T> should have a clear method.
 # InputPort<T> should have an alias/unalias method.
@@ -380,28 +363,64 @@ class ModNetwork:
         self.control_count = len(self._all_controls)
 
     def make_plan(self, output_modules):
-        # port = self._calc_port_index()
         self._mod_predecessors = self._calc_mod_predecessors()
         self._port_sources = self._calc_port_sources()
         self._links_to = self._calc_links_to()
 
         # partition reeachable modules into pre, voice, and post.
-        # XXX move this stanza into a separate function.
+        mod_parts = self._partition_modules_used(output_modules)
+
+        # find reachable controls
+        controls_used = self._find_controls_used()
+
+        # assemble timbre prep actions
+        t_prep = self._assemble_prep_actions(controls_used.timbre,
+                                             mod_parts.pre | mod_parts.post)
+
+        # assemble voice prep actions
+        v_prep = self._assemble_prep_actions(controls_used.voice,
+                                             mod_parts.voice)
+
+        # assemble pre run actions.
+        no_modules = self._all_modules.none()
+        pre_run = self._assemble_run_actions(controls_used.timbre,
+                                             mod_parts.pre,
+                                             no_modules)
+
+        # assemble voice run actions
+        v_run = self._assemble_run_actions(controls_used.voice,
+                                           mod_parts.voice, mod_parts.pre)
+
+        # assemble post run actions.
+        no_controls = self._all_controls.none()
+        post_run = self._assemble_run_actions(no_controls,
+                                              mod_parts.post,
+                                              mod_parts.pre | mod_parts.voice)
+
+        return Plan(
+            t_prep=t_prep,
+            v_prep=v_prep,
+            pre_run=pre_run,
+            v_run=v_run,
+            post_run=post_run
+            )
+
+    def _partition_modules_used(self, output_modules):
+        # partition reachable modules into pre, voice, and post.
         outputs_used = self._all_modules.subset(output_modules)
         all_tmods = self._all_modules.subset(self.tmodules)
         all_vmods = self._all_modules.subset(self.vmodules)
 
         post_mods = outputs_used | self._collect_pred(outputs_used, all_tmods)
-        print(f'{post_mods=}')
         voice_mods = self._collect_pred(post_mods, all_vmods)
-        print(f'{voice_mods=}')
         assert voice_mods <= all_vmods
         pre_mods = self._collect_pred(voice_mods, all_tmods)
-        print(f'{pre_mods=}')
         assert not (pre_mods & post_mods)
         assert (pre_mods | post_mods) <= all_tmods
+        ModuleParts = namedtuple('ModuleParts', 'pre voice post')
+        return ModuleParts(pre_mods, voice_mods, post_mods)
 
-        # find reachable controls
+    def _find_controls_used(self):
         tcontrols_used = self._all_controls.none()
         vcontrols_used = self._all_controls.none()
         for link in self.links:
@@ -410,93 +429,35 @@ class ModNetwork:
                     tcontrols_used.add(link.ctl.owner)
                 if link.ctl.owner in self.vcontrols:
                     vcontrols_used.add(link.ctl.owner)
-        print(f'{tcontrols_used=}')
-        print(f'{vcontrols_used=}')
+        ControlsUsed = namedtuple('CtlsUsed', 'timbre voice')
+        return ControlsUsed(tcontrols_used, vcontrols_used)
 
-        # build timbre prep actions
-        tprep = []
-        for ci in tcontrols_used.iter_bits():
-            # print(f'{self._all_controls[ci]} - eval')
-            tprep.append(EvalAction(ci))
-        for m in (pre_mods | post_mods).iter_members():
+    def _assemble_prep_actions(self, controls, modules):
+        prep = []
+        for ci in controls.iter_bits():
+            prep.append(EvalAction(ci))
+        for m in modules.iter_members():
             for p in m.input_ports:
                 link_count = 0
                 s_link = None
                 for link in self._links_to.get(p).iter_members():
                     link_count += 1
-                    if link.is_simple() and link.src in self.tmodules:
+                    if link.is_simple() and link.src.owner in modules:
                         s_link = link
                 di = self._all_ports.index(p)
                 if link_count == 0:
-                    # print(f'{p} - clear')
-                    tprep.append(ClearAction(di, 0))
+                    prep.append(ClearAction(di, 0))
                 elif link_count == 1 and s_link:
                     si = self._all_ports.index(s_link.src)
-                    # print(f'{p} - alias to {s_link.src}')
-                    tprep.append(AliasAction(di, si))
+                    prep.append(AliasAction(di, si))
                 else:
-                    # print(f'{p} - unalias')
-                    tprep.append(AliasAction(di, -1))
-        print(f'{tprep=}')
+                    prep.append(AliasAction(di, -1))
+        return prep
 
-        # build voice prep section
-        # XXX factor this into a separate function.
-        vprep = []
-        for ci in vcontrols_used.iter_bits():
-            # print(f'{self._all_controls[ci]} - eval')
-            vprep.append(EvalAction(ci))
-        for m in voice_mods.iter_members():
-            for p in m.input_ports:
-                link_count = 0
-                s_link = None
-                for link in self._links_to.get(p).iter_members():
-                    link_count += 1
-                    if link.is_simple():
-                        s_link = link
-                di = self._all_ports.index(p)
-                if link_count == 0:
-                    # print(f'{p} - clear')
-                    vprep.append(ClearAction(di, 0))
-                elif link_count == 1 and s_link:
-                    si = self._all_ports.index(s_link.src)
-                    # print(f'{p} - alias to {s_link.src}')
-                    vprep.append(AliasAction(di, si))
-                else:
-                    # print(f'{p} - unalias')
-                    vprep.append(AliasAction(di, -1))
-        # import pprint
-        # print('vprep=')
-        # pprint.pprint(vprep, indent=4)
-        print(f'{vprep=}')
-
-        # build pre run actions.
-        pre_run = []
-        for c in tcontrols_used.iter_bits():
-            # print(f'{c=} {self._all_controls[c]=}')
-            pre_run.append(EvalAction(c))
-        done = self._all_modules.none()
-        pre_run += self._run_section(pre_mods, done)
-        print(f'{pre_run=}')
-
-        # build voice run actions
-        vrun = []
-        for ci in vcontrols_used.iter_bits():
-            vrun.append(EvalAction(ci))
-        vrun += self._run_section(voice_mods, pre_mods)
-        # import pprint
-        # print('vrun=')
-        # pprint.pprint(vrun, indent=4)
-        print(f'{vrun=}')
-
-        # build post run actions.
-        post_run = self._run_section(post_mods, pre_mods | voice_mods)
-        print(f'{post_run=}')
-
-    def _run_section(self, section, done):
-        # for (i, m) in enumerate(self._all_modules):
-        #     print(f'    {i} {m}, {bin(self._mod_predecessors[i])}')
-        # print()
+    def _assemble_run_actions(self, controls, section, done):
         run = []
+        for c in controls.iter_bits():
+            run.append(EvalAction(c))
         while section - done:
             ready = self._all_modules.none()
             for mi in section.iter_bits():
@@ -506,7 +467,6 @@ class ModNetwork:
                 mod_preds = self._mod_predecessors.at(mi)
                 if mod_preds <= done:
                     ready.add(m)
-            # print(f'{done=} {ready=} {section=}')
             if ready == 0:
                 raise RuntimeError("can't compute graph")
             for m in ready.iter_members():
@@ -514,11 +474,7 @@ class ModNetwork:
                 for dest in m.input_ports:
                     di = self._all_ports.index(dest)
                     copied = False
-                    if di == 13:
-                        print(f'{di}: links = {self._links_to.at(di)}')
                     for link in self._links_to.at(di).iter_members():
-                        if di == 13:
-                            print(f'{di}: {link=}')
                         si = self.port_index(link.src)
                         if link.is_simple():
                             links = self._links_to.at(di)
@@ -526,11 +482,7 @@ class ModNetwork:
                                 # skip singke simple links
                                 continue
                         ci = self.port_index(link.ctl)
-                        if di == 13:
-                            print(f'{di}: {link.ctl=} {ci=}')
                         if not copied:
-                            if di == 13:
-                                print(f'{di}: copy({di}, {si}, {ci})')
                             run.append(CopyAction(di, si, ci, link))
                             copied = True
                         else:
@@ -550,7 +502,6 @@ class ModNetwork:
             prev = self._all_modules.none()
             for mi in cur.iter_bits():
                 prev |= self._mod_predecessors.at(mi)
-            # print(f'{prev=}')
             prev &= candidates
             if prev == 0:
                 break
@@ -581,6 +532,7 @@ class ModNetwork:
         return Universe(self.links)
 
     def module_index(self, mod):
+        """return the module's index in _all_modules or -1 if not found."""
         if mod in self._all_modules:
             return self._all_modules.index(mod)
         return -1
@@ -588,7 +540,7 @@ class ModNetwork:
     def port_index(self, port):
         if port in self._all_ports:
             return self._all_ports.index(port)
-        return -1;
+        return -1
 
     def ctl_index(self, ctl):
         if ctl in self._all_controls:
@@ -606,8 +558,6 @@ class ModNetwork:
                 ctl_mod = link.ctl.owner
                 if isinstance(ctl_mod, Module):
                     predecessors.add(dest_mod, ctl_mod)
-        # for (dest, row) in zip(self._all_modules, predecessors.matrix):
-        #     print(f'{dest!r:6}: {row}')
         return predecessors
 
     def _calc_port_sources(self):
@@ -623,9 +573,6 @@ class ModNetwork:
         links_to = Relation(self._all_ports, self._all_links)
         for link in self._all_links:
             links_to.add(link.dest, link)
-        # print(f'links_to:')
-        # for (dest, row) in zip(self._all_ports, links_to.matrix):
-        #      print(f'    {dest!r:6}: {row}')
         return links_to
 
 # The module and control sets belong to the synth.
@@ -884,7 +831,7 @@ def main():
          .connect(main.in_, chorus.out)
          )
     s.apply_patch(p, s.timbres[0])
-#    s.timbres[0].set_patch(p)
+
     print(s)
     print(f'  polyphony     = {s.polyphony}')
     print(f'  timbrality    = {s.timbrality}')
@@ -903,6 +850,22 @@ def main():
     for t in s.timbres:
         print(f'    timbre          = {t}')
         print(f'      patch         = {t.patch}')
+        print(f'      plan          = (')
+        print(f'        t_prep          = [')
+        for action in t.plan.t_prep:
+            print(f'                            {action},')
+        print(f'                          ]')
+        print(f'        v_prep          = [')
+        for action in t.plan.v_prep:
+            print(f'                            {action},')
+        print(f'                          ]')
+        print(f'        pre_run         = {t.plan.pre_run}')
+        print(f'        v_run           = [')
+        for action in t.plan.v_run:
+            print(f'                            {action},')
+        print(f'                          ]')
+        print(f'        post_run        = {t.plan.post_run}')
+        print(f'                      )')
         print(f'        links         = [')
         for l in t.patch.links:
             print(f'                          {l},')
