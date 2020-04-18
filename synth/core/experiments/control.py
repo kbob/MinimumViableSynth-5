@@ -134,20 +134,6 @@ def make_link(dest, src=None, ctl=None, scale=1):
     return LinkType(d_type, s_type, c_type, dest, src, ctl, scale)
 
 
-class Resolver:
-    def __init__(self, mod_map, port_map):
-        self.mod_map = mod_map
-        self.port_map = port_map
-    def resolve_module(self, index):
-        if index >= len(self.mod_map):
-            return None
-        return self.mod_map[index]
-    def resolve_port(self, index):
-        if index >= len(self.port_map):
-            return None
-        return self.port_map[index]
-
-
 # The plan has a sequence of actions
 # The actions have indices for modules, ports, and controls.
 # The links know the ports' types.
@@ -216,39 +202,30 @@ class RenderAction(Action):
         return f'render({self.mod})'
 
 
+class Resolver:
+    def __init__(self, controls, modules):
+        self.controls = Universe(controls)
+        self.modules = Universe(modules)
+        self.ports = Universe(self._collect_ports())
+
+    def _collect_ports(self):
+        ports = []
+        for c in self.controls:
+            ports.append(c.out)
+        for m in self.modules:
+            ports.extend(m.ports)
+        return ports
+
+
 class Plan(namedtuple('Plan', 't_prep v_prep pre_run v_run post_run')):
 
     def prep_timbre(self, timbre):
-        mod_map, t_mod_count = self._make_mod_map(timbre, None)
-        port_map, t_port_count = self._make_port_map(timbre, None)
-        resolver = Resolver(mod_map, port_map)
+        resolver = Resolver(timbre.controls, timbre.modules)
         for a in self.tprep:
             a.do_prep(resolver)
     def prep_voice(self, voice, timbre): ...
     def make_timbre_exec(self, timbre): ...
     def make_voice_exec(self, voice, timbre): ...
-
-    def _make_mod_map(self, timbre, voice):
-        map = []
-        for m in timbre.modules:
-            map.append(m)
-        timbre_mod_count = len(map)
-        if voice:
-            for m in voice.modules:
-                map.append(m)
-        return map, timbre_mod_count
-
-    def _make_port_map(self, timbre, voice):
-        map = []
-        for m in timbre.modules:
-            for p in m.ports:
-                map.append(p)
-        timbre_port_count = len(map)
-        if voice:
-            for m in voice.modules:
-                for p in m.ports:
-                    map.append(p)
-        return map, timbre_port_count
 
 
 # InputPort<T> should have a clear method.
@@ -354,13 +331,8 @@ class ModNetwork:
         self.vmodules = vm
         self.links = links
         self.cvalues = cvalues
-        self._all_ports = self._collect_all_ports()
-        self._all_modules = self._collect_all_modules()
-        self._all_controls = self._collect_all_controls()
+        self.resolver = Resolver(tc + vc, tm + vm)
         self._all_links = self._collect_all_links()
-        self.module_count = len(self._all_modules)
-        self.port_count = len(self._all_ports)
-        self.control_count = len(self._all_controls)
 
     def make_plan(self, output_modules):
         self._mod_predecessors = self._calc_mod_predecessors()
@@ -382,7 +354,7 @@ class ModNetwork:
                                              mod_parts.voice)
 
         # assemble pre run actions.
-        no_modules = self._all_modules.none()
+        no_modules = self.resolver.modules.none()
         pre_run = self._assemble_run_actions(controls_used.timbre,
                                              mod_parts.pre,
                                              no_modules)
@@ -392,7 +364,7 @@ class ModNetwork:
                                            mod_parts.voice, mod_parts.pre)
 
         # assemble post run actions.
-        no_controls = self._all_controls.none()
+        no_controls = self.resolver.controls.none()
         post_run = self._assemble_run_actions(no_controls,
                                               mod_parts.post,
                                               mod_parts.pre | mod_parts.voice)
@@ -406,10 +378,10 @@ class ModNetwork:
             )
 
     def _partition_modules_used(self, output_modules):
-        # partition reachable modules into pre, voice, and post.
-        outputs_used = self._all_modules.subset(output_modules)
-        all_tmods = self._all_modules.subset(self.tmodules)
-        all_vmods = self._all_modules.subset(self.vmodules)
+        # partition reachable modules into pre-voice, voice, and post-voice.
+        outputs_used = self.resolver.modules.subset(output_modules)
+        all_tmods = self.resolver.modules.subset(self.tmodules)
+        all_vmods = self.resolver.modules.subset(self.vmodules)
 
         post_mods = outputs_used | self._collect_pred(outputs_used, all_tmods)
         voice_mods = self._collect_pred(post_mods, all_vmods)
@@ -421,8 +393,8 @@ class ModNetwork:
         return ModuleParts(pre_mods, voice_mods, post_mods)
 
     def _find_controls_used(self):
-        tcontrols_used = self._all_controls.none()
-        vcontrols_used = self._all_controls.none()
+        tcontrols_used = self.resolver.controls.none()
+        vcontrols_used = self.resolver.controls.none()
         for link in self.links:
             if link.ctl and isinstance(link.ctl.owner, Control):
                 if link.ctl.owner in self.tcontrols:
@@ -444,11 +416,11 @@ class ModNetwork:
                     link_count += 1
                     if link.is_simple() and link.src.owner in modules:
                         s_link = link
-                di = self._all_ports.index(p)
+                di = self.resolver.ports.index(p)
                 if link_count == 0:
                     prep.append(ClearAction(di, 0))
                 elif link_count == 1 and s_link:
-                    si = self._all_ports.index(s_link.src)
+                    si = self.resolver.ports.index(s_link.src)
                     prep.append(AliasAction(di, si))
                 else:
                     prep.append(AliasAction(di, -1))
@@ -459,9 +431,9 @@ class ModNetwork:
         for c in controls.iter_bits():
             run.append(EvalAction(c))
         while section - done:
-            ready = self._all_modules.none()
+            ready = self.resolver.modules.none()
             for mi in section.iter_bits():
-                m = self._all_modules[mi]
+                m = self.resolver.modules[mi]
                 if m in done:
                     continue
                 mod_preds = self._mod_predecessors.at(mi)
@@ -470,18 +442,18 @@ class ModNetwork:
             if ready == 0:
                 raise RuntimeError("can't compute graph")
             for m in ready.iter_members():
-                mi = self.module_index(m)
+                mi = self.resolver.modules.index(m)
                 for dest in m.input_ports:
-                    di = self._all_ports.index(dest)
+                    di = self.resolver.ports.index(dest)
                     copied = False
                     for link in self._links_to.at(di).iter_members():
-                        si = self.port_index(link.src)
+                        si = self.resolver.ports.find(link.src)
                         if link.is_simple():
                             links = self._links_to.at(di)
                             if len(links) == 1:
                                 # skip singke simple links
                                 continue
-                        ci = self.port_index(link.ctl)
+                        ci = self.resolver.ports.find(link.ctl)
                         if not copied:
                             run.append(CopyAction(di, si, ci, link))
                             copied = True
@@ -496,10 +468,10 @@ class ModNetwork:
         """collect direct and indirect predecessors of `succ`
            that are in `candidates`
         """
-        pred = self._all_modules.none()
+        pred = self.resolver.modules.none()
         cur = succ
         while True:
-            prev = self._all_modules.none()
+            prev = self.resolver.modules.none()
             for mi in cur.iter_bits():
                 prev |= self._mod_predecessors.at(mi)
             prev &= candidates
@@ -509,46 +481,11 @@ class ModNetwork:
             cur = prev
         return pred
 
-    def _collect_all_modules(self):
-        return Universe(self.tmodules + self.vmodules)
-
-    def _collect_all_ports(self):
-        ports = []
-        for c in self.tcontrols:
-            ports.append(c.out)
-        for m in self.tmodules:
-            ports.extend(m.ports)
-        for c in self.vcontrols:
-            ports.append(c.out)
-        for m in self.vmodules:
-            ports.extend(m.ports)
-        return Universe(ports)
-
-    def _collect_all_controls(self):
-        controls = self.tcontrols + self.vcontrols
-        return Universe(controls)
-
     def _collect_all_links(self):
         return Universe(self.links)
 
-    def module_index(self, mod):
-        """return the module's index in _all_modules or -1 if not found."""
-        if mod in self._all_modules:
-            return self._all_modules.index(mod)
-        return -1
-
-    def port_index(self, port):
-        if port in self._all_ports:
-            return self._all_ports.index(port)
-        return -1
-
-    def ctl_index(self, ctl):
-        if ctl in self._all_controls:
-            return self._all_controls.index(ctl)
-        return -1
-
     def _calc_mod_predecessors(self):
-        predecessors = Relation(self._all_modules, self._all_modules)
+        predecessors = Relation(self.resolver.modules, self.resolver.modules)
         for link in self.links:
             dest_mod = link.dest.owner
             if link.src:
@@ -561,7 +498,7 @@ class ModNetwork:
         return predecessors
 
     def _calc_port_sources(self):
-        port_sources = Relation(self._all_ports, self._all_ports)
+        port_sources = Relation(self.resolver.ports, self.resolver.ports)
         for link in self.links:
             if link.src:
                 port_sources.add(link.dest, link.src)
@@ -570,7 +507,7 @@ class ModNetwork:
         return port_sources
 
     def _calc_links_to(self):
-        links_to = Relation(self._all_ports, self._all_links)
+        links_to = Relation(self.resolver.ports, self._all_links)
         for link in self._all_links:
             links_to.add(link.dest, link)
         return links_to

@@ -11,6 +11,12 @@ class Universe:
     def __len__(self):
         return len(self.ref)
 
+    def find(self, member):
+        if member in self.ref:
+            return self.ref.index(member)
+        else:
+            return -1
+
     def index(self, member):
         return self.ref.index(member)
 
@@ -160,7 +166,7 @@ class Relation:
         return self.matrix[index]
 
     def get(self, m1):
-        return self.matrix[self.u1.ref.index(m1)]
+        return self.matrix[self.u1.index(m1)]
 
 
 class TestUniverse(unittest.TestCase):
@@ -170,6 +176,12 @@ class TestUniverse(unittest.TestCase):
 
     def test_len(self):
         self.assertEqual(len(self.u), 3)
+
+    def test_find(self):
+        self.assertEqual(self.u.find('a'), 0)
+        self.assertEqual(self.u.find('b'), 1)
+        self.assertEqual(self.u.find('c'), 2)
+        self.assertEqual(self.u.find('d'), -1)
 
     def test_index(self):
         self.assertEqual(self.u.index('a'), 0)
