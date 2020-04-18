@@ -94,7 +94,8 @@ images:     $(SUBDIRS:%=%/images) $(IMAGES)
 test:       $(SUBDIRS:%=%/test) $(TESTS) run-tests
 tests:      $(SUBDIRS:%=%/tests) $(TESTS)
 clean:      $(SUBDIRS:%=%/clean)
-	    rm -f *.d *.o *.out test-*.cpp *.DSYM/ $(PROGRAMS) $(TESTS) $(FILTH)
+	    rm -f *.d *.o *.out test-*.cpp $(PROGRAMS) $(TESTS) $(FILTH)
+	    rm -rf *.dSYM/
 help: general-help local-help
 
 general-help:
