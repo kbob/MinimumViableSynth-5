@@ -1,7 +1,6 @@
 #ifndef ACTIONS_included
 #define ACTIONS_included
 
-// typedef float SCALE_TYPE;
 #include "synth/core/links.h"
 
 // -- Prep Actions - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //

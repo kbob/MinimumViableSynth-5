@@ -105,10 +105,10 @@ Plan ModNetwork::make_plan() const
                 auto copy_or_add = [&] (size_t si, size_t di, Link *lk) {
                     RunAction act;
                     if (!copied) {
-                        act = CopyAction(di, si, 0, 1.0f); // XXX use link
+                        act = CopyAction(di, si, 0, lk);
                         copied = true;
                     } else {
-                        act = AddAction(di, si, lk ? 0 : 1, 1.0f); // XXX
+                        act = AddAction(di, si, 0, lk);
                     }
                     plan.push_back_run(act);
                 };
