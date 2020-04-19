@@ -31,7 +31,6 @@ class Port:
         for (k, v) in self.owner.__dict__.items():
             if v == self:
                 return f'{self.owner}.{k.strip("_")}'
-
         return type(self).__name__
 
 class InputPort(Port): ...

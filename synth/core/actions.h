@@ -1,7 +1,8 @@
 #ifndef ACTIONS_included
 #define ACTIONS_included
 
-typedef float SCALE_TYPE;
+// typedef float SCALE_TYPE;
+#include "synth/core/links.h"
 
 // -- Prep Actions - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 
@@ -103,14 +104,14 @@ private:
 class CopyAction {
 public:
     CopyAction() = default;
-    CopyAction(uint8_t    dest_port_index,
-               uint8_t    src_port_index,
-               uint8_t    ctl_port_index,
-               SCALE_TYPE scale)
+    CopyAction(uint8_t  dest_port_index,
+               uint8_t  src_port_index,
+               uint8_t  ctl_port_index,
+               Link    *link)
     : m_dest_port_index{dest_port_index},
       m_src_port_index{src_port_index},
       m_ctl_port_index{ctl_port_index},
-      m_scale{scale}
+      m_link{link}
     {}
     void do_it() const
     {
@@ -121,28 +122,28 @@ public:
                   << " to "
                   << int(m_dest_port_index)
                   << " scaled "
-                  << m_scale
+                  << m_link->scale()
                   << std::endl;
     }
 private:
-    uint8_t    m_dest_port_index;
-    uint8_t    m_src_port_index;
-    uint8_t    m_ctl_port_index;
-    SCALE_TYPE m_scale;
+    uint8_t  m_dest_port_index;
+    uint8_t  m_src_port_index;
+    uint8_t  m_ctl_port_index;
+    Link    *m_link;
     friend class ActionsUnitTest;
 };
 
 class AddAction {
 public:
     AddAction() = default;
-    AddAction(uint8_t    dest_port_index,
-              uint8_t    src_port_index,
-              uint8_t    ctl_port_index,
-              SCALE_TYPE scale)
+    AddAction(uint8_t  dest_port_index,
+              uint8_t  src_port_index,
+              uint8_t  ctl_port_index,
+              Link    *link)
     : m_dest_port_index{dest_port_index},
       m_src_port_index{src_port_index},
       m_ctl_port_index{ctl_port_index},
-      m_scale{scale}
+      m_link{link}
     {}
     void do_it() const
     {
@@ -153,14 +154,14 @@ public:
                   << " to "
                   << int(m_dest_port_index)
                   << " scaled "
-                  << m_scale
+                  << m_link->scale()
                   << std::endl;
     }
 private:
-    uint8_t     m_dest_port_index;
-    uint8_t     m_src_port_index;
-    uint8_t     m_ctl_port_index;
-    SCALE_TYPE  m_scale;
+    uint8_t  m_dest_port_index;
+    uint8_t  m_src_port_index;
+    uint8_t  m_ctl_port_index;
+    Link    *m_link;
 
     friend class ActionsUnitTest;
 };

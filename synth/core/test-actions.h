@@ -41,20 +41,26 @@ public:
 
     void test_copy()
     {
-        CopyAction a(7, 5, 6, 0.3f);
+        Input<> dest;
+        Output<> src, ctl;
+        auto link = make_link(&dest, &src, &ctl, 0.3f);
+        CopyAction a(7, 5, 6, &link);
         TS_ASSERT(a.m_dest_port_index == 7);
         TS_ASSERT(a.m_src_port_index == 5);
         TS_ASSERT(a.m_ctl_port_index == 6);
-        TS_ASSERT(a.m_scale == 0.3f);
+        TS_ASSERT(a.m_link == &link);
     }
 
     void test_add()
     {
-        AddAction a(7, 8, 9, 0.4f);
+        Input<> dest;
+        Output<> src, ctl;
+        auto link = make_link(&dest, &src, &ctl, 0.4f);
+        AddAction a(7, 8, 9, &link);
         TS_ASSERT(a.m_dest_port_index == 7);
         TS_ASSERT(a.m_src_port_index == 8);
         TS_ASSERT(a.m_ctl_port_index == 9);
-        TS_ASSERT(a.m_scale == 0.4f);
+        TS_ASSERT(a.m_link == &link);
 
     }
 
@@ -69,19 +75,25 @@ public:
         RunAction r0;
         TS_ASSERT(r0.m_tag == RunActionType::NONE);
 
-        RunAction r1(CopyAction(7, 5, 6, 0.3f));
+        Input<> dest1;
+        Output<> src1, ctl1;
+        auto link1 = make_link(&dest1, &src1, &ctl1, 0.3f);
+        RunAction r1(CopyAction(7, 5, 6, &link1));
         TS_ASSERT(r1.m_tag == RunActionType::COPY);
         TS_ASSERT(r1.m_u.copy.m_dest_port_index == 7);
         TS_ASSERT(r1.m_u.copy.m_src_port_index == 5);
         TS_ASSERT(r1.m_u.copy.m_ctl_port_index == 6);
-        TS_ASSERT(r1.m_u.copy.m_scale == 0.3f);
+        TS_ASSERT(r1.m_u.copy.m_link == &link1);
 
-        RunAction r2(AddAction(7, 8, 9, 0.4f));
+        Input<> dest2;
+        Output<> src2, ctl2;
+        auto link2 = make_link(&dest2, &src2, &ctl2, 0.4f);
+        RunAction r2(AddAction(7, 8, 9, &link2));
         TS_ASSERT(r2.m_tag == RunActionType::ADD);
         TS_ASSERT(r2.m_u.add.m_dest_port_index == 7);
         TS_ASSERT(r2.m_u.add.m_src_port_index == 8);
         TS_ASSERT(r2.m_u.add.m_ctl_port_index == 9);
-        TS_ASSERT(r2.m_u.add.m_scale == 0.4f);
+        TS_ASSERT(r2.m_u.add.m_link == &link2);
 
         RunAction r3(RenderAction(10));
         TS_ASSERT(r3.m_tag == RunActionType::RENDER);
