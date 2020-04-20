@@ -76,6 +76,7 @@ r := $(r:/=)
 
 ifneq ($(SOURCES),)
  .DEFAULT_GOAL := a.out
+      PROGRAMS := a.out
  a.out-SOURCES := $(SOURCES)
 endif
 
