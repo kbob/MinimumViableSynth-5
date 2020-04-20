@@ -60,12 +60,12 @@ class vec_map {
         iter_tmpl& operator = (const iter_tmpl& that) = default;
 
         // comparison
-        bool operator == (const iter_tmpl& that)
+        bool operator == (const iter_tmpl& that) const
         {
             assert(m_map == that.m_map);
             return m_pos == that.m_pos;
         }
-        bool operator != (const iter_tmpl& that)
+        bool operator != (const iter_tmpl& that) const
         {
             return !(*this == that);
         }
