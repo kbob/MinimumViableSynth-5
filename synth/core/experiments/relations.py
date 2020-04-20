@@ -122,7 +122,7 @@ class Subset:
         ref = self.universe.ref
         return (ref[i] for i in range(len(ref)) if self.mask & (1 << i))
 
-    def iter_bits(self):
+    def iter_indices(self):
         ref = self.universe.ref
         return (i for i in range(len(ref)) if self.mask & (1 << i))
 
@@ -431,7 +431,7 @@ class TestSubsets(unittest.TestCase):
 
     def test_iters(self):
         self.assertListEqual(list(self.ace.iter_members()), ['a', 'c', 'e'])
-        self.assertListEqual(list(self.ace.iter_bits()), [0, 2, 4])
+        self.assertListEqual(list(self.ace.iter_indices()), [0, 2, 4])
         self.assertListEqual(list(self.ace.iter_masks()), [1, 4, 16])
 
 
@@ -466,7 +466,7 @@ class TestRelations(unittest.TestCase):
     def test_iter(self):
         don = self.r.get('Don')
         self.assertListEqual(list(don.iter_members()), ['V'])
-        self.assertListEqual(list(don.iter_bits()), [6])
+        self.assertListEqual(list(don.iter_indices()), [6])
         self.assertListEqual(list(don.iter_masks()), [64])
 
 

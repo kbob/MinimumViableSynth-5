@@ -405,7 +405,7 @@ class ModNetwork:
 
     def _assemble_prep_actions(self, controls, modules):
         prep = []
-        for ci in controls.iter_bits():
+        for ci in controls.iter_indices():
             prep.append(EvalAction(ci))
         for m in modules.iter_members():
             for p in m.input_ports:
@@ -427,11 +427,11 @@ class ModNetwork:
 
     def _assemble_run_actions(self, controls, section, done):
         run = []
-        for c in controls.iter_bits():
+        for c in controls.iter_indices():
             run.append(EvalAction(c))
         while section - done:
             ready = self.resolver.modules.none()
-            for mi in section.iter_bits():
+            for mi in section.iter_indices():
                 m = self.resolver.modules[mi]
                 if m in done:
                     continue
@@ -471,7 +471,7 @@ class ModNetwork:
         cur = succ
         while True:
             prev = self.resolver.modules.none()
-            for mi in cur.iter_bits():
+            for mi in cur.iter_indices():
                 prev |= self._mod_predecessors.at(mi)
             prev &= candidates
             if prev == 0:
