@@ -99,6 +99,7 @@ std::ostream& operator << (std::ostream& o, const Universe<T, N>& u)
     return o;
 }
 
+
 // -- Subset - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 //
 // Subsets are created by Universes.
@@ -133,14 +134,14 @@ class Subset : public std::bitset<N> {
 
     typedef std::bitset<N> super;
     Subset(const Universe<T, N>& u)
-    : /* indices{this}, values(this), */ m_universe{&u} {}
+    : m_universe{&u} {}
 
     Subset(const Universe<T, N>& u, const super& bits)
-    : super{bits}, /* indices{this}, values(this), */ m_universe{&u} {}
+    : super{bits}, m_universe{&u} {}
 
     template <class I>
     Subset(const Universe<T, N>& u, I first, I last)
-    : /* indices{this}, values(this), */ m_universe{&u}
+    : m_universe{&u}
     {
         auto b = m_universe->m_ref.begin();
         auto e = m_universe->m_ref.end();
