@@ -335,7 +335,6 @@ class ModNetwork:
 
     def make_plan(self, output_modules):
         self._mod_predecessors = self._calc_mod_predecessors()
-        self._port_sources = self._calc_port_sources()
         self._links_to = self._calc_links_to()
 
         # partition reeachable modules into pre, voice, and post.
@@ -495,15 +494,6 @@ class ModNetwork:
                 if isinstance(ctl_mod, Module):
                     predecessors.add(dest_mod, ctl_mod)
         return predecessors
-
-    def _calc_port_sources(self):
-        port_sources = Relation(self.resolver.ports, self.resolver.ports)
-        for link in self.links:
-            if link.src:
-                port_sources.add(link.dest, link.src)
-            if link.ctl:
-                port_sources.add(link.dest, link.ctl)
-        return port_sources
 
     def _calc_links_to(self):
         links_to = Relation(self.resolver.ports, self._all_links)
