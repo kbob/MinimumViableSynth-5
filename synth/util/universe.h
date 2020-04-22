@@ -28,6 +28,9 @@ class Subset;
 //      u.none                  // {}
 //      u.all                   // {a b c}
 
+// XXX need to consistently use either "member" or "value", not a mix.
+// XXX need to consistently provide both operator [] and .at() with
+//     appropriate error checking.
 template <class C, size_t N>
 class Universe {
 

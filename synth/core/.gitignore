@@ -8,5 +8,6 @@ test-modules
 test-plan
 test-ported
 test-ports
+test-resolver
 test-timbre
 test-voice

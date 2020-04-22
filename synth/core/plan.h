@@ -48,7 +48,7 @@ private:
 
     prep_action_sequence m_prep;
     run_action_sequence m_run;
-    Resolver m_resolver;
+    // Resolver m_resolver;
 
 };
 
