@@ -1,5 +1,8 @@
 #include "universe.h"
 
+#include <list>
+#include "synth/util/noalloc.h"
+
 #include <cxxtest/TestSuite.h>
 
 enum class Turtle { Leo, Mich, Don, Raph, Splinter };
@@ -27,9 +30,12 @@ class universe_unit_test : public CxxTest::TestSuite {
 
 public:
 
-    typedef Universe<Turtle, 4> U;
-    typedef U::referent V;
+    typedef fixed_vector<Turtle, 4> V;
+    typedef Universe<V, 4> U;
+    typedef U::subset_type S;
+    // typedef U::referent V;
     const V turtles = {Turtle::Leo, Turtle::Mich, Turtle::Don, Turtle::Raph};
+    const U u{turtles};
 
     void test_instantiate()
     {
@@ -53,7 +59,9 @@ public:
     {
         const U u(turtles);
         const U u1(turtles);
-        const Universe<int, 3> u3{fixed_vector<int, 3>{42, 43, 45}};
+        // const Universe<int, 3> u3{fixed_vector<int, 3>{42, 43, 45}};
+        fixed_vector<int, 3> ref3{42, 43, 45};
+        const Universe<fixed_vector<int, 3>, 3> u3{ref3};
         TS_ASSERT(u == u);
         TS_ASSERT(!(u == u1));
         TS_ASSERT(u != u1);
@@ -64,7 +72,7 @@ public:
         const U u{turtles};
         TS_ASSERT(u.size() == 4)
 
-        typedef Universe<Turtle, 17> U2;
+        typedef Universe<fixed_vector<Turtle, 17>, 17> U2;
         typedef U2::referent V2;
         const V2 turtles2(turtles.begin(), turtles.end());
         const U2 u2(turtles2);
@@ -125,8 +133,8 @@ public:
     void test_all_none()
     {
         const U u(turtles);
-        U::Subset all = u.all;
-        U::Subset none = u.none;
+        S all = u.all;
+        S none = u.none;
 
         TS_ASSERT(all[0] == true);
         TS_ASSERT(all[1] == true);
@@ -143,7 +151,7 @@ public:
     {
         typedef fixed_vector<short, 4> V;
         V v{2, 3, 5, 7};
-        Universe<short, 4> u{v};
+        Universe<fixed_vector<short, 4>, 4> u{v};
         std::ostringstream stream;
         stream << u;
         std::string str = stream.str();
@@ -156,9 +164,9 @@ class subset_unit_test : public CxxTest::TestSuite {
 
 public:
 
-    typedef Universe<Turtle, 4> U;
+    typedef Universe<fixed_vector<Turtle, 4>, 4> U;
     typedef U::referent V;
-    typedef U::Subset S;
+    typedef U::subset_type S;
     const V turtles;
 
     U u;

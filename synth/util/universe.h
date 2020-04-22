@@ -4,9 +4,7 @@
 #include <bitset>
 #include <iostream>
 
-#include "synth/util/noalloc.h"
-
-template <class T, size_t N>
+template <class C, size_t N>
 class Subset;
 
 
@@ -30,16 +28,18 @@ class Subset;
 //      u.none                  // {}
 //      u.all                   // {a b c}
 
-template <class T, size_t N>
+template <class C, size_t N>
 class Universe {
 
 public:
 
-    typedef const fixed_vector<T, N> referent;
-    typedef Subset<T, N> Subset;
+    typedef C referent;
+    typedef typename C::value_type member_type;
+    typedef Subset<referent, N> subset_type;
     typedef std::bitset<N> bits;
+    static const size_t max_size = N;
 
-    Universe(referent& ref)
+    Universe(const referent& ref)
     : all{*this, (1 << ref.size()) - 1},
       none{*this},
       m_ref{ref}
@@ -50,7 +50,7 @@ public:
 
     size_t size() const { return m_ref.size(); }
 
-    ssize_t find(const T& m) const
+    ssize_t find(const member_type& m) const
     {
         auto pos = std::find(m_ref.begin(), m_ref.end(), m);
         if (pos == m_ref.end())
@@ -58,7 +58,7 @@ public:
         return pos - m_ref.begin();
     }
 
-    size_t index(const T& m) const
+    size_t index(const member_type& m) const
     {
         ssize_t pos = find(m);
         if (pos == -1)
@@ -66,38 +66,39 @@ public:
         return pos;
     }
 
-    const T& operator [] (size_t index) const { return m_ref.at(index); }
-
-    Subset subset(const bits& b) const { return Subset(*this, b); }
-
-    template <class I>
-    Subset subset(I first, I last) const
+    const member_type& operator [] (size_t index) const
     {
-        return Subset(*this, first, last);
+        return m_ref.at(index);
     }
 
-    const Subset all;
-    const Subset none;
+    subset_type subset(const bits& b) const { return subset_type(*this, b); }
+
+    template <class I>
+    subset_type subset(I first, I last) const
+    {
+        return subset_type(*this, first, last);
+    }
+
+    friend std::ostream& operator << (std::ostream& o, const Universe& u)
+    {
+        o << '{';
+        const char *sep = "";
+        for (size_t i = 0; i < u.size(); i++) {
+            o << sep << u[i];
+            sep = " ";
+        }
+        return o << '}';
+    }
+
+    const subset_type all;
+    const subset_type none;
 
 private:
 
-    referent& m_ref;
-    friend Subset;
+    const referent& m_ref;
+    friend subset_type;
 
 };
-
-template <class T, size_t N>
-std::ostream& operator << (std::ostream& o, const Universe<T, N>& u)
-{
-    o << "{";
-    const char *sep = "";
-    for (size_t i = 0; i < u.size(); i++) {
-        o << sep << u[i];
-        sep = " ";
-    }
-    o << "}";
-    return o;
-}
 
 
 // -- Subset - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
@@ -129,18 +130,22 @@ std::ostream& operator << (std::ostream& o, const Universe<T, N>& u)
 //      s1 ^ s2, s1 ^= s2       // set symmetric difference
 //      s1 - s2, s1 -= s2       // set difference
 
-template <class T, size_t N>
+template <class C, size_t N>
 class Subset : public std::bitset<N> {
 
     typedef std::bitset<N> super;
-    Subset(const Universe<T, N>& u)
+public:
+    typedef typename C::value_type member_type;
+
+private:
+        Subset(const Universe<C, N>& u)
     : m_universe{&u} {}
 
-    Subset(const Universe<T, N>& u, const super& bits)
+    Subset(const Universe<C, N>& u, const super& bits)
     : super{bits}, m_universe{&u} {}
 
     template <class I>
-    Subset(const Universe<T, N>& u, I first, I last)
+    Subset(const Universe<C, N>& u, I first, I last)
     : m_universe{&u}
     {
         auto b = m_universe->m_ref.begin();
@@ -231,14 +236,14 @@ class Subset : public std::bitset<N> {
             return m_iter != that.m_iter;
         }
 
-        const T& operator * () const
+        const member_type& operator * () const
         {
             assert(m_iter.m_sub);
             assert(m_iter.m_sub->m_universe);
             return m_iter.m_sub->m_universe->m_ref[*m_iter];
         }
 
-        const T *operator -> () const
+        const member_type *operator -> () const
         {
             return &**this;
         }
@@ -319,7 +324,7 @@ public:
         return (a & ~b) != 0 && (~a & b) == 0;
     }
 
-    bool contains(const T& member) const
+    bool contains(const member_type& member) const
     {
         return (*this)[m_universe->index(member)];
     }
@@ -337,7 +342,7 @@ public:
         return *this;
     }
 
-    void add(const T& value)
+    void add(const member_type& value)
     {
         super::set(m_universe->index(value));
     }
@@ -365,9 +370,9 @@ public:
 
 private:
 
-    const Universe<T, N> *m_universe;
+    const Universe<C, N> *m_universe;
 
-    friend Universe<T, N>;
+    friend Universe<C, N>;
     friend class subset_unit_test;
 };
 

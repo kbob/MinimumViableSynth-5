@@ -1,13 +1,22 @@
 #ifndef RELATION_included
 #define RELATION_included
 
+#include "synth/util/noalloc.h"
 #include "synth/util/universe.h"
 
-template <class T1, class T2, size_t N1, size_t N2>
+template <class U1, class U2>
 class Relation {
 
 public:
-    Relation(const Universe<T1, N1>&u1, const Universe<T2, N2>& u2)
+
+    typedef typename U1::member_type mem1_type;
+    typedef typename U2::member_type mem2_type;
+    typedef typename U1::subset_type sub1_type;
+    typedef typename U2::subset_type sub2_type;
+    static const size_t max_size1 = U1::max_size;
+    static const size_t max_size2 = U2::max_size;
+
+    Relation(const U1& u1, const U2& u2)
     : m_u1{u1}, m_u2{u2}
     {
         for (size_t i = 0; i < m_u1.size(); i++)
@@ -19,30 +28,30 @@ public:
         // std::cout << std::endl;
     }
 
-    bool contains(const T1& v1, const T2& v2) const
+    bool contains(const mem1_type& v1, const mem2_type& v2) const
     {
         return m_matrix[m_u1.index(v1)].test(m_u2.index(v2));
     }
 
-    const Subset<T2, N2>& at(size_t index) const
+    const sub2_type& at(size_t index) const
     {
         return m_matrix.at(index);
     }
 
-    const Subset<T2, N2>& get(const T1& v1) const
+    const sub2_type& get(const mem1_type& v1) const
     {
         return m_matrix[m_u1.index(v1)];
     }
 
-    void add(const T1& v1, const T2& v2)
+    void add(const mem1_type& v1, const mem2_type& v2)
     {
         m_matrix[m_u1.index(v1)].add(v2);
     }
 
 private:
-    const Universe<T1, N1>& m_u1;
-    const Universe<T2, N2>& m_u2;
-    fixed_vector<Subset<T2, N2>, N1> m_matrix;
+    const U1& m_u1;
+    const U2& m_u2;
+    fixed_vector<sub2_type, max_size1> m_matrix;
 };
 
 #endif /* !RELATION_included */

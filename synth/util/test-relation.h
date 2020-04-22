@@ -10,15 +10,17 @@ public:
     typedef char V2;
     static const size_t N1 = 3;
     static const size_t N2 = 5;
-    typedef Universe<V1, N1> U1;
-    typedef Universe<V2, N2> U2;
-    typedef Relation<V1, V2, N1, N2> REL;
+    typedef std::vector<V1> C1;
+    typedef std::deque<V2> C2;
+    typedef Universe<C1, N1> U1;
+    typedef Universe<C2, N2> U2;
+    typedef Relation<U1, U2> R;
 
     const U1::referent ref1;
     const U2::referent ref2;
     const U1 u1;
     const U2 u2;
-    REL rel;
+    R rel;
 
     relation_unit_test()
     : ref1{1.1f, 2.2f, 3.3f},
@@ -45,7 +47,7 @@ public:
         const U1 u1{ref1};
         const U2::referent ref2{'a', 'b', 'c', 'd', 'e'};
         const U2 u2{ref2};
-        (void)Relation<V1, V2, N1, N2>{u1, u2};
+        (void)Relation<U1, U2>{u1, u2};
     }
 
     void test_containment()
