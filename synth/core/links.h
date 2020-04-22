@@ -91,7 +91,7 @@ public:
         auto src_buf = m_src ? static_cast<Output<S> *>(m_src)->buf() : nullptr;
         auto ctl_buf = m_ctl ? static_cast<Output<C> *>(m_ctl)->buf() : nullptr;
         bool scaled = m_scale != 1.0f;
-        float scale = m_scale;
+        SCALE_TYPE scale = m_scale;
         if (src_buf && ctl_buf && scaled)
             return [=] (size_t frame_count) {
                 for (size_t i = 0; i < frame_count; i++)
@@ -137,7 +137,7 @@ public:
         auto src_buf = m_src ? static_cast<Output<S> *>(m_src)->buf() : nullptr;
         auto ctl_buf = m_ctl ? static_cast<Output<C> *>(m_ctl)->buf() : nullptr;
         bool scaled = m_scale != 1.0f;
-        float scale = m_scale;
+        SCALE_TYPE scale = m_scale;
         if (src_buf && ctl_buf && scaled)
             return [=] (size_t frame_count) {
                 for (size_t i = 0; i < frame_count; i++)
