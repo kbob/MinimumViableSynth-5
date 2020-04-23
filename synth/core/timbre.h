@@ -3,6 +3,7 @@
 
 #include "synth/util/noalloc.h"
 
+class Control;
 class Module;
 class Patch;
 class Plan;

@@ -26,6 +26,7 @@ public:
     Plan& operator = (const Plan&) = delete;
     Plan& operator = (Plan&&)      = default;
 
+#ifdef NOT_YET
     const prep_action_sequence& t_prep()   const { return m_t_prep; }
     const prep_action_sequence& v_prep()   const { return m_v_prep; }
     const run_action_sequence&  pre_run()  const { return m_pre_run; }
@@ -37,7 +38,12 @@ public:
     void push_back_pre_run(const RunAction& a)   { m_pre_run.push_back(a); }
     void push_back_v_run(const RunAction& a)     { m_v_run.push_back(a); }
     void push_back_post_run(const RunAction& a)  { m_post_run.push_back(a); }
-
+#else
+    const prep_action_sequence& prep() const { return m_t_prep; }
+    const run_action_sequence& run() const { return m_pre_run; }
+    void push_back_prep(const PrepAction& a) { m_t_prep.push_back(a); }
+    void push_back_run(const RunAction& a) { m_pre_run.push_back(a); }
+#endif
     // // XXX can't do this until Timbre is defined and PrepActions have
     // //     a `do_prep` method.
     // void prep_timbre(Timbre&)
