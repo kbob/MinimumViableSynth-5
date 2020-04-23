@@ -10,7 +10,7 @@ class Plan;
 
 // A Timbre has a patch reference, a "factory default" patch,
 // a plan, per-timbre controls, per-timbre modules, and pre-
-// and post-voice execs.
+// and post-voice render actions.
 
 class Timbre {
 public:
@@ -26,8 +26,8 @@ public:
     Plan *m_plan;
     fixed_vector<Control *, MAX_TIMBRE_CONTROLS> m_controls;
     fixed_vector<Module *, MAX_TIMBRE_MODULES> m_modules;
-    // fixed_vector<exec> m_pre_exec;
-    // fixed_vector<exec, MAX_
+    // fixed_vector<RenderAction, MAX_RENDER_ACTION> m_pre_actions;
+    // fixed_vector<RenderAction, MAX_RENDER_ACTION> m_post_actions;
 
 };
 
