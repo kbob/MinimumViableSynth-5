@@ -1,5 +1,5 @@
-#ifndef ACTIONS_included
-#define ACTIONS_included
+#ifndef STEPS_included
+#define STEPS_included
 
 #include "synth/core/links.h"
 
@@ -222,4 +222,4 @@ public:
     }
 };
 
-#endif /* !ACTIONS_included */
+#endif /* !STEPS_included */

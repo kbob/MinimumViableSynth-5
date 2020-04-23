@@ -32,26 +32,3 @@ public:
 };
 
 #endif /* !TIMBRE_included */
-
-// Renaming
-//
-//  Old Names                           New Names
-//
-//      ModNetwork                          Planner
-//      Plan                                Plan
-//      Action                              Step
-//          PrepAction                          PrepStep
-//              ClearAction                         ClearStep
-//              AliasAction                         AliasStep
-//          RunAction                           RenderStep
-//              EvalAction                          ControlRenderStep
-//              CopyAction                          CopyStep
-//              AddAction                           AddStep
-//              RenderAction                        ModuleRenderStep
-//      Exec                                RenderAction
-//
-// A Planner creates a Plan.
-// A Plan contains Steps.
-// Steps come in two kinds: PrepStep and RenderStep.
-// PrepSteps are executed directly.
-// RenderSteps create RenderActions.

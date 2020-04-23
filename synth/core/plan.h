@@ -3,9 +3,9 @@
 
 #include <iostream>
 
-#include "synth/core/actions.h"
 #include "synth/core/modules.h"
 #include "synth/core/resolver.h"
+#include "synth/core/steps.h"
 #include "synth/util/noalloc.h"
 
 // A Plan has five sequences of Steps.

@@ -1,8 +1,8 @@
-#include "synth/core/mod-network.h"
+#include "synth/core/planner.h"
 
 #include <array>
 
-#include "synth/core/actions.h"
+#include "synth/core/steps.h"
 
 // XXX should work backward from output.  Then modules that
 // aren't connected won't get scheduled.

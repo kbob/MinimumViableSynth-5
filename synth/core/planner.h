@@ -1,5 +1,5 @@
-#ifndef MOD_NETWORK_included
-#define MOD_NETWORK_included
+#ifndef PLANNER_included
+#define PLANNER_included
 
 #include "links.h"
 #include "synth/core/modules.h"
@@ -45,4 +45,4 @@ private:
 
 };
 
-#endif /* !MOD_NETWORK_included */
+#endif /* !PLANNER_included */

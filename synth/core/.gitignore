@@ -1,13 +1,13 @@
 example
-test-actions
 test-controls
 test-links
-test-mod-network
 test-mod-vector
 test-modules
 test-plan
+test-planner
 test-ported
 test-ports
 test-resolver
+test-steps
 test-timbre
 test-voice
