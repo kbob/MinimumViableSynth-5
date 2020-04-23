@@ -15,18 +15,18 @@ public:
     void render(size_t) {}
 };
 
-class ModNetworkUnitTest : public CxxTest::TestSuite {
+class planner_unit_test : public CxxTest::TestSuite {
 
 public:
 
     void test_instantiate()
     {
-        (void)ModNetwork();
+        (void)Planner();
     }
 
     void test_module()
     {
-        ModNetwork n;
+        Planner n;
         FooModule foo;
         n.module(foo);
 
@@ -36,7 +36,7 @@ public:
 
     void test_simple_link()
     {
-        ModNetwork n;
+        Planner n;
         FooModule foo1, foo2;
         auto link = make_link(&foo2.in, &foo1.out, nullptr);
         n.module(foo1)
@@ -50,7 +50,7 @@ public:
 
     void test_control_link()
     {
-        ModNetwork n;
+        Planner n;
         FooModule foo1, foo2;
         auto cl = make_link(&foo2.in, &foo1.out, nullptr);
         n.module(foo1)
@@ -64,7 +64,7 @@ public:
 
     // void test_simple_clone()
     // {
-    //     ModNetwork n;
+    //     Planner n;
     //     FooModule foo1, foo2;
     //     n.module(foo1)
     //      .module(foo2)
@@ -87,7 +87,7 @@ public:
 
     void test_simple_plan()
     {
-        ModNetwork n;
+        Planner n;
         FooModule foo1, foo2;
         auto link = make_link(&foo2.in, &foo1.out, nullptr);
         n.module(foo1)
@@ -105,7 +105,7 @@ public:
 
     void test_cycle()
     {
-        ModNetwork n;
+        Planner n;
         FooModule foo1, foo2;
         auto link1 = make_link(&foo2.in, &foo1.out, nullptr);
         auto link2 = make_link(&foo1.in, &foo2.out, nullptr);

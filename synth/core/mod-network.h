@@ -9,8 +9,10 @@
 #include "synth/core/voice.h"
 #include "synth/util/bijection.h"
 
-// ModNetwork is short for both Module Network and Modulation Network.
-class ModNetwork {
+// A Planner creates a Plan from a set of controls, modules, links,
+//and control values.
+
+class Planner {
 
 public:
 
@@ -21,8 +23,8 @@ public:
     typedef std::uint16_t port_mask;
 
 
-    ModNetwork& module(Module& m) { m_modules.push_back(&m); return *this; }
-    ModNetwork& connection(Link& l) { m_links.push_back(&l); return *this; }
+    Planner& module(Module& m) { m_modules.push_back(&m); return *this; }
+    Planner& connection(Link& l) { m_links.push_back(&l); return *this; }
 
     Plan make_plan() const;
 
@@ -39,7 +41,7 @@ private:
     void init_port_sources(const port_vector& ports,
                            port_adjacency_matrix&) const;
 
-    friend class ModNetworkUnitTest;
+    friend class planner_unit_test;
 
 };
 

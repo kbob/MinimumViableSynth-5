@@ -7,7 +7,7 @@
 // XXX should work backward from output.  Then modules that
 // aren't connected won't get scheduled.
 
-Plan ModNetwork::make_plan() const
+Plan Planner::make_plan() const
 {
     size_t n_modules = m_modules.size();
 
@@ -82,7 +82,7 @@ Plan ModNetwork::make_plan() const
         // std::cout << "\nready = " << std::hex << ready_mask << std::endl;
         // std::cout << "done  = " << done_mask << std::dec << std::endl;
         if (ready_mask == 0)
-            throw std::runtime_error("cycle in mod network");
+            throw std::runtime_error("cycle in module graph");
 
         // for mod in ready modules:
         //     for dest in mod inputs:
@@ -139,7 +139,7 @@ Plan ModNetwork::make_plan() const
 }
 
 void
-ModNetwork::init_mod_predecessors(module_adjacency_matrix& mod_predecessors)
+Planner::init_mod_predecessors(module_adjacency_matrix& mod_predecessors)
 const
 {
     mod_predecessors.fill(0);
@@ -157,8 +157,8 @@ const
     }
 }
 
-void ModNetwork::init_port_sources(const port_vector& ports,
-                                   port_adjacency_matrix& port_sources) const
+void Planner::init_port_sources(const port_vector& ports,
+                                port_adjacency_matrix& port_sources) const
 {
     port_sources.fill(0);
     for (const auto *link: m_links) {
