@@ -4,7 +4,8 @@
 #include <string>
 #include <typeindex>
 
-typedef float DEFAULT_SAMPLE_TYPE;
+#include "synth/core/config.h"
+
 
 // -- Ports -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 //
@@ -27,8 +28,6 @@ typedef float DEFAULT_SAMPLE_TYPE;
 class Port {
 
 public:
-
-    static const size_t MAX_FRAMES = 64;
 
     const std::string& name() const
     {

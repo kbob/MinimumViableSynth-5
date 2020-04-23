@@ -3,6 +3,7 @@
 
 #include <iostream>
 
+#include "synth/core/config.h"
 #include "synth/core/modules.h"
 #include "synth/core/resolver.h"
 #include "synth/core/steps.h"
@@ -14,9 +15,6 @@ class Plan {
 
 public:
 
-    // XXX need a limits module.
-    static const size_t MAX_PREP_STEPS = 16;
-    static const size_t MAX_RENDER_STEPS = 16;
     typedef fixed_vector<PrepStep, MAX_PREP_STEPS> prep_step_sequence;
     typedef fixed_vector<RenderStep, MAX_RENDER_STEPS> render_step_sequence;
 

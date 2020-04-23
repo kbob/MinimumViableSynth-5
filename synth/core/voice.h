@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "synth/core/config.h"
 #include "synth/core/modules.h"
 #include "synth/core/plan.h"
 #include "synth/util/noalloc.h"
@@ -10,9 +11,6 @@
 class Voice {
 
 public:
-
-    static const size_t MAX_MODULES = 16;
-    static const size_t MAX_LINKS   = 16;
 
     typedef fixed_vector<Module *, MAX_MODULES> module_vector;
 

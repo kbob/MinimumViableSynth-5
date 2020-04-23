@@ -1,6 +1,7 @@
 #ifndef TIMBRE_included
 #define TIMBRE_included
 
+#include "synth/core/config.h"
 #include "synth/util/noalloc.h"
 
 class Control;
@@ -14,9 +15,6 @@ class Plan;
 
 class Timbre {
 public:
-
-    static const size_t MAX_TIMBRE_CONTROLS = 4;
-    static const size_t MAX_TIMBRE_MODULES = 4;
 
     Timbre() = default;
 

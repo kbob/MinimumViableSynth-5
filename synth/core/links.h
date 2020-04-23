@@ -3,14 +3,9 @@
 
 #include <cstddef>
 
+#include "synth/core/config.h"
 #include "synth/core/controls.h"
 #include "synth/core/ports.h"
-
-class Control;
-
-const double  DEFAULT_SCALE =  1.0;
-// typedef float DEFAULT_SAMPLE_TYPE;
-typedef float SCALE_TYPE;
 
 // -- Links -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 //

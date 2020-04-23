@@ -3,6 +3,7 @@
 
 #include <cassert>
 
+#include "synth/core/config.h"
 #include "synth/core/controls.h"
 #include "synth/core/modules.h"
 #include "synth/core/ports.h"
@@ -37,10 +38,6 @@
 
 
 class Resolver {
-
-    static const size_t MAX_CONTROLS = 4;
-    static const size_t MAX_MODULES = 16;
-    static const size_t MAX_PORTS = 20;
 
     typedef fixed_vector<Control *, MAX_CONTROLS> cvec_type;
     typedef fixed_vector<Module *, MAX_MODULES> mvec_type;

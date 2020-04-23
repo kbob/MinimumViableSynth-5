@@ -1,7 +1,8 @@
 #ifndef PLANNER_included
 #define PLANNER_included
 
-#include "links.h"
+#include "synth/core/config.h"
+#include "synth/core/links.h"
 #include "synth/core/modules.h"
 #include "synth/core/mod-vector.h"
 #include "synth/core/plan.h"
@@ -16,12 +17,8 @@ class Planner {
 
 public:
 
-    static const size_t MAX_MODULES = 16;
-    static const size_t MAX_PORTS = 16;
-    static const size_t MAX_LINKS = 16;
     typedef std::uint16_t module_mask;
     typedef std::uint16_t port_mask;
-
 
     Planner& module(Module& m) { m_modules.push_back(&m); return *this; }
     Planner& connection(Link& l) { m_links.push_back(&l); return *this; }

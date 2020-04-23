@@ -1,6 +1,7 @@
 #ifndef MOD_VECTOR_included
 #define MOD_VECTOR_included
 
+#include "synth/core/config.h"
 #include "synth/core/modules.h"
 #include "synth/util/bijection.h"
 #include "synth/util/noalloc.h"
@@ -8,9 +9,6 @@
 class mod_vector {
 
 public:
-
-    static const size_t MAX_MODULES = 16;
-    static const size_t MAX_PORTS = 16;
 
 private:
 

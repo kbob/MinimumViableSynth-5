@@ -1,6 +1,7 @@
 #ifndef PORTED_included
 #define PORTED_included
 
+#include "synth/core/config.h"
 #include "synth/core/ports.h"
 #include "synth/util/noalloc.h"
 
@@ -9,8 +10,7 @@ class Ported {
 
 public:
 
-    static const size_t MAX_PORTS = 4; // This is Procrustean.
-    typedef fixed_vector<Port *, MAX_PORTS> port_vector;
+    typedef fixed_vector<Port *, MODULE_MAX_PORTS> port_vector;
 
     const port_vector& ports() const { return m_ports; }
 

@@ -2,6 +2,8 @@
 
 #include <cxxtest/TestSuite.h>
 
+#include "synth/core/config.h"
+
 class FooModule : public ModuleType<FooModule> {
 public:
     Input<> in;
@@ -27,7 +29,7 @@ public:
         const Voice::module_vector& m = v.modules();
         TS_ASSERT(m.size() == 1);
         TS_ASSERT(m.at(0) == &foo);
-        TS_ASSERT(m.capacity() <= Voice::MAX_MODULES);
+        TS_ASSERT(m.capacity() <= MAX_MODULES);
     }
 
     void test_two_modules()

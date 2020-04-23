@@ -1,12 +1,11 @@
 #ifndef CONTROLS_included
 #define CONTROLS_included
 
+#include "synth/core/config.h"
 #include "synth/core/ported.h"
 #include "synth/core/ports.h"
 
-typedef float DEFAULT_SAMPLE_TYPE;
-
-// ABC for controls.
+// Abstract base class for controls.
 //
 // parameterized by type.
 // subclassed for MIDI, GUI, others?
