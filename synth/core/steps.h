@@ -7,11 +7,14 @@
 // -- Prep Steps  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 
 class ClearStep {
+
 public:
+
     ClearStep() = default;
     ClearStep(uint8_t dest_port_index, SCALE_TYPE scale)
     : m_dest_port_index{dest_port_index}, m_scale{scale}
     {}
+
     void do_it() const
     {
         std::cout << "clear "
@@ -20,19 +23,25 @@ public:
                   << m_scale
                   << std::endl;
     }
+
 private:
+
     uint8_t    m_dest_port_index;
     SCALE_TYPE m_scale;
 
     friend class steps_unit_test;
+
 };
 
 class AliasStep {
+
 public:
+
     AliasStep() = default;
     AliasStep(uint8_t dest_port_index, uint8_t src_port_index)
     : m_dest_port_index{dest_port_index}, m_src_port_index{src_port_index}
     {}
+
     void do_it() const
     {
         std::cout << "alias "
@@ -41,11 +50,14 @@ public:
                   << int(m_src_port_index)
                   << std::endl;
     }
+
 private:
+
     uint8_t m_dest_port_index;
     uint8_t m_src_port_index;
 
     friend class steps_unit_test;
+
 };
 
 enum class PrepStepTag {
@@ -55,7 +67,9 @@ enum class PrepStepTag {
 };
 
 class PrepStep {
+
 public:
+
     PrepStep() : m_tag{PrepStepTag::NONE} {}
     PrepStep(const ClearStep& clear)
     : m_tag{PrepStepTag::CLEAR}, m_u{clear}
@@ -63,7 +77,9 @@ public:
     PrepStep(const AliasStep& alias)
     : m_tag{PrepStepTag::ALIAS}, m_u{alias}
     {}
+
     PrepStepTag tag() const { return m_tag; }
+
     void do_it() const
     {
         switch (m_tag) {
@@ -77,7 +93,9 @@ public:
             assert(0 && "invalid prep type");
         }
     }
+
 private:
+
     PrepStepTag m_tag;
     union u {
         u() = default;
@@ -88,13 +106,57 @@ private:
     } m_u;
 
     friend class steps_unit_test;
+
 };
 
 
 // -- Render Steps - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 
-class CopyStep {
+class ControlRenderStep {
+
 public:
+
+    ControlRenderStep() = default;
+    ControlRenderStep(uint8_t ctl_index) : m_ctl_index{ctl_index} {}
+
+    void do_it() const
+    {
+        std::cout << "crend" << int(m_ctl_index) << std::endl;
+    }
+
+private:
+
+    uint8_t m_ctl_index;
+    friend class steps_unit_test;
+
+};
+
+class ModuleRenderStep {
+
+public:
+
+    ModuleRenderStep() = default;
+    ModuleRenderStep(uint8_t mod_index) : m_mod_index{mod_index} {}
+
+    void do_it() const
+    {
+        std::cout << "mrend "
+                  << int(m_mod_index)
+                  << std::endl;
+    }
+
+private:
+
+    uint8_t m_mod_index;
+
+    friend class steps_unit_test;
+
+};
+
+class CopyStep {
+
+public:
+
     CopyStep() = default;
     CopyStep(uint8_t  dest_port_index,
              uint8_t  src_port_index,
@@ -105,6 +167,7 @@ public:
       m_ctl_port_index{ctl_port_index},
       m_link{link}
     {}
+
     void do_it() const
     {
         std::cout << "copy "
@@ -117,16 +180,22 @@ public:
                   << m_link->scale()
                   << std::endl;
     }
+
 private:
+
     uint8_t  m_dest_port_index;
     uint8_t  m_src_port_index;
     uint8_t  m_ctl_port_index;
     Link    *m_link;
+
     friend class steps_unit_test;
+
 };
 
 class AddStep {
+
 public:
+
     AddStep() = default;
     AddStep(uint8_t  dest_port_index,
             uint8_t  src_port_index,
@@ -137,6 +206,7 @@ public:
       m_ctl_port_index{ctl_port_index},
       m_link{link}
     {}
+
     void do_it() const
     {
         std::cout << "add "
@@ -149,61 +219,46 @@ public:
                   << m_link->scale()
                   << std::endl;
     }
+
 private:
+
     uint8_t  m_dest_port_index;
     uint8_t  m_src_port_index;
     uint8_t  m_ctl_port_index;
     Link    *m_link;
 
     friend class steps_unit_test;
-};
 
-class ModuleRenderStep {
-    uint8_t m_mod_index;
-    friend class steps_unit_test;
-public:
-    ModuleRenderStep() = default;
-    ModuleRenderStep(uint8_t mod_index) : m_mod_index{mod_index} {}
-    void do_it() const
-    {
-        std::cout << "mrend "
-                  << int(m_mod_index)
-                  << std::endl;
-    }
 };
 
 enum class RenderStepTag {
     NONE,
+    CONTROL_RENDER,
+    MODULE_RENDER,
     COPY,
     ADD,
-    MODULE_RENDER,
 };
 
 class RenderStep {
-    friend class steps_unit_test;
-private:
-    RenderStepTag m_tag;
-    union u {
-        u() = default;
-        u(const CopyStep& copy) : copy{copy} {}
-        u(const AddStep& add) : add{add} {}
-        u(const ModuleRenderStep& mrend) : mrend{mrend} {}
-        CopyStep copy;
-        AddStep add;
-        ModuleRenderStep mrend;
-    } m_u;
+
 public:
+
     RenderStep() : m_tag{RenderStepTag::NONE} {}
+    RenderStep(const ControlRenderStep& crend)
+    : m_tag{RenderStepTag::CONTROL_RENDER}, m_u{crend}
+    {}
+    RenderStep(const ModuleRenderStep& mrend)
+    : m_tag{RenderStepTag::MODULE_RENDER}, m_u{mrend}
+    {}
     RenderStep(const CopyStep& copy)
     : m_tag{RenderStepTag::COPY}, m_u{copy}
     {}
     RenderStep(const AddStep& add)
     : m_tag{RenderStepTag::ADD}, m_u{add}
     {}
-    RenderStep(const ModuleRenderStep& mrend)
-    : m_tag{RenderStepTag::MODULE_RENDER}, m_u{mrend}
-    {}
+
     RenderStepTag tag() const { return m_tag; }
+
     void do_it() const
     {
         switch (m_tag) {
@@ -220,6 +275,24 @@ public:
             assert(0 && "invalid process type");
         }
     }
+
+private:
+
+    RenderStepTag m_tag;
+    union u {
+        u() = default;
+        u(const ControlRenderStep& crend) : crend(crend) {}
+        u(const ModuleRenderStep& mrend) : mrend{mrend} {}
+        u(const CopyStep& copy) : copy{copy} {}
+        u(const AddStep& add) : add{add} {}
+        ControlRenderStep crend;
+        ModuleRenderStep mrend;
+        CopyStep copy;
+        AddStep add;
+    } m_u;
+
+    friend class steps_unit_test;
+
 };
 
 #endif /* !STEPS_included */
