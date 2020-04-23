@@ -8,17 +8,17 @@
 #include "synth/core/resolver.h"
 #include "synth/util/noalloc.h"
 
-// A Plan has five sequences of Actions.
+// A Plan has five sequences of Steps.
 
 class Plan {
 
 public:
 
     // XXX need a limits module.
-    static const size_t MAX_PREP_ACTIONS = 16;
-    static const size_t MAX_RUN_ACTIONS = 16;
-    typedef fixed_vector<PrepAction, MAX_PREP_ACTIONS> prep_action_sequence;
-    typedef fixed_vector<RunAction, MAX_RUN_ACTIONS> run_action_sequence;
+    static const size_t MAX_PREP_STEPS = 16;
+    static const size_t MAX_RENDER_STEPS = 16;
+    typedef fixed_vector<PrepStep, MAX_PREP_STEPS> prep_step_sequence;
+    typedef fixed_vector<RenderStep, MAX_RENDER_STEPS> render_step_sequence;
 
     Plan()                         = default;
     Plan(const Plan&)              = delete;
@@ -27,24 +27,26 @@ public:
     Plan& operator = (Plan&&)      = default;
 
 #ifdef NOT_YET
-    const prep_action_sequence& t_prep()   const { return m_t_prep; }
-    const prep_action_sequence& v_prep()   const { return m_v_prep; }
-    const run_action_sequence&  pre_run()  const { return m_pre_run; }
-    const run_action_sequence&  v_run()    const { return m_v_run; }
-    const run_action_sequence&  post_run() const { return m_post_run; }
+    const prep_step_sequence& t_prep()        const { return m_t_prep; }
+    const prep_step_sequence& v_prep()        const { return m_v_prep; }
+    const render_step_sequence&  pre_render() const { return m_pre_render; }
+    const render_step_sequence&  v_render()   const { return m_v_render; }
+    const render_step_sequence&  post_rende() const { return m_post_render; }
 
-    void push_back_t_prep(const PrepAction& a)   { m_t_prep.push_back(a); }
-    void push_back_v_prep(const PrepAction& a)   { m_v_prep.push_back(a); }
-    void push_back_pre_run(const RunAction& a)   { m_pre_run.push_back(a); }
-    void push_back_v_run(const RunAction& a)     { m_v_run.push_back(a); }
-    void push_back_post_run(const RunAction& a)  { m_post_run.push_back(a); }
+    void push_back_t_prep(const PrepStep& a)        { m_t_prep.push_back(a); }
+    void push_back_v_prep(const PrepStep& a)        { m_v_prep.push_back(a); }
+    void push_back_pre_render(const RenderStep& a)
+                                                { m_pre_render.push_back(a); }
+    void push_back_v_render(const RenderStep& a)    { m_v_render.push_back(a); }
+    void push_back_post_render(const RenderStep& a)
+                                                { m_post_render.push_back(a); }
 #else
-    const prep_action_sequence& prep() const { return m_t_prep; }
-    const run_action_sequence& run() const { return m_pre_run; }
-    void push_back_prep(const PrepAction& a) { m_t_prep.push_back(a); }
-    void push_back_run(const RunAction& a) { m_pre_run.push_back(a); }
+    const prep_step_sequence& prep() const { return m_t_prep; }
+    const render_step_sequence& run() const { return m_pre_render; }
+    void push_back_prep(const PrepStep& a) { m_t_prep.push_back(a); }
+    void push_back_run(const RenderStep& a) { m_pre_render.push_back(a); }
 #endif
-    // // XXX can't do this until Timbre is defined and PrepActions have
+    // // XXX can't do this until Timbre is defined and PrepSteps have
     // //     a `do_prep` method.
     // void prep_timbre(Timbre&)
     // {
@@ -63,11 +65,11 @@ public:
 
 private:
 
-    prep_action_sequence m_t_prep;
-    prep_action_sequence m_v_prep;
-    run_action_sequence m_pre_run;
-    run_action_sequence m_v_run;
-    run_action_sequence m_post_run;
+    prep_step_sequence   m_t_prep;
+    prep_step_sequence   m_v_prep;
+    render_step_sequence m_pre_render;
+    render_step_sequence m_v_render;
+    render_step_sequence m_post_render;
 
 };
 

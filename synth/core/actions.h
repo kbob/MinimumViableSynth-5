@@ -3,12 +3,13 @@
 
 #include "synth/core/links.h"
 
-// -- Prep Actions - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 
-class ClearAction {
+// -- Prep Steps  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
+
+class ClearStep {
 public:
-    ClearAction() = default;
-    ClearAction(uint8_t dest_port_index, SCALE_TYPE scale)
+    ClearStep() = default;
+    ClearStep(uint8_t dest_port_index, SCALE_TYPE scale)
     : m_dest_port_index{dest_port_index}, m_scale{scale}
     {}
     void do_it() const
@@ -23,13 +24,13 @@ private:
     uint8_t    m_dest_port_index;
     SCALE_TYPE m_scale;
 
-    friend class ActionsUnitTest;
+    friend class steps_unit_test;
 };
 
-class AliasAction {
+class AliasStep {
 public:
-    AliasAction() = default;
-    AliasAction(uint8_t dest_port_index, uint8_t src_port_index)
+    AliasStep() = default;
+    AliasStep(uint8_t dest_port_index, uint8_t src_port_index)
     : m_dest_port_index{dest_port_index}, m_src_port_index{src_port_index}
     {}
     void do_it() const
@@ -44,32 +45,32 @@ private:
     uint8_t m_dest_port_index;
     uint8_t m_src_port_index;
 
-    friend class ActionsUnitTest;
+    friend class steps_unit_test;
 };
 
-enum class PrepActionType {
+enum class PrepStepTag {
     NONE,
     CLEAR,
     ALIAS,
 };
 
-class PrepAction {
+class PrepStep {
 public:
-    PrepAction() : m_tag{PrepActionType::NONE} {}
-    PrepAction(const ClearAction& clear)
-    : m_tag{PrepActionType::CLEAR}, m_u{clear}
+    PrepStep() : m_tag{PrepStepTag::NONE} {}
+    PrepStep(const ClearStep& clear)
+    : m_tag{PrepStepTag::CLEAR}, m_u{clear}
     {}
-    PrepAction(const AliasAction& alias)
-    : m_tag{PrepActionType::ALIAS}, m_u{alias}
+    PrepStep(const AliasStep& alias)
+    : m_tag{PrepStepTag::ALIAS}, m_u{alias}
     {}
-    PrepActionType type() const { return m_tag; }
+    PrepStepTag tag() const { return m_tag; }
     void do_it() const
     {
         switch (m_tag) {
-        case PrepActionType::CLEAR:
+        case PrepStepTag::CLEAR:
             m_u.clear.do_it();
             break;
-        case PrepActionType::ALIAS:
+        case PrepStepTag::ALIAS:
             m_u.alias.do_it();
             break;
         default:
@@ -77,36 +78,28 @@ public:
         }
     }
 private:
-    PrepActionType m_tag;
+    PrepStepTag m_tag;
     union u {
         u() = default;
-        u(const ClearAction& clear) : clear{clear} {}
-        u(const AliasAction& alias) : alias{alias} {}
-        ClearAction clear;
-        AliasAction alias;
+        u(const ClearStep& clear) : clear{clear} {}
+        u(const AliasStep& alias) : alias{alias} {}
+        ClearStep clear;
+        AliasStep alias;
     } m_u;
 
-    friend class ActionsUnitTest;
+    friend class steps_unit_test;
 };
 
-// -- Run Actions -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 
-// voice/global
-// const/varying
-// copy/add
-// ctl? scale? src<type>? dest<type>
-//
-// -ctl -src -> const (move to prep)
-// nonvarying ctl -src -> const
+// -- Render Steps - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 
-
-class CopyAction {
+class CopyStep {
 public:
-    CopyAction() = default;
-    CopyAction(uint8_t  dest_port_index,
-               uint8_t  src_port_index,
-               uint8_t  ctl_port_index,
-               Link    *link)
+    CopyStep() = default;
+    CopyStep(uint8_t  dest_port_index,
+             uint8_t  src_port_index,
+             uint8_t  ctl_port_index,
+             Link    *link)
     : m_dest_port_index{dest_port_index},
       m_src_port_index{src_port_index},
       m_ctl_port_index{ctl_port_index},
@@ -129,16 +122,16 @@ private:
     uint8_t  m_src_port_index;
     uint8_t  m_ctl_port_index;
     Link    *m_link;
-    friend class ActionsUnitTest;
+    friend class steps_unit_test;
 };
 
-class AddAction {
+class AddStep {
 public:
-    AddAction() = default;
-    AddAction(uint8_t  dest_port_index,
-              uint8_t  src_port_index,
-              uint8_t  ctl_port_index,
-              Link    *link)
+    AddStep() = default;
+    AddStep(uint8_t  dest_port_index,
+            uint8_t  src_port_index,
+            uint8_t  ctl_port_index,
+            Link    *link)
     : m_dest_port_index{dest_port_index},
       m_src_port_index{src_port_index},
       m_ctl_port_index{ctl_port_index},
@@ -162,66 +155,66 @@ private:
     uint8_t  m_ctl_port_index;
     Link    *m_link;
 
-    friend class ActionsUnitTest;
+    friend class steps_unit_test;
 };
 
-class RenderAction {
+class ModuleRenderStep {
     uint8_t m_mod_index;
-    friend class ActionsUnitTest;
+    friend class steps_unit_test;
 public:
-    RenderAction() = default;
-    RenderAction(uint8_t mod_index) : m_mod_index{mod_index} {}
+    ModuleRenderStep() = default;
+    ModuleRenderStep(uint8_t mod_index) : m_mod_index{mod_index} {}
     void do_it() const
     {
-        std::cout << "render "
+        std::cout << "mrend "
                   << int(m_mod_index)
                   << std::endl;
     }
 };
 
-enum class RunActionType {
+enum class RenderStepTag {
     NONE,
     COPY,
     ADD,
-    RENDER,
+    MODULE_RENDER,
 };
 
-class RunAction {
-    friend class ActionsUnitTest;
+class RenderStep {
+    friend class steps_unit_test;
 private:
-    RunActionType m_tag;
+    RenderStepTag m_tag;
     union u {
         u() = default;
-        u(const CopyAction& copy) : copy{copy} {}
-        u(const AddAction& add) : add{add} {}
-        u(const RenderAction& render) : render{render} {}
-        CopyAction copy;
-        AddAction add;
-        RenderAction render;
+        u(const CopyStep& copy) : copy{copy} {}
+        u(const AddStep& add) : add{add} {}
+        u(const ModuleRenderStep& mrend) : mrend{mrend} {}
+        CopyStep copy;
+        AddStep add;
+        ModuleRenderStep mrend;
     } m_u;
 public:
-    RunAction() : m_tag{RunActionType::NONE} {}
-    RunAction(const CopyAction& copy)
-    : m_tag{RunActionType::COPY}, m_u{copy}
+    RenderStep() : m_tag{RenderStepTag::NONE} {}
+    RenderStep(const CopyStep& copy)
+    : m_tag{RenderStepTag::COPY}, m_u{copy}
     {}
-    RunAction(const AddAction& add)
-    : m_tag{RunActionType::ADD}, m_u{add}
+    RenderStep(const AddStep& add)
+    : m_tag{RenderStepTag::ADD}, m_u{add}
     {}
-    RunAction(const RenderAction& render)
-    : m_tag{RunActionType::RENDER}, m_u{render}
+    RenderStep(const ModuleRenderStep& mrend)
+    : m_tag{RenderStepTag::MODULE_RENDER}, m_u{mrend}
     {}
-    RunActionType type() const { return m_tag; }
+    RenderStepTag tag() const { return m_tag; }
     void do_it() const
     {
         switch (m_tag) {
-        case RunActionType::COPY:
+        case RenderStepTag::COPY:
             m_u.copy.do_it();
             break;
-        case RunActionType::ADD:
+        case RenderStepTag::ADD:
             m_u.add.do_it();
             break;
-        case RunActionType::RENDER:
-            m_u.render.do_it();
+        case RenderStepTag::MODULE_RENDER:
+            m_u.mrend.do_it();
             break;
         default:
             assert(0 && "invalid process type");

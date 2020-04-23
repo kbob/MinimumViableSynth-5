@@ -27,8 +27,8 @@ Plan ModNetwork::make_plan() const
     //
     //     for mod in modules:
     //         for dest in mod inputs:
-    //             if no links to dest: gen Clear action
-    //             if one simple link to dest: gen Alias action
+    //             if no links to dest: gen Clear step
+    //             if one simple link to dest: gen Alias step
     //
     for (const auto *mod: m_modules) {
         for (auto *port: mod->ports()) {
@@ -45,11 +45,11 @@ Plan ModNetwork::make_plan() const
                 }
             }
             if (link_count == 0) {
-                plan.push_back_prep(ClearAction(ports.index(dest), 0.0f));
+                plan.push_back_prep(ClearStep(ports.index(dest), 0.0f));
             } else if (link_count == 1 && s_link) {
                 size_t src_index = ports.index(s_link->src());
                 size_t dest_index = ports.index(s_link->dest());
-                plan.push_back_prep(AliasAction(dest_index, src_index));
+                plan.push_back_prep(AliasStep(dest_index, src_index));
             }
             // XXX also need to handle case w/ all constant links.
             // It should be an error to have more than one on a port.
@@ -57,14 +57,14 @@ Plan ModNetwork::make_plan() const
     }
 
 
-    // Generate the rendering actions.
+    // Generate the rendering steps.
     // Modules are rendered after the modules they depend on,
     // and after their inputs are computed.
     //
     //     done = {}
     //     while done != {all}:
     //         ready = {modules whose predecessors are done}
-    //         emit actions for ready modules
+    //         emit steps for ready modules
     //         done |= ready
     //
     module_mask done_mask = 0;
@@ -103,12 +103,12 @@ Plan ModNetwork::make_plan() const
                 // the rest are added to it.
                 bool copied = false;
                 auto copy_or_add = [&] (size_t si, size_t di, Link *lk) {
-                    RunAction act;
+                    RenderStep act;
                     if (!copied) {
-                        act = CopyAction(di, si, 0, lk);
+                        act = CopyStep(di, si, 0, lk);
                         copied = true;
                     } else {
-                        act = AddAction(di, si, 0, lk);
+                        act = AddStep(di, si, 0, lk);
                     }
                     plan.push_back_run(act);
                 };
@@ -123,13 +123,13 @@ Plan ModNetwork::make_plan() const
                         port_sources[dest_index] == 1 << src_index)
                     {
                         // This port is simply-connected.  Do not
-                        // emit actions for it.
+                        // emit steps for it.
                         continue;
                     }
                     copy_or_add(src_index, dest_index, link);
                 }
             }
-            plan.push_back_run(RenderAction(i));
+            plan.push_back_run(ModuleRenderStep(i));
         }
 
         done_mask |= ready_mask;

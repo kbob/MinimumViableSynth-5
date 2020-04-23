@@ -96,11 +96,11 @@ public:
         Plan p = n.make_plan();
 
         TS_ASSERT(p.prep().size() == 2);
-        TS_ASSERT(p.prep().at(0).type() == PrepActionType::CLEAR);
-        TS_ASSERT(p.prep().at(1).type() == PrepActionType::ALIAS);
+        TS_ASSERT(p.prep().at(0).tag() == PrepStepTag::CLEAR);
+        TS_ASSERT(p.prep().at(1).tag() == PrepStepTag::ALIAS);
         TS_ASSERT(p.run().size() == 2);
-        TS_ASSERT(p.run().at(0).type() == RunActionType::RENDER);
-        TS_ASSERT(p.run().at(1).type() == RunActionType::RENDER);
+        TS_ASSERT(p.run().at(0).tag() == RenderStepTag::MODULE_RENDER);
+        TS_ASSERT(p.run().at(1).tag() == RenderStepTag::MODULE_RENDER);
     }
 
     void test_cycle()
