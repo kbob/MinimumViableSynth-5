@@ -133,50 +133,52 @@ def make_link(dest, src=None, ctl=None, scale=1):
     return LinkType(d_type, s_type, c_type, dest, src, ctl, scale)
 
 
-# The plan has a sequence of actions
-# The actions have indices for modules, ports, and controls.
+# The plan has a sequence of steps
+# The steps have indices for modules, ports, and controls.
 # The links know the ports' types.
-# The actions hold the links.
-# The plan.make_foo method can map indices to objects.
+# The steps hold the links.
+# The resolver can map indices to objects.
 #
-# Given action:
-#   action -> needed indices (action)
-#   indices -> objects (make_foo)
-#   objects -> function (action)
+# Given a step:
+#   step -> needed indices (step)
+#   indices -> objects (resolver)
+#   objects -> function (step)
 #
 
-class Action(_named): ...
+class PrepStep(_named): ...
 
-class EvalAction(Action):
-    def __init__(self, ctl):
-        self.ctl = ctl
-    def __repr__(self):
-        return f'eval({self.ctl})'
+class RenderStep(_named): ...
 
-class ClearAction(Action):
+class ClearStep(PrepStep):
     def __init__(self, port, scale):
         self.port = port
         self.scale = scale
     def __repr__(self):
         return f'clear({self.port}, {self.scale})'
-    def make_exec(self, lookup):
+    def make_action(self, lookup):
         port = lookup(self.dest_port_index)
         buf = port.buf
         n = len(buf)
         value = type(buf[0])(self.scale)
-        def exec():
+        def action():
             for i in range(n):
                 buf[i] = value
-        return exec
+        return action
 
-class AliasAction(Action):
+class AliasStep(PrepStep):
     def __init__(self, dest, src):
         self.dest = dest
         self.src = src
     def __repr__(self):
         return f'alias({self.dest}, {self.src})'
 
-class CopyAction(Action):
+class ControlRenderStep(RenderStep):
+    def __init__(self, ctl):
+        self.ctl = ctl
+    def __repr__(self):
+        return f'crend({self.ctl})'
+
+class CopyStep(RenderStep):
     def __init__(self, dest, src, ctl, link):
         self.dest = dest
         self.src = src
@@ -185,7 +187,7 @@ class CopyAction(Action):
     def __repr__(self):
         return f'copy({self.dest}, {self.src}, {self.ctl})'
 
-class AddAction(Action):
+class AddStep(RenderStep):
     def __init__(self, dest, src, ctl, link):
         self.dest = dest
         self.src = src
@@ -194,11 +196,11 @@ class AddAction(Action):
     def __repr__(self):
         return f'add({self.dest}, {self.src}, {self.ctl})'
 
-class RenderAction(Action):
+class ModuleRenderStep(RenderStep):
     def __init__(self, mod):
         self.mod = mod
     def __repr__(self):
-        return f'render({self.mod})'
+        return f'mrend({self.mod})'
 
 
 class Resolver:
@@ -223,30 +225,31 @@ class Plan(namedtuple('Plan', 't_prep v_prep pre_run v_run post_run')):
         for a in self.tprep:
             a.do_prep(resolver)
     def prep_voice(self, voice, timbre): ...
-    def make_timbre_exec(self, timbre): ...
-    def make_voice_exec(self, voice, timbre): ...
+    def make_timbre_actions(self, timbre): ...
+    def make_voice_actions(self, voice, timbre): ...
 
 
 # InputPort<T> should have a clear method.
 # InputPort<T> should have an alias/unalias method.
 
-# Mod Network
+# Planner
 # make plan...
 #   starting w/ main output, work backward to find reachable modules/controls.
 #   classify modules as pre-voice, voice, and post-voice.
-#   generate prep and run for each set.
+#   generate prep steps for timbre and voice
+#   generate render steps for each set of modules
 # the plan consists of...
-#   a resolver
-#   two prep lists (timbre, voice)
-#   three run lists (pre-voice, voice, post-voice)
+#   two prep step lists (timbre, voice)
+#   three render step lists (pre-voice, voice, post-voice)
 # That's a lot.
-# Controls have no inputs.  They can always be voice or pre-voice.
-# Controls can always be rendered before modules of the same scope.
+# Controls have no inputs.  They can always be rendered before
+# modules of the same scope.
 #
-# Data structures
-#   module and control masks for reachable modules and controls
-#   module adjacency matrix
-#   port source matrix
+# Planner data structures
+#   module and control subsets for reachable modules and controls
+#   partition of timbre modules into pre- and post-voice.
+#   (module, predecessor) relation
+#   (input port, links feeding it) relation
 
 
 # Algorithm.
@@ -257,16 +260,16 @@ class Plan(namedtuple('Plan', 't_prep v_prep pre_run v_run post_run')):
 #    voice controls
 #    voice modules
 #    links
+#    control values
 # Outputs:
-#    timbre prep plan
-#    voice prep plan
-#    pre-voice run plan
-#    voice run plan
-#    post-voice run plan
+#    timbre prep steps
+#    voice prep steps
+#    pre-voice render steps
+#    voice render steps
+#    post-voice render stops
 #
-# build module predecessor matrix.
-# build port source matrix.
-# build module control matrix.
+# build module predecessor mat.
+# build link-dest relation.
 #
 # # collect used modules
 # def collect(succ_set, modules):
@@ -280,9 +283,6 @@ class Plan(namedtuple('Plan', 't_prep v_prep pre_run v_run post_run')):
 # v_modules = collect(post_v_modules, v_modules)
 # pre_v_modules = collecxt(v_modules, t_modules)
 # modules_used = post_v | pre_v | v
-#
-# XXX How can we test whether any paths v->pre or post->v exist?
-# Verify pre_v_modules is disjoint from post_v_modules.
 #
 # # collect controls
 # controls_used = {}
@@ -321,7 +321,7 @@ class Plan(namedtuple('Plan', 't_prep v_prep pre_run v_run post_run')):
 #         etc. etc. etc.
 #         you know how this goes
 
-class ModNetwork:
+class Planner:
 
     def __init__(self, tc, tm, vc, vm, links, cvalues):
         self.tcontrols = tc
@@ -343,29 +343,29 @@ class ModNetwork:
         # find reachable controls
         controls_used = self._find_controls_used()
 
-        # assemble timbre prep actions
-        t_prep = self._assemble_prep_actions(controls_used.timbre,
-                                             mod_parts.pre | mod_parts.post)
+        # assemble timbre prep steps
+        t_prep = self._assemble_prep_steps(controls_used.timbre,
+                                           mod_parts.pre | mod_parts.post)
 
-        # assemble voice prep actions
-        v_prep = self._assemble_prep_actions(controls_used.voice,
-                                             mod_parts.voice)
+        # assemble voice prep steps
+        v_prep = self._assemble_prep_steps(controls_used.voice,
+                                           mod_parts.voice)
 
-        # assemble pre run actions.
+        # assemble pre run steps.
         no_modules = self.resolver.modules.none()
-        pre_run = self._assemble_run_actions(controls_used.timbre,
-                                             mod_parts.pre,
-                                             no_modules)
+        pre_run = self._assemble_run_steps(controls_used.timbre,
+                                           mod_parts.pre,
+                                           no_modules)
 
-        # assemble voice run actions
-        v_run = self._assemble_run_actions(controls_used.voice,
-                                           mod_parts.voice, mod_parts.pre)
+        # assemble voice run steps
+        v_run = self._assemble_run_steps(controls_used.voice,
+                                         mod_parts.voice, mod_parts.pre)
 
-        # assemble post run actions.
+        # assemble post run steps.
         no_controls = self.resolver.controls.none()
-        post_run = self._assemble_run_actions(no_controls,
-                                              mod_parts.post,
-                                              mod_parts.pre | mod_parts.voice)
+        post_run = self._assemble_run_steps(no_controls,
+                                            mod_parts.post,
+                                            mod_parts.pre | mod_parts.voice)
 
         return Plan(
             t_prep=t_prep,
@@ -402,10 +402,10 @@ class ModNetwork:
         ControlsUsed = namedtuple('CtlsUsed', 'timbre voice')
         return ControlsUsed(tcontrols_used, vcontrols_used)
 
-    def _assemble_prep_actions(self, controls, modules):
+    def _assemble_prep_steps(self, controls, modules):
         prep = []
-        for ci in controls.iter_indices():
-            prep.append(EvalAction(ci))
+        # for ci in controls.iter_indices():
+        #     prep.append(ControlRenderStep(ci))
         for m in modules.iter_members():
             for p in m.input_ports:
                 link_count = 0
@@ -416,18 +416,18 @@ class ModNetwork:
                         s_link = link
                 di = self.resolver.ports.index(p)
                 if link_count == 0:
-                    prep.append(ClearAction(di, 0))
+                    prep.append(ClearStep(di, 0))
                 elif link_count == 1 and s_link:
                     si = self.resolver.ports.index(s_link.src)
-                    prep.append(AliasAction(di, si))
+                    prep.append(AliasStep(di, si))
                 else:
-                    prep.append(AliasAction(di, -1))
+                    prep.append(AliasStep(di, -1))
         return prep
 
-    def _assemble_run_actions(self, controls, section, done):
+    def _assemble_run_steps(self, controls, section, done):
         run = []
         for c in controls.iter_indices():
-            run.append(EvalAction(c))
+            run.append(ControlRenderStep(c))
         while section - done:
             ready = self.resolver.modules.none()
             for mi in section.iter_indices():
@@ -449,15 +449,15 @@ class ModNetwork:
                         if link.is_simple():
                             links = self._links_to.at(di)
                             if len(links) == 1:
-                                # skip singke simple links
+                                # skip single simple links
                                 continue
                         ci = self.resolver.ports.find(link.ctl)
                         if not copied:
-                            run.append(CopyAction(di, si, ci, link))
+                            run.append(CopyStep(di, si, ci, link))
                             copied = True
                         else:
-                            run.append(AddAction(di, si, ci, link))
-                run.append(RenderAction(mi))
+                            run.append(AddStep(di, si, ci, link))
+                run.append(ModuleRenderStep(mi))
 
             done |= ready
         return run
@@ -507,7 +507,7 @@ class ModNetwork:
 # The voice has a copy of the per-voice modules and controls.
 # The timbre has a patch and a plan.
 #
-# A mod network needs the modules, controls, links, and values.
+# A planner needs the modules, controls, links, and values.
 #
 # Fine.
 #     class Synth:
@@ -525,12 +525,12 @@ class VoiceState(Enum):
 class Voice:
     # Voices are static.  N voices are created at startup
     # and allocated to timbres as needed.
-    # Voice has state, owning timbre, modules, controls, exec.
+    # Voice has state, owning timbre, modules, controls, action sequence.
     def __init__(self, vmodules, vcontrols):
         self.state = VoiceState.Idle
         self.vmodules = vmodules
         self.vcontrols = vcontrols
-        self.vexec = None
+        self.vactions = None
 
     def start_note(self, note):
         self.note = note
@@ -550,7 +550,7 @@ class Timbre(_named):
     #     a plan
     #     per timbre modules
     #     per timbre controls
-    #     an exec
+    #     an action sequence
     # A Timbre can:
     #     create a patch
     #     apply a patch
@@ -566,7 +566,6 @@ class Timbre(_named):
     def init_voice(self, voice): ...
     def update_voice(self, voice): ...
     # def create_patch(self): ...
-    # def apply_patch(self, patch): ...
 
 
 class Patch:
@@ -668,13 +667,13 @@ class Synth(_named):
         timbre.plan = self._make_plan(patch)
 
     def _make_plan(self, patch):
-        mod_network = ModNetwork(self.tcontrols,
-                                 self.tmodules,
-                                 self.vcontrols,
-                                 self.vmodules,
-                                 patch.links,
-                                 patch.cvalues)
-        return mod_network.make_plan(self.omodules)
+        planner = Planner(self.tcontrols,
+                          self.tmodules,
+                          self.vcontrols,
+                          self.vmodules,
+                          patch.links,
+                          patch.cvalues)
+        return planner.make_plan(self.omodules)
 
 
 def main():
@@ -777,18 +776,19 @@ def main():
         print(f'    timbre          = {t}')
         print(f'      patch         = {t.patch}')
         print(f'      plan          = (')
-        print(f'        t_prep          = [')
-        for action in t.plan.t_prep:
-            print(f'                            {action},')
-        print(f'                          ]')
+        print(f'        t_prep          = {t.plan.t_prep}')
+        # print(f'        t_prep          = [')
+        # for step in t.plan.t_prep:
+        #     print(f'                            {step},')
+        # print(f'                          ]')
         print(f'        v_prep          = [')
-        for action in t.plan.v_prep:
-            print(f'                            {action},')
+        for step in t.plan.v_prep:
+            print(f'                            {step},')
         print(f'                          ]')
         print(f'        pre_run         = {t.plan.pre_run}')
         print(f'        v_run           = [')
-        for action in t.plan.v_run:
-            print(f'                            {action},')
+        for step in t.plan.v_run:
+            print(f'                            {step},')
         print(f'                          ]')
         print(f'        post_run        = {t.plan.post_run}')
         print(f'                      )')
@@ -805,11 +805,13 @@ if __name__ == '__main__':
     main()
 
 # Classes
-#     action ...
+# (ellipsis means it has subclasses)
+#     prep step ...
+#     render step ...
+#     render action
 #     control ...
 #     link ...
-#     mod network
-#     mod vector
+#     planner
 #     module ...
 #     plan
 #     port ...
