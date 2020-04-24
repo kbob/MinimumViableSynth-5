@@ -1,4 +1,5 @@
 test-bijection
+test-deferred
 test-noalloc
 test-relation
 test-span-map
