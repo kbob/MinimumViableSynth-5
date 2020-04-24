@@ -44,7 +44,10 @@ public:
       m_vmodules{vmodules},
       m_links{links},
       // m_cvalues{cvalues},
-      m_omodules{omodules}
+      m_omodules{omodules},
+      m_resolver{},
+      m_mod_predecessors{},
+      m_links_to{}
     {
         // N.B., must add timbre objects before voice objects.
         m_resolver.add_controls(tcontrols.begin(), tcontrols.end())
@@ -52,6 +55,15 @@ public:
                   .add_controls(vcontrols.begin(), vcontrols.end())
                   .add_modules(vmodules.begin(), vmodules.end())
                   .finalize();
+
+        // Defer construction of `mod_predecessors` and `links_to` until
+        // after the resolver is populated.
+        auto& mod_u = m_resolver.modules();
+        m_mod_predecessors.construct(mod_u, mod_u);
+        calc_mod_predecessors();
+
+        m_links_to.construct(m_resolver.ports(), m_links);
+        calc_links_to();
     }
 
     Plan make_plan();
@@ -122,9 +134,10 @@ private:
     const Universe<link_vec, MAX_LINKS> m_links;
     const om_vec& m_omodules;
     Resolver m_resolver;
-    std::unique_ptr<mod_pred_type> m_mod_predecessors;
-    std::unique_ptr<link_rel_type> m_links_to;
-
+    // std::unique_ptr<mod_pred_type> m_mod_predecessors;
+    // std::unique_ptr<link_rel_type> m_links_to;
+    deferred<mod_pred_type> m_mod_predecessors;
+    deferred<link_rel_type> m_links_to;
 };
 
 #endif /* !PLANNER_included */

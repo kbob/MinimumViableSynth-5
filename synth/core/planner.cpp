@@ -34,9 +34,6 @@ static std::string type_name(T& obj)
 Plan
 Planner::make_plan()
 {
-    calc_mod_predecessors();
-    calc_links_to();
-
     // Partition reachable modules into pre, voice, and post;
     // define other useful module subsets.
     auto mod_parts = partition_modules_used();
@@ -251,10 +248,6 @@ Planner::collect_pred(module_subset succ, module_subset candidates)
 void
 Planner::calc_mod_predecessors()
 {
-    auto mod_u = m_resolver.modules();
-    auto p = new mod_pred_type(mod_u, mod_u);
-    m_mod_predecessors = std::unique_ptr<mod_pred_type>(p);
-
     for (auto link: m_links.all.members()) {
         Module *dest_mod = static_cast<Module *>(link->dest()->owner());
         if (link->src()) {
@@ -264,7 +257,7 @@ Planner::calc_mod_predecessors()
         if (link->ctl()) {
             Module *ctl_mod = dynamic_cast<Module *>(link->ctl()->owner());
             if (ctl_mod)
-                m_mod_predecessors->add(dest_mod, ctl_mod);
+            m_mod_predecessors->add(dest_mod, ctl_mod);
         }
     }
 }
@@ -272,9 +265,6 @@ Planner::calc_mod_predecessors()
 void
 Planner::calc_links_to()
 {
-    auto p = new link_rel_type(m_resolver.ports(), m_links);
-    m_links_to = std::unique_ptr<link_rel_type>(p);
-
     for (auto link: m_links.all.members())
         m_links_to->add(link->dest(), link);
 }
