@@ -7,6 +7,7 @@
 #include "synth/core/controls.h"
 #include "synth/core/modules.h"
 #include "synth/core/ports.h"
+#include "synth/util/deferred.h"
 #include "synth/util/universe.h"
 
 
@@ -28,6 +29,7 @@
 //
 //      Resolver my_resolver;
 //      my_resolver.add_modules(my_modules.begin(), my_modules.end());
+//      my_resolver.finalize();
 //      Port *ptr = my_resolver.ports()[my_index];
 //      size_t index = my_resolver.modules().index(some_module_ptr);
 //
@@ -49,20 +51,10 @@ public:
     typedef Universe<mvec_type, MAX_MODULES> modules_type;
     typedef Universe<pvec_type, MAX_PORTS> ports_type;
 
-    Resolver() : m_finalized{false} {}
-    ~Resolver()
-    {
-        if (m_finalized) {
-            m_controls.member.~controls_type();
-            m_modules.member.~modules_type();
-            m_ports.member.~ports_type();
-        }
-    }
-
     template <class I>
     Resolver& add_controls(I first, I last)
     {
-        assert(!m_finalized);
+        assert(!m_controls.is_constructed());
         for (I it = first; it != last; ++it) {
             Control *c = *it;
             m_cvec.push_back(c);
@@ -75,7 +67,7 @@ public:
     template <class I>
     Resolver& add_modules(I first, I last)
     {
-        assert(!m_finalized);
+        assert(!m_modules.is_constructed());
         for (I it = first; it != last; ++it) {
             Module *m = *it;
             m_mvec.push_back(m);
@@ -87,46 +79,38 @@ public:
 
     void finalize()
     {
-        new (&m_controls.member) controls_type(m_cvec);
-        new (&m_modules.member) modules_type(m_mvec);
-        new (&m_ports.member) ports_type(m_pvec);
-        m_finalized = true;
+        m_controls.construct(m_cvec);
+        m_modules.construct(m_mvec);
+        m_ports.construct(m_pvec);
     }
 
     const controls_type& controls() const
     {
-        assert(m_finalized);
-        return m_controls.member;
+        assert(m_controls.is_constructed());
+        return *m_controls;
     }
 
     const modules_type& modules() const
     {
-        assert(m_finalized);
-        return m_modules.member;
+        assert(m_modules.is_constructed());
+        return *m_modules;
     }
 
     const ports_type& ports() const
     {
-        assert(m_finalized);
-        return m_ports.member;
+        assert(m_ports.is_constructed());
+        return *m_ports;
     }
 
 private:
 
-    template <class U>
-    union lazy {
-        lazy() {}
-        ~lazy() {}
-        U member;
-    };
-
-    bool m_finalized;
     cvec_type m_cvec;
     mvec_type m_mvec;
     pvec_type m_pvec;
-    lazy<controls_type> m_controls;
-    lazy<modules_type> m_modules;
-    lazy<ports_type> m_ports;
+
+    deferred<controls_type> m_controls;
+    deferred<modules_type> m_modules;
+    deferred<ports_type> m_ports;
 
 };
 
