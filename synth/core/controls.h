@@ -1,5 +1,5 @@
-#ifndef CONTROLS_included
-#define CONTROLS_included
+#ifndef CORE_CONTROLS_included
+#define CORE_CONTROLS_included
 
 #include "synth/core/config.h"
 #include "synth/core/ported.h"
@@ -15,6 +15,10 @@
 
 class Control : public Ported {
 
+public:
+
+    virtual Control *clone() const = 0;
+
 protected:
 
     Control() = default;
@@ -22,12 +26,17 @@ protected:
 
 };
 
-template <class ElementType = DEFAULT_SAMPLE_TYPE>
+template <class C, class ElementType = DEFAULT_SAMPLE_TYPE>
 class ControlType : public Control {
 
 public:
 
     Output<ElementType> out;
+
+    Control *clone() const override
+    {
+        return new C(static_cast<const C&>(*this));
+    }
 
 protected:
 
@@ -40,4 +49,4 @@ protected:
 
 };
 
-#endif /* !CONTROLS_included */
+#endif /* !CORE_CONTROLS_included */

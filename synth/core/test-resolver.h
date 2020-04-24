@@ -5,7 +5,8 @@
 
 #include <cxxtest/TestSuite.h>
 
-class ConcreteControl : public ControlType<> {};
+class ConcreteControl : public ControlType<ConcreteControl> {};
+
 class ConcreteModule : public ModuleType<ConcreteModule> {
 public:
     ConcreteModule()

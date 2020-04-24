@@ -2,7 +2,7 @@
 
 #include <cxxtest/TestSuite.h>
 
-class LinksUnitTest : public CxxTest::TestSuite {
+class links_unit_test : public CxxTest::TestSuite {
 
 public:
 
@@ -10,7 +10,7 @@ public:
     typedef short S;
     typedef char C;
 
-    class ConcreteControl : public ControlType<char> {};
+    class ConcreteControl : public ControlType<ConcreteControl, char> {};
 
     Input<D> dest;
     Output<S> src;

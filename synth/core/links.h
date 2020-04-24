@@ -179,62 +179,62 @@ public:
 // or null.
 //
 // When the control is a `Control`, we use its `out` member.
-template <class D, class S, class C>
-LinkType<D, S, C>
-make_link(Input<D>       *dest,
-          Output<S>      *src,
-          ControlType<C> *ctl,
-          SCALE_TYPE      scale = 1.0f)
+template <class D, class S, class CT, class CE>
+LinkType<D, S, CE>
+make_link(Input<D>            *dest,
+          Output<S>           *src,
+          ControlType<CT, CE> *ctl,
+          SCALE_TYPE           scale = 1.0f)
 {
-    return LinkType<D, S, C>(dest, src, &ctl->out, scale);
+    return LinkType<D, S, CE>(dest, src, &ctl->out, scale);
 }
 
 template <class D, class S, class C>
 LinkType<D, S, C>
-make_link(Input<D>       *dest,
-          Output<S>      *src,
-          Output<C>      *ctl,
-          SCALE_TYPE      scale = 1.0f)
+make_link(Input<D>            *dest,
+          Output<S>           *src,
+          Output<C>           *ctl,
+          SCALE_TYPE           scale = 1.0f)
 {
     return LinkType<D, S, C>(dest, src, ctl, scale);
 }
 
-template <class D, class C>
-LinkType<D, void, C>
-make_link(Input<D>       *dest,
+template <class D, class CT, class CE>
+LinkType<D, void, CE>
+make_link(Input<D>            *dest,
           std::nullptr_t,
-          ControlType<C> *ctl,
-          SCALE_TYPE      scale = 1.0f)
+          ControlType<CT, CE> *ctl,
+          SCALE_TYPE           scale = 1.0f)
 {
-    return LinkType<D, void, C>(dest, nullptr, &ctl->out, scale);
+    return LinkType<D, void, CE>(dest, nullptr, &ctl->out, scale);
 }
 
 template <class D, class C>
 LinkType<D, void, C>
-make_link(Input<D>       *dest,
+make_link(Input<D>            *dest,
           std::nullptr_t,
-          Output<C>      *ctl,
-          SCALE_TYPE      scale = 1.0f)
+          Output<C>           *ctl,
+          SCALE_TYPE           scale = 1.0f)
 {
     return LinkType<D, void, C>(dest, nullptr, ctl, scale);
 }
 
 template <class D, class S>
 LinkType<D, S, void>
-make_link(Input<D>       *dest,
-          Output<S>      *src,
+make_link(Input<D>            *dest,
+          Output<S>           *src,
           std::nullptr_t,
-          SCALE_TYPE      scale = 1.0f)
+          SCALE_TYPE           scale = 1.0f)
 {
     return LinkType<D, S, void>(dest, src, nullptr, scale);
 }
 
 template <class D>
 LinkType<D, void, void>
-make_link(Input<D>       *dest,
+make_link(Input<D>            *dest,
           std::nullptr_t,
           std::nullptr_t,
-          SCALE_TYPE      scale = 1.0f)
+          SCALE_TYPE           scale = 1.0f)
 {
     return LinkType<D, void, void>(dest, nullptr, nullptr, scale);
 }

@@ -4,11 +4,11 @@
 
 enum class Color { RED, GREEN, BLUE, PURPLE };
 
-class ConcreteControl : public ControlType<Color> {
+class ConcreteControl : public ControlType<ConcreteControl, Color> {
 public:
 };
 
-class ControlsUnitTest : public CxxTest::TestSuite {
+class core_controls_unit_test : public CxxTest::TestSuite {
 
 public:
 

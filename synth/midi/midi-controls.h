@@ -1,6 +1,8 @@
 #ifndef MIDI_CONTROLS_included
 #define MIDI_CONTROLS_included
 
+#include <cstdint>
+
 #include "synth/core/controls.h"
 #include "synth/core/ports.h"
 
@@ -159,43 +161,42 @@ float note_to_freq<float>(uint8_t note)
     return 440.0f * powf(2.0f, (note - 69) * (1.0f / 12.0f));
 }
 
-class NoteFreqControl : public ControlType<> {
+class NoteFreqControl : public ControlType<NoteFreqControl> {
     // Combine note number, pitch bend, and portamento.
 };
 
-class AttackVelocityControl : public ControlType<> {
+class AttackVelocityControl : public ControlType<AttackVelocityControl> {
 
 };
 
-class ReleaseVelocityControl : public ControlType<> {
+class ReleaseVelocityControl : public ControlType<ReleaseVelocityControl> {
 
 };
 
-class PolyPressureControl : public ControlType<> {
+class PolyPressureControl : public ControlType<PolyPressureControl> {
 
 };
 
-class ChannelPressureControl : public ControlType<> {
+class ChannelPressureControl : public ControlType<ChannelPressureControl> {
 
 };
 
-class PitchBendControl : public ControlType<> {
+class PitchBendControl : public ControlType<PitchBendControl> {
 
 };
 
 template <uint8_t N>
-class CCControl : public ControlType<> {
-
+class CCControl : public ControlType<CCControl<N>> {
 };
 
-template <unsigned char MSB, unsigned char LSB>
-class RPNControl : public ControlType<> {
+template <std::uint8_t MSB, std::uint8_t LSB>
+class RPNControl : public ControlType<RPNControl<MSB, LSB>> {
     static_assert(MSB < 128 && LSB < 128, "illegal RPN");
 };
 
-template <class MSB, class LSB>
-class NRPNControl : public ControlType<> {
-
+template <std::uint8_t MSB, std::uint8_t LSB>
+class NRPNControl : public ControlType<NRPNControl<MSB, LSB>> {
+    static_assert(MSB < 128 && LSB < 128, "illegal NRPN");
 };
 
 typedef CCControl<1> MIDIModulation;

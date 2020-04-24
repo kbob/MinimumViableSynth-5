@@ -17,7 +17,7 @@ cat > "$testname" <<EOF
 
 #include <cxxtest/TestSuite.h>
 
-class ${camel}UnitTest : public CxxTest::TestSuite {
+class ${1}_unit_test : public CxxTest::TestSuite {
 
 public:
 
