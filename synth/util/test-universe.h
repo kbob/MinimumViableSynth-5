@@ -44,14 +44,14 @@ public:
         // auto u = U(turtles);
         // auto s = u.none;
         // auto i = s.indices();
-        // auto& v = s.values();
+        // auto& v = s.members();
         //
         // std::cout << "\n\nsizeof U = " << sizeof u << "\n";
         // std::cout << "sizeof S = " << sizeof s << "\n";
         // std::cout << "sizeof indices = " << sizeof i << "\n";
         // std::cout << "sizeof index_iter = " << sizeof i.begin() << "\n";
-        // std::cout << "sizeof values = " << sizeof v << "\n";
-        // std::cout << "sizeof value_iter = " << sizeof v.begin() << "\n";
+        // std::cout << "sizeof members = " << sizeof v << "\n";
+        // std::cout << "sizeof member_iter = " << sizeof v.begin() << "\n";
         // std::cout << std::endl;
     }
 
@@ -215,6 +215,12 @@ public:
         TS_ASSERT(ld.size() == 4);
     }
 
+    // void test_bool()
+    // {
+    //     TS_ASSERT(bool(ld) == true);
+    //     TS_ASSERT(bool(u.none) == false);
+    // }
+
     void test_eq()
     {
         S s = md;
@@ -326,11 +332,31 @@ public:
         TS_ASSERT(u.all - ld == U::bits(0b1010));
     }
 
+    void test_op_types()
+    {
+        S diff = mdr - ld;
+        TS_ASSERT(typeid(diff) == typeid(mdr - ld));
+        TS_ASSERT(diff.m_universe == mdr.m_universe);
+
+        S prod = ld & mdr;
+        TS_ASSERT(typeid(prod) == typeid(ld & mdr));
+        TS_ASSERT(prod.m_universe == ld.m_universe);
+
+        S sdif = ld ^ mdr;
+        TS_ASSERT(typeid(sdif) == typeid(ld ^ mdr));
+        TS_ASSERT(prod.m_universe == ld.m_universe);
+
+        S sum = ld | mdr;
+        TS_ASSERT(typeid(sum) == typeid(ld | mdr));
+        TS_ASSERT(prod.m_universe == ld.m_universe);
+    }
+
     void test_assign_ops()
     {
         S s = ld;
         s &= md;
         TS_ASSERT(s == 0b0100);
+        TS_ASSERT(s.m_universe == ld.m_universe);
 
         s = ld;
         s ^= md;
@@ -418,15 +444,15 @@ public:
         }
     }
 
-    void test_value_iterator()
+    void test_member_iterator()
     {
-        auto b = ld.values().begin();
-        auto e = ld.values().end();
+        auto b = ld.members().begin();
+        auto e = ld.members().end();
         TS_ASSERT(b == b);
         TS_ASSERT(e == e);
         TS_ASSERT(b != e);
 
-        S::value_iter i;        // use default constructor
+        S::member_iter i;        // use default constructor
         i = b;                  // use assignment
         TS_ASSERT(*i == Turtle::Leo);
         TS_ASSERT(*i.operator -> () == Turtle::Leo);
@@ -439,7 +465,7 @@ public:
         TS_ASSERT(i2 == e);
 
         size_t j = 0;
-        for (Turtle it: ld.values()) {
+        for (Turtle it: ld.members()) {
             TS_ASSERT(j < 2);
             if (j == 0)
                 TS_ASSERT(it == Turtle::Leo);

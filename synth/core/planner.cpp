@@ -4,170 +4,277 @@
 
 #include "synth/core/steps.h"
 
-// XXX should work backward from output.  Then modules that
-// aren't connected won't get scheduled.
 
-Plan Planner::make_plan() const
+// -- Debugging - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
+
+#include <cxxabi.h>
+#include <string>
+
+#define HERE (std::cout << __FILE__ << ':' << __LINE__ << std::endl)
+
+// XXX Move this into the platform directory.
+static std::string demangle(const std::string& mangled)
 {
-    size_t n_modules = m_modules.size();
+    int status;
+    char *s = abi::__cxa_demangle(mangled.c_str(), 0, 0, &status);
+    std::string demangled(s);
+    std::free(s);
+    return demangled;
+}
 
-    auto ports = m_modules.ports();
+template <typename T>
+static std::string type_name(T& obj)
+{
+    const std::string& mangled = typeid(*&obj).name();
+    return demangle(mangled);
+}
 
-    module_adjacency_matrix mod_predecessors;
-    init_mod_predecessors(mod_predecessors);
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 
-    port_adjacency_matrix port_sources;
-    init_port_sources(ports, port_sources);
+Plan
+Planner::make_plan()
+{
+    calc_mod_predecessors();
+    calc_links_to();
 
+    // Partition reachable modules into pre, voice, and post;
+    // define other useful module subsets.
+    auto mod_parts = partition_modules_used();
+    auto timbre_mods = mod_parts.pre | mod_parts.post;
+    auto voice_mods = mod_parts.voice;
+    auto mods_used = timbre_mods | voice_mods;
+    auto no_mods = m_resolver.modules().none;
+
+    // Find reachable controls.
+    auto controls_used = find_controls_used(mods_used);
+    auto no_controls = m_resolver.controls().none;
+
+    // Build a plan.
     Plan plan;
 
-    // Load necessary prep work into `plan.prep`.
-    // Unconnected ports are cleared; simply-connected
-    // ports are aliased so there is no data copying.
-    //
-    //     for mod in modules:
-    //         for dest in mod inputs:
-    //             if no links to dest: gen Clear step
-    //             if one simple link to dest: gen Alias step
-    //
-    for (const auto *mod: m_modules) {
-        for (auto *port: mod->ports()) {
-            InputPort *dest = dynamic_cast<InputPort *>(port);
-            if (!dest)
-                continue;
-            size_t link_count = 0;
-            const Link *s_link = nullptr;
-            for (const auto *link: m_links) {
-                if (link->dest() == dest) {
-                    link_count++;
-                    if (link->is_simple())
-                        s_link = link;
-                }
-            }
-            if (link_count == 0) {
-                plan.push_back_prep(ClearStep(ports.index(dest), 0.0f));
-            } else if (link_count == 1 && s_link) {
-                size_t src_index = ports.index(s_link->src());
-                size_t dest_index = ports.index(s_link->dest());
-                plan.push_back_prep(AliasStep(dest_index, src_index));
-            }
-            // XXX also need to handle case w/ all constant links.
-            // It should be an error to have more than one on a port.
-        }
-    }
+    // Assemble timbre prep steps.
+    auto t_prep_appender = std::back_inserter(plan.t_prep());
+    assemble_prep_steps(timbre_mods, t_prep_appender);
 
+    // Assemble voice prep steps.
+    auto v_prep_appender = std::back_inserter(plan.v_prep());
+    assemble_prep_steps(voice_mods, v_prep_appender);
 
-    // Generate the rendering steps.
-    // Modules are rendered after the modules they depend on,
-    // and after their inputs are computed.
-    //
-    //     done = {}
-    //     while done != {all}:
-    //         ready = {modules whose predecessors are done}
-    //         emit steps for ready modules
-    //         done |= ready
-    //
-    module_mask done_mask = 0;
-    const module_mask all_done_mask = (1 << n_modules) - 1;
-    while (done_mask != all_done_mask) {
+    // Assemble pre-voice render steps.
+    auto pre_render_appender = std::back_inserter(plan.pre_render());
+    assemble_render_steps(controls_used.timbre,
+                          mod_parts.pre,
+                          no_mods,
+                          pre_render_appender);
 
-        // Collect all modules ready to process.
-        module_mask ready_mask = 0;
-        for (size_t i = 0; i < n_modules; i++) {
-            if ((mod_predecessors[i] & ~done_mask) == 0) {
-                ready_mask |= 1 << i;
-            }
-        }
-        ready_mask &= ~done_mask;
-        // std::cout << "\nready = " << std::hex << ready_mask << std::endl;
-        // std::cout << "done  = " << done_mask << std::dec << std::endl;
-        if (ready_mask == 0)
-            throw std::runtime_error("cycle in module graph");
+    // Assemble voice render steps.
+    auto v_render_appender = std::back_inserter(plan.v_render());
+    assemble_render_steps(controls_used.voice,
+                          voice_mods,
+                          mod_parts.pre,
+                          v_render_appender);
 
-        // for mod in ready modules:
-        //     for dest in mod inputs:
-        //         for link in non-simple links to dest:
-        //             copy first link; add other links
-        //     render mod
-        for (size_t i = 0; i < n_modules; i++) {
-            if (!(ready_mask & 1 << i))
-                continue;
-            const Module *mod = m_modules.at(i);
-            for (auto *port: mod->ports()) {
-                InputPort *dest = dynamic_cast<InputPort *>(port);
-                if (!dest)
-                    continue;   // not an input port
-                ssize_t dest_index = ports.index(dest);
-
-                // The first source is copied to the destination;
-                // the rest are added to it.
-                bool copied = false;
-                auto copy_or_add = [&] (size_t si, size_t di, Link *lk) {
-                    RenderStep act;
-                    if (!copied) {
-                        act = CopyStep(di, si, 0, lk);
-                        copied = true;
-                    } else {
-                        act = AddStep(di, si, 0, lk);
-                    }
-                    plan.push_back_run(act);
-                };
-                for (auto *link: m_links) {
-                    if (link->dest() != dest)
-                        continue;
-                    auto src = link->src();
-                    if (!src)
-                        continue; // XXX handle source-less links.
-                    ssize_t src_index = ports.index(src);
-                    if (link->is_simple() &&
-                        port_sources[dest_index] == 1 << src_index)
-                    {
-                        // This port is simply-connected.  Do not
-                        // emit steps for it.
-                        continue;
-                    }
-                    copy_or_add(src_index, dest_index, link);
-                }
-            }
-            plan.push_back_run(ModuleRenderStep(i));
-        }
-
-        done_mask |= ready_mask;
-    }
+    // Assemble post-voice render steps.
+    auto post_render_appender = std::back_inserter(plan.post_render());
+    assemble_render_steps(no_controls,
+                          mod_parts.post,
+                          mod_parts.pre | mod_parts.voice,
+                          post_render_appender);
 
     return plan;
 }
 
-void
-Planner::init_mod_predecessors(module_adjacency_matrix& mod_predecessors)
-const
+// partition_modules_used - partition reachable (used) modules into
+//    pre_mods  - timbre modules used before voice mods
+//    v_mods    - voice modules that are used
+//    post_mods - timbre moduls used after voice mods
+//
+// Unreachable modules are discarded.
+Planner::mod_partition
+Planner::partition_modules_used()
 {
-    mod_predecessors.fill(0);
-    for (const auto *link: m_links) {
-        auto src = link->src();
-        if (!src)
+    auto& mod_u = m_resolver.modules();
+    auto outputs_used = mod_u.subset(m_omodules.begin(), m_omodules.end());
+    auto all_tmods = mod_u.subset(m_tmodules.begin(), m_tmodules.end());
+    auto all_vmods = mod_u.subset(m_vmodules.begin(), m_vmodules.end());
+
+    auto post_mods = outputs_used | collect_pred(outputs_used, all_tmods);
+    auto voice_mods = collect_pred(post_mods, all_vmods);
+    auto pre_mods = collect_pred(voice_mods, all_tmods);
+    assert(voice_mods <= all_vmods);
+    assert((pre_mods & post_mods) == 0);
+    assert((pre_mods | post_mods) <= all_tmods);
+    return mod_partition{pre_mods, voice_mods, post_mods};
+}
+
+Planner::fcu_result
+Planner::find_controls_used(const module_subset& modules)
+{
+    auto tcontrols_used = m_resolver.controls().none;
+    auto vcontrols_used = m_resolver.controls().none;
+    for (auto link: m_links.all.members()) {
+        Module *m = static_cast<Module *>(link->dest()->owner());
+        if (!modules.contains(m))
             continue;
-        auto dest = link->dest();
-        auto src_mod = dynamic_cast<const Module *>(src->owner());
-        auto dest_mod = dynamic_cast<const Module *>(dest->owner());
-        assert(src_mod && dest_mod);
-        auto pred_index = m_modules.index(src_mod);
-        auto succ_index = m_modules.index(dest_mod);
-        mod_predecessors[succ_index] |= 1 << pred_index;
+        if (link->ctl()) {
+            auto owner = link->ctl()->owner();
+            if (auto ctl = dynamic_cast<Control *>(owner)) {
+                if (std::find(m_tcontrols.begin(),
+                              m_tcontrols.end(),
+                              ctl) != m_tcontrols.end()) {
+                    tcontrols_used.add(ctl);
+                }
+                if (std::find(m_vcontrols.begin(),
+                              m_vcontrols.end(),
+                              ctl) != m_vcontrols.end()) {
+                    vcontrols_used.add(ctl);
+                }
+            }
+        }
+    }
+    return fcu_result{tcontrols_used, vcontrols_used};
+}
+
+void
+Planner::assemble_prep_steps(const module_subset& modules,
+                             prep_appender& add_step)
+{
+    auto port_u = m_resolver.ports();
+
+    for (auto m: modules.members()) {
+        for (auto p: m->ports()) {
+            if (!dynamic_cast<InputPort *>(p))
+                continue;
+            int link_count = 0;
+            Link *s_link = nullptr;
+            std::cout << "links_to type = "
+                      << type_name(m_links_to)
+                      << std::endl;
+            m_links_to->get(p);
+            for (auto link: m_links_to->get(p).members()) {
+                link_count++;
+                if (link->is_simple()) {
+                    Module *m = static_cast<Module *>(link->src()->owner());
+                    if (modules.contains(m))
+                        s_link = link;
+                }
+            }
+            auto di = port_u.index(p);
+            if (link_count == 0) {
+                // unconnected input: clear buffer.
+                add_step = ClearStep(di, 0);
+            }
+            else if (link_count == 1 && s_link) {
+                // simply connected input: alias it to its source.
+                auto si = port_u.index(s_link->src());
+                add_step = AliasStep(di, si);
+            }
+            else {
+                // complex connection: remove any existing alias.
+                add_step = AliasStep(di, -1);
+            }
+        }
     }
 }
 
-void Planner::init_port_sources(const port_vector& ports,
-                                port_adjacency_matrix& port_sources) const
+void
+Planner::assemble_render_steps(const control_subset& controls,
+                               module_subset section,
+                               module_subset done,
+                               render_appender& add_step)
 {
-    port_sources.fill(0);
-    for (const auto *link: m_links) {
-        auto src = link->src();
-        if (!src)
-            continue;
-        auto dest = link->dest();
-        auto src_index = ports.index(src);
-        auto dest_index = ports.index(dest);
-        port_sources[dest_index] |= 1 << src_index;
+    auto mod_u = m_resolver.modules();
+    auto port_u = m_resolver.ports();
+
+    for (auto c: controls.indices())
+        add_step = ControlRenderStep(c);
+    while ((section - done) != 0) {
+        auto ready = mod_u.none;
+        for (auto mi: section.indices()) {
+            Module *m = mod_u[mi];
+            if (done.contains(m))
+                continue;
+            auto mod_preds = m_mod_predecessors->at(mi);
+            if (mod_preds <= done)
+                ready.set(mi);
+        }
+        if (ready == 0)
+            throw std::runtime_error("can't compute graph");
+        for (auto mi: ready.indices()) {
+            Module *m = mod_u[mi];
+            for (auto dest: m->ports()) {
+                if (!dynamic_cast<InputPort *>(dest))
+                    continue;
+                auto di = port_u.index(dest);
+                bool copied = false;
+                auto links_to_dest = m_links_to->at(di);
+                for (auto link: links_to_dest.members()) {
+                    auto si = port_u.find(link->src());
+                    if (link->is_simple() && links_to_dest.size() == 1) {
+                        // skip single simple links
+                        break;
+                    }
+                    auto ci = port_u.find(link->ctl());
+                    if (!copied) {
+                        add_step = CopyStep(di, si, ci, link);
+                        copied = true;
+                    } else
+                        add_step = AddStep(di, si, ci, link);
+                }
+            }
+            add_step = ModuleRenderStep(mi);
+        }
+        done |= ready;
     }
+}
+
+
+Planner::module_subset
+Planner::collect_pred(module_subset succ, module_subset candidates)
+{
+    auto& mod_u = m_resolver.modules();
+    auto pred = mod_u.none;
+    auto cur = succ;
+    while (true) {
+        auto prev = mod_u.none;
+        for (auto mi: cur.indices())
+            prev |= m_mod_predecessors->at(mi);
+        prev &= candidates;
+        if (prev == 0)
+            break;
+        pred |= prev;
+        cur = prev;
+    }
+    return pred;
+}
+
+void
+Planner::calc_mod_predecessors()
+{
+    auto mod_u = m_resolver.modules();
+    auto p = new mod_pred_type(mod_u, mod_u);
+    m_mod_predecessors = std::unique_ptr<mod_pred_type>(p);
+
+    for (auto link: m_links.all.members()) {
+        Module *dest_mod = static_cast<Module *>(link->dest()->owner());
+        if (link->src()) {
+            Module *src_mod = static_cast<Module *>(link->src()->owner());
+            m_mod_predecessors->add(dest_mod, src_mod);
+        }
+        if (link->ctl()) {
+            Module *ctl_mod = dynamic_cast<Module *>(link->ctl()->owner());
+            if (ctl_mod)
+                m_mod_predecessors->add(dest_mod, ctl_mod);
+        }
+    }
+}
+
+void
+Planner::calc_links_to()
+{
+    auto p = new link_rel_type(m_resolver.ports(), m_links);
+    m_links_to = std::unique_ptr<link_rel_type>(p);
+
+    for (auto link: m_links.all.members())
+        m_links_to->add(link->dest(), link);
 }

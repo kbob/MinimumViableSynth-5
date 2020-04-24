@@ -60,7 +60,7 @@ public:
     }
 
     template <class I>
-    void add_controls(I first, I last)
+    Resolver& add_controls(I first, I last)
     {
         assert(!m_finalized);
         for (I it = first; it != last; ++it) {
@@ -69,10 +69,11 @@ public:
             auto& p = c->ports();
             m_pvec.insert(m_pvec.end(), p.begin(), p.end());
         }
+        return *this;
     }
 
     template <class I>
-    void add_modules(I first, I last)
+    Resolver& add_modules(I first, I last)
     {
         assert(!m_finalized);
         for (I it = first; it != last; ++it) {
@@ -81,6 +82,7 @@ public:
             auto& p = m->ports();
             m_pvec.insert(m_pvec.end(), p.begin(), p.end());
         }
+        return *this;
     }
 
     void finalize()

@@ -218,7 +218,7 @@ class Resolver:
         return ports
 
 
-class Plan(namedtuple('Plan', 't_prep v_prep pre_run v_run post_run')):
+class Plan(namedtuple('Plan', 't_prep v_prep pre_render v_render post_render')):
 
     def prep_timbre(self, timbre):
         resolver = Resolver(timbre.controls, timbre.modules)
@@ -337,7 +337,7 @@ class Planner:
         self._mod_predecessors = self._calc_mod_predecessors()
         self._links_to = self._calc_links_to()
 
-        # partition reeachable modules into pre, voice, and post.
+        # partition reachable modules into pre, voice, and post.
         mod_parts = self._partition_modules_used(output_modules)
 
         # find reachable controls
@@ -351,28 +351,28 @@ class Planner:
         v_prep = self._assemble_prep_steps(controls_used.voice,
                                            mod_parts.voice)
 
-        # assemble pre run steps.
+        # assemble pre render steps.
         no_modules = self.resolver.modules.none()
-        pre_run = self._assemble_run_steps(controls_used.timbre,
-                                           mod_parts.pre,
-                                           no_modules)
+        pre_render = self._assemble_render_steps(controls_used.timbre,
+                                                 mod_parts.pre,
+                                                 no_modules)
 
-        # assemble voice run steps
-        v_run = self._assemble_run_steps(controls_used.voice,
-                                         mod_parts.voice, mod_parts.pre)
+        # assemble voice render steps
+        v_render = self._assemble_render_steps(controls_used.voice,
+                                               mod_parts.voice, mod_parts.pre)
 
-        # assemble post run steps.
+        # assemble post render steps.
         no_controls = self.resolver.controls.none()
-        post_run = self._assemble_run_steps(no_controls,
-                                            mod_parts.post,
-                                            mod_parts.pre | mod_parts.voice)
+        post_render = self._assemble_render_steps(no_controls,
+                                                  mod_parts.post,
+                                                  mod_parts.pre | mod_parts.voice)
 
         return Plan(
             t_prep=t_prep,
             v_prep=v_prep,
-            pre_run=pre_run,
-            v_run=v_run,
-            post_run=post_run
+            pre_render=pre_render,
+            v_render=v_render,
+            post_render=post_render
             )
 
     def _partition_modules_used(self, output_modules):
@@ -424,10 +424,10 @@ class Planner:
                     prep.append(AliasStep(di, -1))
         return prep
 
-    def _assemble_run_steps(self, controls, section, done):
-        run = []
+    def _assemble_render_steps(self, controls, section, done):
+        render = []
         for c in controls.iter_indices():
-            run.append(ControlRenderStep(c))
+            render.append(ControlRenderStep(c))
         while section - done:
             ready = self.resolver.modules.none()
             for mi in section.iter_indices():
@@ -453,14 +453,14 @@ class Planner:
                                 continue
                         ci = self.resolver.ports.find(link.ctl)
                         if not copied:
-                            run.append(CopyStep(di, si, ci, link))
+                            render.append(CopyStep(di, si, ci, link))
                             copied = True
                         else:
-                            run.append(AddStep(di, si, ci, link))
-                run.append(ModuleRenderStep(mi))
+                            render.append(AddStep(di, si, ci, link))
+                render.append(ModuleRenderStep(mi))
 
             done |= ready
-        return run
+        return render
 
     def _collect_pred(self, succ, candidates):
         """collect direct and indirect predecessors of `succ`
@@ -785,12 +785,12 @@ def main():
         for step in t.plan.v_prep:
             print(f'                            {step},')
         print(f'                          ]')
-        print(f'        pre_run         = {t.plan.pre_run}')
-        print(f'        v_run           = [')
-        for step in t.plan.v_run:
+        print(f'        pre_render      = {t.plan.pre_render}')
+        print(f'        v_render        = [')
+        for step in t.plan.v_render:
             print(f'                            {step},')
         print(f'                          ]')
-        print(f'        post_run        = {t.plan.post_run}')
+        print(f'        post_render     = {t.plan.post_render}')
         print(f'                      )')
         print(f'        links         = [')
         for l in t.patch.links:

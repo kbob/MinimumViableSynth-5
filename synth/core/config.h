@@ -44,6 +44,10 @@
 #define MAX_VOICE_MODULES 4
 #endif
 
+#ifndef MAX_OUTPUT_MODULES
+#define MAX_OUTPUT_MODULES 4
+#endif
+
 #ifndef MODULE_MAX_PORTS
 #define MODULE_MAX_PORTS 4
 #endif

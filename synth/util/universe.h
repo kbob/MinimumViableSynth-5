@@ -28,7 +28,6 @@ class Subset;
 //      u.none                  // {}
 //      u.all                   // {a b c}
 
-// XXX need to consistently use either "member" or "value", not a mix.
 // XXX need to consistently provide both operator [] and .at() with
 //     appropriate error checking.
 template <class C, size_t N>
@@ -124,7 +123,7 @@ private:
 //      s1.contains('b')        // true iff s1 contains 'b'
 //      s1.test(2)              // true iff s1 contains 'c'
 //      for (auto i: s1.indices()) {} // iterate by index: 0, 2
-//      for (auto v: s1.values()) {}  // iterate by value: 'a', 'c'
+//      for (auto v: s1.members()) {}  // iterate by member: 'a', 'c'
 //      ostream << s1           // "{a c}"
 //
 //      // Operators
@@ -137,11 +136,12 @@ template <class C, size_t N>
 class Subset : public std::bitset<N> {
 
     typedef std::bitset<N> super;
+
 public:
     typedef typename C::value_type member_type;
 
 private:
-        Subset(const Universe<C, N>& u)
+    Subset(const Universe<C, N>& u)
     : m_universe{&u} {}
 
     Subset(const Universe<C, N>& u, const super& bits)
@@ -219,22 +219,22 @@ private:
 
         const Subset *m_sub;
         size_t m_index;
-        friend class Subset::value_iter;
+        friend class Subset::member_iter;
     };
 
-    class value_iter {
+    class member_iter {
     public:
-        value_iter() = default;
-        value_iter(const value_iter&) = default;
-        value_iter(const Subset *sub, size_t index) : m_iter(sub, index) {}
-        value_iter& operator = (const value_iter&) = default;
+        member_iter() = default;
+        member_iter(const member_iter&) = default;
+        member_iter(const Subset *sub, size_t index) : m_iter(sub, index) {}
+        member_iter& operator = (const member_iter&) = default;
 
-        bool operator == (const value_iter& that) const
+        bool operator == (const member_iter& that) const
         {
             return m_iter == that.m_iter;
         }
 
-        bool operator != (const value_iter& that) const
+        bool operator != (const member_iter& that) const
         {
             return m_iter != that.m_iter;
         }
@@ -251,15 +251,15 @@ private:
             return &**this;
         }
 
-        value_iter& operator ++ ()
+        member_iter& operator ++ ()
         {
             ++m_iter;
             return *this;
         }
 
-        value_iter operator ++ (int)
+        member_iter operator ++ (int)
         {
-            value_iter i = *this;
+            member_iter i = *this;
             ++*this;
             return i;
         }
@@ -277,11 +277,11 @@ private:
         const Subset *m_sub;
     };
 
-    class value_iterable {
+    class member_iterable {
     public:
-        value_iterable(const Subset *sub) : m_sub{sub} {}
-        value_iter begin() const { return value_iter(m_sub, 0); }
-        value_iter end() const { return value_iter(m_sub, m_sub->size()); }
+        member_iterable(const Subset *sub) : m_sub{sub} {}
+        member_iter begin() const { return member_iter(m_sub, 0); }
+        member_iter end() const { return member_iter(m_sub, m_sub->size()); }
     private:
         const Subset *m_sub;
     };
@@ -332,6 +332,27 @@ public:
         return (*this)[m_universe->index(member)];
     }
 
+    Subset operator & (const Subset& that) const
+    {
+        assert(m_universe == that.m_universe);
+        super prod = static_cast<super>(*this) & static_cast<super>(that);
+        return Subset(*m_universe, prod);
+    }
+
+    Subset operator ^ (const Subset& that) const
+    {
+        assert(m_universe == that.m_universe);
+        super sdif = static_cast<super>(*this) ^ static_cast<super>(that);
+        return Subset(*m_universe, sdif);
+    }
+
+    Subset operator | (const Subset& that) const
+    {
+        assert(m_universe == that.m_universe);
+        super sum = static_cast<super>(*this) | static_cast<super>(that);
+        return Subset(*m_universe, sum);
+    }
+
     Subset operator - (const Subset& that) const
     {
         assert(m_universe == that.m_universe);
@@ -345,9 +366,9 @@ public:
         return *this;
     }
 
-    void add(const member_type& value)
+    void add(const member_type& member)
     {
-        super::set(m_universe->index(value));
+        super::set(m_universe->index(member));
     }
 
     const index_iterable indices() const
@@ -355,16 +376,16 @@ public:
         return index_iterable(this);
     }
 
-    const value_iterable values() const
+    const member_iterable members() const
     {
-        return value_iterable(this);
+        return member_iterable(this);
     }
 
     friend std::ostream& operator << (std::ostream& o, Subset s)
     {
         o << "{";
         const char *sep = "";
-        for (const auto& v: s.values()) {
+        for (const auto& v: s.members()) {
             o << sep << v;
             sep = " ";
         }

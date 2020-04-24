@@ -45,7 +45,12 @@ public:
         return m_owner;
     }
 
-    void owner(const class Ported& owner)
+    class Ported *owner()
+    {
+        return m_owner;
+    }
+
+    void owner(class Ported& owner)
     {
         m_owner = &owner;
     }
@@ -62,7 +67,7 @@ protected:
 
 private:
 
-    const class Ported *m_owner;
+    class Ported *m_owner;
 
     std::string m_name;
 
