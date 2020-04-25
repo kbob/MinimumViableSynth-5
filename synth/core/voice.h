@@ -21,6 +21,7 @@ class Timbre;
 //
 // A Voice can:
 //     start, release, and kill a note.
+//     render a sample chunk.
 
 class Voice {
 
@@ -52,6 +53,8 @@ public:
             m_modules.push_back(m->clone());
     }
 
+    Voice& operator = (const Voice&) = delete;
+
     ~Voice()
     {
         while (!m_modules.empty()) {
@@ -76,11 +79,29 @@ public:
     void add_module(Module *m) { m_modules.push_back(m); }
 
     const render_action_sequence actions() const { return m_actions; }
-    void actions(render_action_sequence&& a) { m_actions = a; }
+    void actions(const render_action_sequence& a) { m_actions = a; }
 
-    void start_note();
-    void release_note();
-    void kill_note();
+    void start_note()
+    {
+        m_state = State::ACTIVE;
+    }
+
+    void release_note()
+    {
+        m_state = State::RELEASING;
+    }
+
+    void kill_note()
+    {
+        m_state = State::STOPPING;
+    }
+
+    void render(size_t frame_count) const
+    {
+        // XXX logic for advancing a note's state.
+        for (auto& a: m_actions)
+            a(frame_count);
+    }
 
 private:
 
