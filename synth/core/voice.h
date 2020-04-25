@@ -37,17 +37,31 @@ public:
     typedef fixed_vector<Module *, MAX_VOICE_MODULES> module_vector;
 
     Voice()
-    : m_state(State::IDLE) {}
-    ~Voice() = default;
+    : m_state{State::IDLE} {}
 
-    Voice *clone() const
+    Voice(const Voice& that)
+    : m_state{State::IDLE},
+      m_timbre{nullptr},
+      m_controls{},
+      m_modules{},
+      m_actions{}
     {
-        Voice *v = new Voice();
-        for (const auto *c: m_controls)
-            v->add_control(c->clone());
-        for (const auto *m: m_modules)
-            v->add_module(m->clone());
-        return v;
+        for (const auto *c: that.m_controls)
+            m_controls.push_back(c->clone());
+        for (const auto *m: that.m_modules)
+            m_modules.push_back(m->clone());
+    }
+
+    ~Voice()
+    {
+        while (!m_modules.empty()) {
+            delete m_modules.back();
+            m_modules.pop_back();
+        }
+        while (!m_controls.empty()) {
+            delete m_controls.back();
+            m_controls.pop_back();
+        }
     }
 
     State state() const { return m_state; }
@@ -76,7 +90,7 @@ private:
     module_vector m_modules;
     render_action_sequence m_actions;
 
-    friend class VoiceUnitTest;
+    friend class voice_unit_test;
 
 };
 
