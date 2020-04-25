@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "synth/core/action.h"
 #include "synth/core/ported.h"
 #include "synth/core/ports.h"
 #include "synth/util/noalloc.h"
@@ -39,7 +40,7 @@ class Module : public Ported {
 
 public:
 
-    typedef std::function<void(size_t)> action;
+    virtual ~Module() = default;
 
     void name(const std::string& name)
     {
@@ -53,19 +54,19 @@ public:
 
     virtual Module *clone() const = 0;
     virtual void init() {}
-    virtual action make_render_action() = 0;
+    virtual render_action make_render_action() = 0;
 
     // virtual void render(size_t frame_count) = 0;
 
 protected:
 
-    virtual ~Module() = default;
+    Module() = default;
 
 private:
 
     std::string m_name;
 
-    friend class ModulesUnitTest;
+    friend class modules_unit_test;
 
 };
 
@@ -81,14 +82,14 @@ public:
         return new M(static_cast<const M&>(*this));
     }
 
-    action make_render_action() override
+    render_action make_render_action() override
     {
         return [this] (size_t frame_count) {
             static_cast<M *>(this)->render(frame_count);
         };
     }
 
-    friend class ModulesUnitTest;
+    friend class modules_unit_test;
 
 };
 

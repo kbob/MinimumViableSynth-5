@@ -18,11 +18,13 @@ class Control : public Ported {
 public:
 
     virtual Control *clone() const = 0;
+    virtual ~Control() = default;
 
 protected:
 
     Control() = default;
-    virtual ~Control() = default;
+
+    friend class core_controls_unit_test;
 
 };
 
@@ -46,6 +48,8 @@ protected:
         ports(out);
     }
     virtual ~ControlType() = default;
+
+    friend class core_controls_unit_test;
 
 };
 

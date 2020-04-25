@@ -17,7 +17,7 @@ public:
 
 };
 
-class ModulesUnitTest : public CxxTest::TestSuite {
+class modules_unit_test : public CxxTest::TestSuite {
 
 public:
 
