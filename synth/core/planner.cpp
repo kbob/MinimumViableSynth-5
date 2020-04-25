@@ -4,33 +4,6 @@
 
 #include "synth/core/steps.h"
 
-
-// -- Debugging - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
-
-#include <cxxabi.h>
-#include <string>
-
-#define HERE (std::cout << __FILE__ << ':' << __LINE__ << std::endl)
-
-// XXX Move this into the platform directory.
-static std::string demangle(const std::string& mangled)
-{
-    int status;
-    char *s = abi::__cxa_demangle(mangled.c_str(), 0, 0, &status);
-    std::string demangled(s);
-    std::free(s);
-    return demangled;
-}
-
-template <typename T>
-static std::string type_name(T& obj)
-{
-    const std::string& mangled = typeid(*&obj).name();
-    return demangle(mangled);
-}
-
-// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
-
 Plan
 Planner::make_plan()
 {
@@ -144,9 +117,6 @@ Planner::assemble_prep_steps(const module_subset& modules,
                 continue;
             int link_count = 0;
             Link *s_link = nullptr;
-            std::cout << "links_to type = "
-                      << type_name(m_links_to)
-                      << std::endl;
             m_links_to->get(p);
             for (auto link: m_links_to->get(p).members()) {
                 link_count++;
