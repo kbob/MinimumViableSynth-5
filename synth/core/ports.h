@@ -1,6 +1,7 @@
 #ifndef PORTS_included
 #define PORTS_included
 
+#include <cassert>
 #include <string>
 #include <typeindex>
 
@@ -68,8 +69,9 @@ protected:
 private:
 
     class Ported *m_owner;
-
     std::string m_name;
+
+    friend class ports_unit_test;
 
 };
 
@@ -99,9 +101,13 @@ class Input : public InputPort {
 
 public:
 
+    Input()
+    : m_data{m_buf}
+    {}
+
     std::type_index data_type() const override { return typeid(ElementType); }
 
-    void clear(const ElementType *value)
+    void clear(const ElementType value)
     {
         m_data = m_buf;
         for (size_t i = 0; i < MAX_FRAMES; i++)
@@ -119,6 +125,7 @@ public:
 
     ElementType operator [] (size_t i) const
     {
+        assert(i < MAX_FRAMES);
         return m_data[i];
     }
 
@@ -127,8 +134,9 @@ public:
 private:
 
     const ElementType *m_data;
-
     ElementType m_buf[MAX_FRAMES];
+
+    friend class ports_unit_test;
 
 };
 
@@ -140,25 +148,20 @@ public:
 
     std::type_index data_type() const override { return typeid(ElementType); }
 
-    ElementType& operator [] (size_t i) { return m_buf[i]; }
+    ElementType& operator [] (size_t i)
+    {
+        assert(i < MAX_FRAMES);
+        return m_buf[i];
+    }
 
     const ElementType *buf() const { return m_buf; }
 
 private:
 
     ElementType m_buf[MAX_FRAMES];
-};
 
-// It is useful to define the null output type -- see links.h.
-// But it is not useful to instantiate it.
-template <>
-class Output<void> : public OutputPort {
-public:
-    // This can be int -- int is a complete numeric type, and we can't
-    // call it anyway.
-    const int *buf() const { return nullptr; }
-private:
-    Output() = delete;
+    friend class ports_unit_test;
+
 };
 
 #endif /* !PORTS_included */

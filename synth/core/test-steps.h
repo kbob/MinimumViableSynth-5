@@ -55,7 +55,7 @@ public:
     {
         Input<> dest;
         Output<> src, ctl;
-        auto link = make_link(&dest, &src, &ctl, 0.2f);
+        Link link{&dest, &src, &ctl, 0.2f};
         CopyStep s(9, 7, 8, &link);
         TS_ASSERT(s.m_dest_port_index == 9);
         TS_ASSERT(s.m_src_port_index == 7);
@@ -67,7 +67,7 @@ public:
     {
         Input<> dest;
         Output<> src, ctl;
-        auto link = make_link(&dest, &src, &ctl, 0.3f);
+        Link link{&dest, &src, &ctl, 0.3f};
         AddStep s(9, 10, 11, &link);
         TS_ASSERT(s.m_dest_port_index == 9);
         TS_ASSERT(s.m_src_port_index == 10);
@@ -91,7 +91,7 @@ public:
 
         Input<> dest3;
         Output<> src3, ctl3;
-        auto link3 = make_link(&dest3, &src3, &ctl3, 0.2f);
+        Link link3{&dest3, &src3, &ctl3, 0.2f};
         RenderStep r3(CopyStep(9, 7, 8, &link3));
         TS_ASSERT(r3.m_tag == RenderStepTag::COPY);
         TS_ASSERT(r3.m_u.copy.m_dest_port_index == 9);
@@ -101,7 +101,7 @@ public:
 
         Input<> dest4;
         Output<> src4, ctl4;
-        auto link4 = make_link(&dest4, &src4, &ctl4, 0.3f);
+        Link link4{&dest4, &src4, &ctl4, 0.3f};
         RenderStep r4(AddStep(9, 10, 11, &link4));
         TS_ASSERT(r4.m_tag == RenderStepTag::ADD);
         TS_ASSERT(r4.m_u.add.m_dest_port_index == 9);

@@ -20,7 +20,7 @@ public:
     void render(size_t) {}
 };
 
-class PortsUnitTest : public CxxTest::TestSuite {
+class ports_unit_test : public CxxTest::TestSuite {
 
 public:
 
@@ -71,11 +71,11 @@ public:
     void test_data_type()
     {
         Input<bool> ib;
-        Input<short> is;
+        Output<short> os;
 
         TS_ASSERT(ib.data_type() == typeid(bool));
-        TS_ASSERT(is.data_type() == typeid(short));
-        TS_ASSERT(ib.data_type() != is.data_type());
+        TS_ASSERT(os.data_type() == typeid(short));
+        TS_ASSERT(ib.data_type() != os.data_type());
     }
 
     // XXX need more tests - use the [] operators.

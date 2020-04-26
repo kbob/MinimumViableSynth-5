@@ -2,7 +2,9 @@
 #define LINKS_included
 
 #include <cstddef>
+#include <functional>
 
+#include "synth/core/action.h"
 #include "synth/core/config.h"
 #include "synth/core/controls.h"
 #include "synth/core/ports.h"
@@ -42,6 +44,230 @@ class Link {
 
 public:
 
+    template <class D, class S, class C>
+    Link(Input<D> *dest,
+         Output<S> *src,
+         Output<C> *ctl,
+         SCALE_TYPE scale = DEFAULT_SCALE)
+    : m_dest{dest}, m_src{src}, m_ctl{ctl}, m_scale{scale}
+    {
+        if (m_scale == DEFAULT_SCALE) {
+            m_make_copy =
+                [=] (InputPort *dest, OutputPort *src, OutputPort *ctl)
+                    -> render_action {
+                assert(dest && dynamic_cast<Input<D> *>(dest));
+                assert(src && dynamic_cast<Output<S> *>(src));
+                assert(ctl && dynamic_cast<Output<C> *>(ctl));
+                auto dest_buf = static_cast<Input<D> *>(dest)->buf();
+                auto src_buf = static_cast<Output<S> *>(src)->buf();
+                auto ctl_buf = static_cast<Output<C> *>(ctl)->buf();
+                return [=] (size_t frame_count) {
+                    for (size_t i = 0; i < frame_count; i++)
+                        dest_buf[i] = src_buf[i] * ctl_buf[i];
+                };
+            };
+            m_make_add =
+                [=] (InputPort *dest, OutputPort *src, OutputPort *ctl)
+                    -> render_action {
+                assert(dest && dynamic_cast<Input<D> *>(dest));
+                assert(src && dynamic_cast<Output<S> *>(src));
+                assert(ctl && dynamic_cast<Output<C> *>(ctl));
+                auto dest_buf = static_cast<Input<D> *>(dest)->buf();
+                auto src_buf = static_cast<Output<S> *>(src)->buf();
+                auto ctl_buf = static_cast<Output<C> *>(ctl)->buf();
+                return [=] (size_t frame_count) {
+                    for (size_t i = 0; i < frame_count; i++)
+                        dest_buf[i] += src_buf[i] * ctl_buf[i];
+                };
+            };
+        } else {
+            m_make_copy =
+                [=] (InputPort *dest, OutputPort *src, OutputPort *ctl)
+                    -> render_action {
+                assert(dest && dynamic_cast<Input<D> *>(dest));
+                assert(src && dynamic_cast<Output<S> *>(src));
+                assert(ctl && dynamic_cast<Output<C> *>(ctl));
+                auto dest_buf = static_cast<Input<D> *>(dest)->buf();
+                auto src_buf = static_cast<Output<S> *>(src)->buf();
+                auto ctl_buf = static_cast<Output<C> *>(ctl)->buf();
+                auto scale = m_scale;
+                return [=] (size_t frame_count) {
+                    for (size_t i = 0; i < frame_count; i++)
+                        dest_buf[i] = src_buf[i] * ctl_buf[i] * scale;
+                };
+            };
+            m_make_add =
+                [=] (InputPort *dest, OutputPort *src, OutputPort *ctl)
+                    -> render_action {
+                assert(dest && dynamic_cast<Input<D> *>(dest));
+                assert(src && dynamic_cast<Output<S> *>(src));
+                assert(ctl && dynamic_cast<Output<C> *>(ctl));
+                auto dest_buf = static_cast<Input<D> *>(dest)->buf();
+                auto src_buf = static_cast<Output<S> *>(src)->buf();
+                auto ctl_buf = static_cast<Output<C> *>(ctl)->buf();
+                auto scale = m_scale;
+                return [=] (size_t frame_count) {
+                    for (size_t i = 0; i < frame_count; i++)
+                        dest_buf[i] += src_buf[i] * ctl_buf[i] * scale;
+                };
+            };
+        }
+    }
+
+    template <class D, class S>
+    Link(Input<D> *dest,
+         Output<S> *src,
+         std::nullptr_t,
+         SCALE_TYPE scale = DEFAULT_SCALE)
+    : m_dest{dest}, m_src{src}, m_ctl{nullptr}, m_scale{scale}
+    {
+        if (m_scale == DEFAULT_SCALE) {
+            m_make_copy =
+                [=] (InputPort *dest, OutputPort *src, OutputPort *)
+                    -> render_action {
+                assert(dest && dynamic_cast<Input<D> *>(dest));
+                assert(src && dynamic_cast<Output<S> *>(src));
+                auto dest_buf = static_cast<Input<D> *>(dest)->buf();
+                auto src_buf = static_cast<Output<S> *>(src)->buf();
+                return [=] (size_t frame_count) {
+                    for (size_t i = 0; i < frame_count; i++)
+                        dest_buf[i] = src_buf[i];
+                };
+            };
+            m_make_add =
+                [=] (InputPort *dest, OutputPort *src, OutputPort *)
+                    -> render_action {
+                assert(dest && dynamic_cast<Input<D> *>(dest));
+                assert(src && dynamic_cast<Output<S> *>(src));
+                auto dest_buf = static_cast<Input<D> *>(dest)->buf();
+                auto src_buf = static_cast<Output<S> *>(src)->buf();
+                return [=] (size_t frame_count) {
+                    for (size_t i = 0; i < frame_count; i++)
+                        dest_buf[i] += src_buf[i];
+                };
+            };
+        } else {
+            m_make_copy =
+                [=] (InputPort *dest, OutputPort *src, OutputPort *)
+                    -> render_action {
+                assert(dest && dynamic_cast<Input<D> *>(dest));
+                assert(src && dynamic_cast<Output<S> *>(src));
+                auto dest_buf = static_cast<Input<D> *>(dest)->buf();
+                auto src_buf = static_cast<Output<S> *>(src)->buf();
+                auto scale = m_scale;
+                return [=] (size_t frame_count) {
+                    for (size_t i = 0; i < frame_count; i++)
+                        dest_buf[i] = src_buf[i] * scale;
+                };
+            };
+            m_make_add =
+                [=] (InputPort *dest, OutputPort *src, OutputPort *)
+                    -> render_action {
+                assert(dest && dynamic_cast<Input<D> *>(dest));
+                assert(src && dynamic_cast<Output<S> *>(src));
+                auto dest_buf = static_cast<Input<D> *>(dest)->buf();
+                auto src_buf = static_cast<Output<S> *>(src)->buf();
+                auto scale = m_scale;
+                return [=] (size_t frame_count) {
+                    for (size_t i = 0; i < frame_count; i++)
+                        dest_buf[i] += src_buf[i] * scale;
+                };
+            };
+        }
+    }
+
+    template <class D, class C>
+    Link(Input<D> *dest,
+         std::nullptr_t,
+         Output<C> *ctl,
+         SCALE_TYPE scale = DEFAULT_SCALE)
+         : m_dest{dest}, m_src{nullptr}, m_ctl{ctl}, m_scale{scale}
+    {
+        if (m_scale == DEFAULT_SCALE) {
+            m_make_copy =
+                [=] (InputPort *dest, OutputPort *, OutputPort *ctl)
+                    -> render_action {
+                assert(dest && dynamic_cast<Input<D> *>(dest));
+                assert(ctl && dynamic_cast<Output<C> *>(ctl));
+                auto dest_buf = static_cast<Input<D> *>(dest)->buf();
+                auto ctl_buf = static_cast<Output<C> *>(ctl)->buf();
+                return [=] (size_t frame_count) {
+                    for (size_t i = 0; i < frame_count; i++)
+                        dest_buf[i] = ctl_buf[i];
+                };
+            };
+            m_make_add =
+                [=] (InputPort *dest, OutputPort *, OutputPort *ctl)
+                    -> render_action {
+                assert(dest && dynamic_cast<Input<D> *>(dest));
+                assert(ctl && dynamic_cast<Output<C> *>(ctl));
+                auto dest_buf = static_cast<Input<D> *>(dest)->buf();
+                auto ctl_buf = static_cast<Output<C> *>(ctl)->buf();
+                return [=] (size_t frame_count) {
+                    for (size_t i = 0; i < frame_count; i++)
+                        dest_buf[i] += ctl_buf[i];
+                };
+            };
+        } else {
+            m_make_copy =
+                [=] (InputPort *dest, OutputPort *, OutputPort *ctl)
+                    -> render_action {
+                assert(dest && dynamic_cast<Input<D> *>(dest));
+                assert(ctl && dynamic_cast<Output<C> *>(ctl));
+                auto dest_buf = static_cast<Input<D> *>(dest)->buf();
+                auto ctl_buf = static_cast<Output<C> *>(ctl)->buf();
+                auto scale = m_scale;
+                return [=] (size_t frame_count) {
+                    for (size_t i = 0; i < frame_count; i++)
+                        dest_buf[i] = ctl_buf[i] * scale;
+                };
+            };
+            m_make_add =
+                [=] (InputPort *dest, OutputPort *, OutputPort *ctl)
+                    -> render_action {
+                assert(dest && dynamic_cast<Input<D> *>(dest));
+                assert(ctl && dynamic_cast<Output<C> *>(ctl));
+                auto dest_buf = static_cast<Input<D> *>(dest)->buf();
+                auto ctl_buf = static_cast<Output<C> *>(ctl)->buf();
+                auto scale = m_scale;
+                return [=] (size_t frame_count) {
+                    for (size_t i = 0; i < frame_count; i++)
+                        dest_buf[i] += ctl_buf[i] * scale;
+                };
+            };
+        }
+    }
+
+    template <class D>
+    Link(Input<D> *dest,
+         std::nullptr_t,
+         std::nullptr_t,
+         SCALE_TYPE scale = DEFAULT_SCALE)
+         : m_dest{dest}, m_src{nullptr}, m_ctl{nullptr}, m_scale{scale}
+    {
+        m_make_copy = [=] (InputPort *dest, OutputPort *, OutputPort *)
+                          -> render_action
+        {
+            assert(dest && dynamic_cast<Input<D> *>(dest));
+            auto *dest_buf = static_cast<Input<D> *>(dest)->buf();
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] = scale;
+            };
+        };
+        m_make_add = [=] (InputPort *dest, OutputPort *, OutputPort *)
+                          -> render_action
+        {
+            assert(dest && dynamic_cast<Input<D> *>(dest));
+            auto *dest_buf = static_cast<Input<D> *>(dest)->buf();
+            return [=] (size_t frame_count) {
+                for (size_t i = 0; i < frame_count; i++)
+                    dest_buf[i] += scale;
+            };
+        };
+    }
+
+
     bool is_constant() const { return !m_src && !m_ctl; }
     bool is_simple() const
     {
@@ -56,187 +282,31 @@ public:
     OutputPort  *ctl() const { return m_ctl; }
     SCALE_TYPE scale() const { return m_scale; }
 
-    virtual std::function<void(size_t)> make_copy_action() = 0;
-    virtual std::function<void(size_t)> make_add_action() = 0;
+    render_action make_copy_action(InputPort *dest,
+                                   OutputPort *src,
+                                   OutputPort *ctl)
+    {
+        return m_make_copy(dest, src, ctl);
+    }
 
-protected:
+    render_action make_add_action(InputPort *dest,
+                                  OutputPort *src,
+                                  OutputPort *ctl)
+    {
+        return m_make_add(dest, src, ctl);
+    }
 
-    Link(InputPort *dest, OutputPort *src, OutputPort *ctl, SCALE_TYPE scale)
-    : m_dest{dest}, m_src{src}, m_ctl{ctl}, m_scale{scale} {}
-    virtual ~Link() = default;
+private:
 
     InputPort       *m_dest;
     OutputPort      *m_src;
     OutputPort      *m_ctl;
     const SCALE_TYPE m_scale;
+    std::function<render_action(InputPort *, OutputPort *, OutputPort *)>
+                     m_make_copy, m_make_add;
+
+    friend class links_unit_test;
 
 };
-
-template <class D, class S, class C>
-class LinkType : public Link {
-
-public:
-
-    LinkType(Input<D> *dest, Output<S> *src, Output<C> *ctl, SCALE_TYPE scale)
-    : Link(dest, src, ctl, scale) {}
-
-    std::function<void(size_t)> make_copy_action() override
-    {
-        auto dest_buf = static_cast<Input<D> *>(m_dest)->buf();
-        auto src_buf = m_src ? static_cast<Output<S> *>(m_src)->buf() : nullptr;
-        auto ctl_buf = m_ctl ? static_cast<Output<C> *>(m_ctl)->buf() : nullptr;
-        bool scaled = m_scale != 1.0f;
-        SCALE_TYPE scale = m_scale;
-        if (src_buf && ctl_buf && scaled)
-            return [=] (size_t frame_count) {
-                for (size_t i = 0; i < frame_count; i++)
-                    dest_buf[i] = src_buf[i] * ctl_buf[i] * scale;
-            };
-        else if (src_buf && ctl_buf)
-            return [=] (size_t frame_count) {
-                for (size_t i = 0; i < frame_count; i++)
-                    dest_buf[i] = src_buf[i] * ctl_buf[i];
-            };
-        else if (src_buf && scaled)
-            return [=] (size_t frame_count) {
-                for (size_t i = 0; i < frame_count; i++)
-                    dest_buf[i] = src_buf[i] * ctl_buf[i];
-            };
-        else if (ctl_buf && scaled)
-            return [=] (size_t frame_count) {
-                for (size_t i = 0; i < frame_count; i++)
-                    dest_buf[i] = ctl_buf[i] * scale;
-            };
-        else if (src_buf)
-            return [=] (size_t frame_count) {
-                for (size_t i = 0; i < frame_count; i++)
-                    dest_buf[i] = src_buf[i];
-            };
-        else if (ctl_buf)
-            return [=] (size_t frame_count) {
-                for (size_t i = 0; i < frame_count; i++)
-                    dest_buf[i] = ctl_buf[i];
-            };
-        else {
-            // handle both scaled and unscaled cases here.
-            return [=] (size_t frame_count) {
-                for (size_t i = 0; i < frame_count; i++)
-                    dest_buf[i] = scale;
-            };
-        }
-    }
-
-    std::function<void(size_t)> make_add_action() override
-    {
-        auto dest_buf = static_cast<Input<D> *>(m_dest)->buf();
-        auto src_buf = m_src ? static_cast<Output<S> *>(m_src)->buf() : nullptr;
-        auto ctl_buf = m_ctl ? static_cast<Output<C> *>(m_ctl)->buf() : nullptr;
-        bool scaled = m_scale != 1.0f;
-        SCALE_TYPE scale = m_scale;
-        if (src_buf && ctl_buf && scaled)
-            return [=] (size_t frame_count) {
-                for (size_t i = 0; i < frame_count; i++)
-                    dest_buf[i] += src_buf[i] * ctl_buf[i] * scale;
-            };
-        else if (src_buf && ctl_buf)
-            return [=] (size_t frame_count) {
-                for (size_t i = 0; i < frame_count; i++)
-                    dest_buf[i] += src_buf[i] * ctl_buf[i];
-            };
-        else if (src_buf && scaled)
-            return [=] (size_t frame_count) {
-                for (size_t i = 0; i < frame_count; i++)
-                    dest_buf[i] += src_buf[i] * ctl_buf[i];
-            };
-        else if (ctl_buf && scaled)
-            return [=] (size_t frame_count) {
-                for (size_t i = 0; i < frame_count; i++)
-                    dest_buf[i] += ctl_buf[i] * scale;
-            };
-        else if (src_buf)
-            return [=] (size_t frame_count) {
-                for (size_t i = 0; i < frame_count; i++)
-                    dest_buf[i] += src_buf[i];
-            };
-        else if (ctl_buf)
-            return [=] (size_t frame_count) {
-                for (size_t i = 0; i < frame_count; i++)
-                    dest_buf[i] += ctl_buf[i];
-            };
-        else {
-            // handle both scaled and unscaled cases here.
-            return [=] (size_t frame_count) {
-                for (size_t i = 0; i < frame_count; i++)
-                    dest_buf[i] += scale;
-            };
-        }
-    }
-
-};
-
-// There are six version of `make_link`.  The source may be present
-// or null, and the control may be either a control, an output port,
-// or null.
-//
-// When the control is a `Control`, we use its `out` member.
-template <class D, class S, class CT, class CE>
-LinkType<D, S, CE>
-make_link(Input<D>            *dest,
-          Output<S>           *src,
-          ControlType<CT, CE> *ctl,
-          SCALE_TYPE           scale = 1.0f)
-{
-    return LinkType<D, S, CE>(dest, src, &ctl->out, scale);
-}
-
-template <class D, class S, class C>
-LinkType<D, S, C>
-make_link(Input<D>            *dest,
-          Output<S>           *src,
-          Output<C>           *ctl,
-          SCALE_TYPE           scale = 1.0f)
-{
-    return LinkType<D, S, C>(dest, src, ctl, scale);
-}
-
-template <class D, class CT, class CE>
-LinkType<D, void, CE>
-make_link(Input<D>            *dest,
-          std::nullptr_t,
-          ControlType<CT, CE> *ctl,
-          SCALE_TYPE           scale = 1.0f)
-{
-    return LinkType<D, void, CE>(dest, nullptr, &ctl->out, scale);
-}
-
-template <class D, class C>
-LinkType<D, void, C>
-make_link(Input<D>            *dest,
-          std::nullptr_t,
-          Output<C>           *ctl,
-          SCALE_TYPE           scale = 1.0f)
-{
-    return LinkType<D, void, C>(dest, nullptr, ctl, scale);
-}
-
-template <class D, class S>
-LinkType<D, S, void>
-make_link(Input<D>            *dest,
-          Output<S>           *src,
-          std::nullptr_t,
-          SCALE_TYPE           scale = 1.0f)
-{
-    return LinkType<D, S, void>(dest, src, nullptr, scale);
-}
-
-template <class D>
-LinkType<D, void, void>
-make_link(Input<D>            *dest,
-          std::nullptr_t,
-          std::nullptr_t,
-          SCALE_TYPE           scale = 1.0f)
-{
-    return LinkType<D, void, void>(dest, nullptr, nullptr, scale);
-}
 
 #endif /* !LINKS_included */
