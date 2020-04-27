@@ -4,6 +4,7 @@ test-controls
 test-links
 test-mod-vector
 test-modules
+test-patch
 test-plan
 test-planner
 test-ported

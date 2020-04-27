@@ -8,7 +8,7 @@ class steps_unit_test : public CxxTest::TestSuite {
 
 public:
 
-    // XXX need tests that have the step generating actions.
+    // XXX need tests that have the steps generating actions.
 
     void test_clear()
     {
@@ -73,7 +73,6 @@ public:
         TS_ASSERT(s.m_src_port_index == 10);
         TS_ASSERT(s.m_ctl_port_index == 11);
         TS_ASSERT(s.m_link == &link);
-
     }
 
     void test_run()
