@@ -5,10 +5,10 @@
 #include "synth/core/config.h"
 #include "synth/core/controls.h"
 #include "synth/core/modules.h"
+#include "synth/core/plan.h"
 #include "synth/util/noalloc.h"
 
 class Patch;
-class Plan;
 
 // A Timbre has:
 //     a patch reference
@@ -24,6 +24,7 @@ class Plan;
 //     post-render a frame chunk.
 
 class Timbre {
+
 public:
 
     typedef fixed_vector<Control *, MAX_TIMBRE_CONTROLS> control_vector;
@@ -32,7 +33,7 @@ public:
     Timbre()
     : m_current_patch{nullptr},
       m_default_patch{nullptr},
-      m_plan{nullptr},
+      m_plan{Plan{}},
       m_controls{},
       m_modules{},
       m_pre_actions{},
@@ -70,8 +71,8 @@ public:
     Patch *default_patch() const { return m_default_patch; }
     void default_patch(Patch *p) { m_default_patch = p; }
 
-    Plan *plan() const { return m_plan; }
-    void plan(Plan *p) { m_plan = p; }
+    const Plan& plan() const { return m_plan; }
+    void plan(const Plan& p) { m_plan = p; }
 
     const control_vector& controls() const { return m_controls; }
     void add_control(Control *c) { m_controls.push_back(c); }
@@ -99,8 +100,8 @@ public:
 
 private:
     Patch *m_current_patch;
-    Patch *m_default_patch;
-    Plan *m_plan;
+    Patch *m_default_patch;     // XXX should be a copy, not a pointer.
+    Plan m_plan;
     control_vector m_controls;
     module_vector m_modules;
     render_action_sequence m_pre_actions;

@@ -14,8 +14,7 @@ public:
     void render(size_t) {}
 };
 
-class Patch {};                 // XXX these will probably break...
-class Plan {};                  // XXX
+class Patch {};                 // XXX this will probably break...
 
 class timbre_unit_test : public CxxTest::TestSuite {
 
@@ -24,6 +23,7 @@ public:
     void test_instantiate()
     {
         (void)Timbre();
+        TS_TRACE("sizeof (Timbre) = " + std::to_string(sizeof (Timbre)));
     }
 
     void test_copy()
@@ -62,12 +62,13 @@ public:
     void test_plan()
     {
         Plan p;
+        PrepStep s{ClearStep(42, 0.5f)};
+        p.t_prep().push_back(s);
         Timbre t;
-        TS_ASSERT_EQUALS(t.plan(), nullptr);
-        t.plan(&p);
-        TS_ASSERT_EQUALS(t.plan(), &p);
-        t.plan(nullptr);
-        TS_ASSERT_EQUALS(t.plan(), nullptr);
+
+        TS_ASSERT_EQUALS(t.plan().t_prep().size(), 0);
+        t.plan(p);
+        TS_ASSERT_EQUALS(t.plan().t_prep().size(), 1);
     }
 
     void test_add_control()
