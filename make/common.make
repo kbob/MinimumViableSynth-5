@@ -104,6 +104,13 @@ tests:      $(SUBDIRS:%=%/tests) $(TESTS)
 clean:      $(SUBDIRS:%=%/clean)
 	    rm -f *.d *.o a.out test-*.cpp $(PROGRAMS) $(TESTS) $(FILTH)
 	    rm -rf *.dSYM/
+
+pre-commit-check:
+	    make clean-world
+	    make -j world BUILD=debug
+	    make clean-world
+	    make -j world BUILD=release
+
 cloc:
 	    @cloc --vcs=git --force-lang=make,make
 
@@ -122,6 +129,7 @@ general-help:
 	    @echo '    tests            - build all test programss'
 	    @echo '    clean            - remove all generated files'
 	    @echo '    clean-world      - clean whole project'
+	    @echo '    pre-commit-check - check world and tests'
 	    @echo '    cloc             - count lines of code'
 	    @echo '    help             - print this text'
 	    @echo ''
@@ -129,6 +137,7 @@ general-help:
 	    @echo ''
 	    @echo '    BUILD=debug      - use "BUILD=release" for release build'
 	    @echo '    EXTRA_CPPFLAGS=  - add flags to cc and c++'
+	    @echo '    TESTFLAGS=       - add flags to test runs'
 	    @echo ''
 
 local-help:
@@ -187,7 +196,7 @@ $(foreach p, $(PROGRAMS), $(eval $(call program_template,$p)))
 
 run-tests:  $(RUN_TESTS)
 run-test-%: test-%
-	    ./$<
+	    ./$< ${TESTFLAGS}
 
 define test_template =
        $1-CFILES := $(filter %.c, $$($1-SOURCES))
