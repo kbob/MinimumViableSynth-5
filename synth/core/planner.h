@@ -26,7 +26,7 @@ public:
     typedef fixed_vector<Module *, MAX_TIMBRE_MODULES>   tm_vec;
     typedef fixed_vector<Control *, MAX_VOICE_CONTROLS>  vc_vec;
     typedef fixed_vector<Module *, MAX_VOICE_MODULES>    vm_vec;
-    typedef fixed_vector<Link *, MAX_LINKS>            link_vec;
+    typedef fixed_vector<Link, MAX_LINKS>              link_vec;
     typedef fixed_vector<Module *, MAX_OUTPUT_MODULES>   om_vec;
 
     // Just get it over with: pass everything in through the constructor.
@@ -34,7 +34,7 @@ public:
             const tm_vec& tmodules,
             const vc_vec& vcontrols,
             const vm_vec& vmodules,
-            link_vec& links,
+            const link_vec& links,
             // const cv_vec& cvalues,
             const om_vec& omodules
            )

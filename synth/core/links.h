@@ -266,7 +266,12 @@ public:
             };
         };
     }
+    // XXX Can we have copy constructor and assignment?
 
+    bool operator == (const Link& that) const
+    {
+        return this == &that;
+    }
 
     bool is_constant() const { return !m_src && !m_ctl; }
     bool is_simple() const
@@ -284,14 +289,14 @@ public:
 
     render_action make_copy_action(InputPort *dest,
                                    OutputPort *src,
-                                   OutputPort *ctl)
+                                   OutputPort *ctl) const
     {
         return m_make_copy(dest, src, ctl);
     }
 
     render_action make_add_action(InputPort *dest,
                                   OutputPort *src,
-                                  OutputPort *ctl)
+                                  OutputPort *ctl) const
     {
         return m_make_add(dest, src, ctl);
     }

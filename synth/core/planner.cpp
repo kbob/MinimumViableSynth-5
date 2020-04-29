@@ -82,12 +82,12 @@ Planner::find_controls_used(const module_subset& modules)
 {
     auto tcontrols_used = m_resolver.controls().none;
     auto vcontrols_used = m_resolver.controls().none;
-    for (auto link: m_links.all.members()) {
-        Module *m = static_cast<Module *>(link->dest()->owner());
+    for (auto& link: m_links.all.members()) {
+        Module *m = static_cast<Module *>(link.dest()->owner());
         if (!modules.contains(m))
             continue;
-        if (link->ctl()) {
-            auto owner = link->ctl()->owner();
+        if (link.ctl()) {
+            auto owner = link.ctl()->owner();
             if (auto ctl = dynamic_cast<Control *>(owner)) {
                 if (std::find(m_tcontrols.begin(),
                               m_tcontrols.end(),
@@ -116,14 +116,14 @@ Planner::assemble_prep_steps(const module_subset& modules,
             if (!dynamic_cast<InputPort *>(p))
                 continue;
             int link_count = 0;
-            Link *s_link = nullptr;
+            const Link *s_link = nullptr;
             m_links_to->get(p);
-            for (auto link: m_links_to->get(p).members()) {
+            for (auto& link: m_links_to->get(p).members()) {
                 link_count++;
-                if (link->is_simple()) {
-                    Module *m = static_cast<Module *>(link->src()->owner());
+                if (link.is_simple()) {
+                    Module *m = static_cast<Module *>(link.src()->owner());
                     if (modules.contains(m))
-                        s_link = link;
+                        s_link = &link;
                 }
             }
             auto di = port_u.index(p);
@@ -175,18 +175,18 @@ Planner::assemble_render_steps(const control_subset& controls,
                 auto di = port_u.index(dest);
                 bool copied = false;
                 auto links_to_dest = m_links_to->at(di);
-                for (auto link: links_to_dest.members()) {
-                    auto si = port_u.find(link->src());
-                    if (link->is_simple() && links_to_dest.size() == 1) {
+                for (auto& link: links_to_dest.members()) {
+                    auto si = port_u.find(link.src());
+                    if (link.is_simple() && links_to_dest.size() == 1) {
                         // skip single simple links
                         break;
                     }
-                    auto ci = port_u.find(link->ctl());
+                    auto ci = port_u.find(link.ctl());
                     if (!copied) {
-                        add_step = CopyStep(di, si, ci, link);
+                        add_step = CopyStep(di, si, ci, &link);
                         copied = true;
                     } else
-                        add_step = AddStep(di, si, ci, link);
+                        add_step = AddStep(di, si, ci, &link);
                 }
             }
             add_step = ModuleRenderStep(mi);
@@ -218,16 +218,16 @@ Planner::collect_pred(module_subset succ, module_subset candidates)
 void
 Planner::calc_mod_predecessors()
 {
-    for (auto link: m_links.all.members()) {
-        Module *dest_mod = static_cast<Module *>(link->dest()->owner());
-        if (link->src()) {
-            Module *src_mod = static_cast<Module *>(link->src()->owner());
+    for (auto& link: m_links.all.members()) {
+        Module *dest_mod = static_cast<Module *>(link.dest()->owner());
+        if (link.src()) {
+            Module *src_mod = static_cast<Module *>(link.src()->owner());
             m_mod_predecessors->add(dest_mod, src_mod);
         }
-        if (link->ctl()) {
-            Module *ctl_mod = dynamic_cast<Module *>(link->ctl()->owner());
+        if (link.ctl()) {
+            Module *ctl_mod = dynamic_cast<Module *>(link.ctl()->owner());
             if (ctl_mod)
-            m_mod_predecessors->add(dest_mod, ctl_mod);
+                m_mod_predecessors->add(dest_mod, ctl_mod);
         }
     }
 }
@@ -235,6 +235,6 @@ Planner::calc_mod_predecessors()
 void
 Planner::calc_links_to()
 {
-    for (auto link: m_links.all.members())
-        m_links_to->add(link->dest(), link);
+    for (auto& link: m_links.all.members())
+        m_links_to->add(link.dest(), link);
 }
