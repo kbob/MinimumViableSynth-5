@@ -6,6 +6,7 @@ enum class Color { RED, GREEN, BLUE, PURPLE };
 
 class ConcreteControl : public ControlType<ConcreteControl, Color> {
 public:
+    void render(size_t) {}
 };
 
 class core_controls_unit_test : public CxxTest::TestSuite {

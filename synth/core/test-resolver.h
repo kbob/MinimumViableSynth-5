@@ -5,7 +5,10 @@
 
 #include <cxxtest/TestSuite.h>
 
-class ConcreteControl : public ControlType<ConcreteControl> {};
+class ConcreteControl : public ControlType<ConcreteControl> {
+public:
+    void render(size_t) {}
+};
 
 class ConcreteModule : public ModuleType<ConcreteModule> {
 public:
@@ -27,6 +30,7 @@ public:
     void test_instantiate()
     {
         (void)Resolver();
+        TS_TRACE("sizeof (Resolver) = " + std::to_string(sizeof (Resolver)));
     }
 
     typedef std::list<Control *> CC;

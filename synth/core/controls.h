@@ -1,6 +1,7 @@
 #ifndef CORE_CONTROLS_included
 #define CORE_CONTROLS_included
 
+#include "synth/core/action.h"
 #include "synth/core/config.h"
 #include "synth/core/ported.h"
 #include "synth/core/ports.h"
@@ -20,6 +21,8 @@ public:
     virtual Control *clone() const = 0;
     virtual ~Control() = default;
 
+    virtual render_action make_render_action() = 0;
+
 protected:
 
     Control() = default;
@@ -37,7 +40,16 @@ public:
 
     Control *clone() const override
     {
+        assert(dynamic_cast<const C *>(this));
         return new C(static_cast<const C&>(*this));
+    }
+
+    render_action make_render_action() override
+    {
+        assert(dynamic_cast<C *>(this));
+        return [this] (size_t frame_count) {
+            static_cast<C *>(this)->render(frame_count);
+        };
     }
 
 protected:

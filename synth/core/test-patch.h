@@ -7,7 +7,10 @@ class patch_unit_test : public CxxTest::TestSuite {
 public:
 
     typedef DEFAULT_SAMPLE_TYPE D, S, CE;
-    class CT : public ControlType<CT, CE> {};
+    class CT : public ControlType<CT, CE> {
+    public:
+        void render(size_t) {}
+    };
     Input<D> dest;
     Output<D> src;
     CT ctl;

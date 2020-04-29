@@ -12,7 +12,10 @@ public:
     typedef short S;
     typedef char C;
 
-    class ConcreteControl : public ControlType<ConcreteControl, C> {};
+    class ConcreteControl : public ControlType<ConcreteControl, C> {
+    public:
+        void render(size_t) {}
+    };
 
     Input<D> dest;
     Output<S> src;
@@ -27,6 +30,11 @@ public:
             dsrc[i] = i;
             ctl.out[i] = i;
         }
+    }
+
+    void test_size()
+    {
+        TS_TRACE("sizeof (Link) = " + std::to_string(sizeof (Link)));
     }
 
     void test_instantiate_DSC()

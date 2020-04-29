@@ -163,6 +163,8 @@ float note_to_freq<float>(uint8_t note)
 
 class NoteFreqControl : public ControlType<NoteFreqControl> {
     // Combine note number, pitch bend, and portamento.
+public:
+    void render(size_t) { assert(false && "write me!"); }
 };
 
 class AttackVelocityControl : public ControlType<AttackVelocityControl> {
