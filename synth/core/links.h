@@ -266,7 +266,6 @@ public:
             };
         };
     }
-    // XXX Can we have copy constructor and assignment?
 
     bool operator == (const Link& that) const
     {
@@ -303,12 +302,16 @@ public:
 
 private:
 
-    InputPort       *m_dest;
-    OutputPort      *m_src;
-    OutputPort      *m_ctl;
-    const SCALE_TYPE m_scale;
+    typedef
     std::function<render_action(InputPort *, OutputPort *, OutputPort *)>
-                     m_make_copy, m_make_add;
+    action_maker;
+
+    InputPort   *m_dest;
+    OutputPort  *m_src;
+    OutputPort  *m_ctl;
+    SCALE_TYPE   m_scale;
+    action_maker m_make_copy;
+    action_maker m_make_add;
 
     friend class links_unit_test;
 

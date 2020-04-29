@@ -17,10 +17,10 @@ public:
         void render(size_t) {}
     };
 
-    Input<D> dest;
-    Output<S> src;
+    Input<D> dest, dest0;
+    Output<S> src, src0;
     Output<D> dsrc;
-    ConcreteControl ctl;
+    ConcreteControl ctl, ctl0;
 
     void load_data()
     {
@@ -90,6 +90,42 @@ public:
         TS_ASSERT(l4.scale() == 0.4f);
     }
 
+    void test_copy()
+    {
+        Link link{&dest0, &src0, &ctl0.out, 0.5f};
+        Link l2(link);
+        TS_ASSERT(l2.dest() == &dest0);
+        TS_ASSERT(l2.src() == &src0);
+        TS_ASSERT(l2.ctl() == &ctl0.out);
+        TS_ASSERT(l2.scale() == 0.5f);
+
+        load_data();
+        render_action copy = l2.make_copy_action(&dest, &src, &ctl.out);
+        copy(2);
+        std::vector<D> actual1{dest.buf(), dest.buf() + N};
+        std::vector<D> expected1{0.0, 0.5, 42, 42};
+        TS_ASSERT_EQUALS(actual1, expected1);
+    }
+
+    void test_assignment()
+    {
+        Input<double> other_dest;
+        Link link{&dest0, &src0, &ctl0.out, 0.5f};
+        Link l2(&other_dest, nullptr, nullptr);
+        l2 = link;
+        TS_ASSERT(l2.dest() == &dest0);
+        TS_ASSERT(l2.src() == &src0);
+        TS_ASSERT(l2.ctl() == &ctl0.out);
+        TS_ASSERT(l2.scale() == 0.5f);
+
+        load_data();
+        render_action copy = l2.make_copy_action(&dest, &src, &ctl.out);
+        copy(2);
+        std::vector<D> actual1{dest.buf(), dest.buf() + N};
+        std::vector<D> expected1{0.0, 0.5, 42, 42};
+        TS_ASSERT_EQUALS(actual1, expected1);
+    }
+
     void test_simple()
     {
         Link l1{&dest, &dsrc,   nullptr, 1.0f};
@@ -108,7 +144,7 @@ public:
     void test_copy_add_DSrcCScale()
     {
         load_data();
-        Link link{&dest, &src, &ctl.out, 0.5f};
+        Link link{&dest0, &src0, &ctl0.out, 0.5f};
         render_action copy = link.make_copy_action(&dest, &src, &ctl.out);
         render_action add = link.make_add_action(&dest, &src, &ctl.out);
 
@@ -125,7 +161,7 @@ public:
     void test_copy_add_DSrcC()
     {
         load_data();
-        Link link{&dest, &src, &ctl.out};
+        Link link{&dest0, &src0, &ctl0.out};
         render_action copy = link.make_copy_action(&dest, &src, &ctl.out);
         render_action add = link.make_add_action(&dest, &src, &ctl.out);
 
@@ -142,7 +178,7 @@ public:
     void test_copy_add_DCScale()
     {
         load_data();
-        Link link{&dest, nullptr, &ctl.out, 0.5f};
+        Link link{&dest0, nullptr, &ctl0.out, 0.5f};
         render_action copy = link.make_copy_action(&dest, nullptr, &ctl.out);
         render_action add = link.make_add_action(&dest, nullptr, &ctl.out);
 
@@ -159,7 +195,7 @@ public:
     void test_copy_add_DC()
     {
         load_data();
-        Link link{&dest, nullptr, &ctl.out};
+        Link link{&dest0, nullptr, &ctl0.out};
         render_action copy = link.make_copy_action(&dest, nullptr, &ctl.out);
         render_action add = link.make_add_action(&dest, nullptr, &ctl.out);
 
@@ -176,7 +212,7 @@ public:
     void test_copy_add_DSrc()
     {
         load_data();
-        Link link{&dest, &src, nullptr, 1.0f};
+        Link link{&dest0, &src0, nullptr, 1.0f};
         render_action copy = link.make_copy_action(&dest, &src, nullptr);
         render_action add = link.make_add_action(&dest, &src, nullptr);
 
@@ -193,7 +229,7 @@ public:
     void test_copy_add_DSrcScale()
     {
         load_data();
-        Link link{&dest, &src, nullptr, 0.5f};
+        Link link{&dest0, &src0, nullptr, 0.5f};
         render_action copy = link.make_copy_action(&dest, &src, nullptr);
         render_action add = link.make_add_action(&dest, &src, nullptr);
 
@@ -210,7 +246,7 @@ public:
     void test_copy_add_Dscale()
     {
         load_data();
-        Link link{&dest, nullptr, nullptr, 0.5f};
+        Link link{&dest0, nullptr, nullptr, 0.5f};
         render_action copy = link.make_copy_action(&dest, nullptr, nullptr);
         render_action add = link.make_add_action(&dest, nullptr, nullptr);
 
@@ -227,7 +263,7 @@ public:
     void test_copy_add_D()
     {
         load_data();
-        Link link{&dest, nullptr, nullptr, 1};
+        Link link{&dest0, nullptr, nullptr, 1};
         render_action copy = link.make_copy_action(&dest, nullptr, nullptr);
         render_action add = link.make_add_action(&dest, nullptr, nullptr);
 
