@@ -1,7 +1,67 @@
 #ifndef STEPS_included
 #define STEPS_included
 
+#include <cassert>
+
 #include "synth/core/links.h"
+#include "synth/core/resolver.h"
+
+namespace step_util {
+
+    typedef std::uint8_t index_type;
+    typedef std::int8_t opt_index_type;
+
+    constexpr static const index_type imax
+        = std::numeric_limits<index_type>::max();
+    constexpr static const opt_index_type oimax
+        = std::numeric_limits<opt_index_type>::max();
+
+    static_assert(MAX_CONTROLS <= imax &&
+                  MAX_MODULES <= imax &&
+                  MAX_PORTS <= imax,
+                  "index_type too small");
+    static_assert(MAX_PORTS <= oimax,
+                  "opt_index_type too small");
+
+    static inline Control *
+    index_to_control(index_type index, const Resolver& res)
+    {
+      assert((size_t) index < res.controls().size());
+      Control *ctl = res.controls()[index];
+      assert(ctl);
+      return ctl;
+    }
+
+    static inline Module *
+    index_to_module(index_type index, const Resolver& res)
+    {
+      assert((size_t) index < res.modules().size());
+      Module *mod = res.modules()[index];
+      assert(mod);
+      return mod;
+    }
+
+    static inline InputPort *
+    index_to_inport(index_type index, const Resolver& res)
+    {
+        assert((size_t)index < res.ports().size());
+        Port *port = res.ports()[index];
+        assert(port && dynamic_cast<InputPort *>(port));
+        return static_cast<InputPort *>(port);
+    }
+
+    static inline OutputPort *
+    index_to_outport(opt_index_type index, const Resolver& res)
+    {
+        if (index < 0)
+            return nullptr;
+        assert((size_t)index < res.ports().size());
+        Port *port = res.ports()[index];
+        assert(port && dynamic_cast<OutputPort *>(port));
+        return static_cast<OutputPort *>(port);
+    }
+
+};
 
 
 // -- Prep Steps  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
@@ -11,12 +71,15 @@ class ClearStep {
 public:
 
     ClearStep() = default;
-    ClearStep(uint8_t dest_port_index, SCALE_TYPE scale)
-    : m_dest_port_index{dest_port_index}, m_scale{scale}
+    ClearStep(size_t dest_port_index, SCALE_TYPE scale)
+    : m_dest_port_index{step_util::index_type(dest_port_index)}, m_scale{scale}
     {}
 
-    void do_it() const
+    void prep(const Resolver& res) const
     {
+        InputPort *dest = step_util::index_to_inport(m_dest_port_index, res);
+        dest->clear(m_scale);
+
         std::cout << "clear "
                   << int(m_dest_port_index)
                   << " to "
@@ -26,8 +89,8 @@ public:
 
 private:
 
-    uint8_t    m_dest_port_index;
-    SCALE_TYPE m_scale;
+    step_util::index_type m_dest_port_index;
+    SCALE_TYPE            m_scale;
 
     friend class steps_unit_test;
 
@@ -38,12 +101,17 @@ class AliasStep {
 public:
 
     AliasStep() = default;
-    AliasStep(uint8_t dest_port_index, uint8_t src_port_index)
-    : m_dest_port_index{dest_port_index}, m_src_port_index{src_port_index}
+    AliasStep(size_t dest_port_index, ssize_t src_port_index)
+    : m_dest_port_index{step_util::index_type(dest_port_index)},
+      m_src_port_index{step_util::opt_index_type(src_port_index)}
     {}
 
-    void do_it() const
+    void prep(const Resolver& res) const
     {
+        InputPort *dest = step_util::index_to_inport(m_dest_port_index, res);
+        OutputPort *src = step_util::index_to_outport(m_src_port_index, res);
+        dest->alias(src->void_buf());
+
         std::cout << "alias "
                   << int(m_dest_port_index)
                   << " to "
@@ -53,42 +121,45 @@ public:
 
 private:
 
-    uint8_t m_dest_port_index;
-    uint8_t m_src_port_index;
+    step_util::index_type     m_dest_port_index;
+    step_util::opt_index_type m_src_port_index;
 
     friend class steps_unit_test;
 
-};
-
-enum class PrepStepTag {
-    NONE,
-    CLEAR,
-    ALIAS,
 };
 
 class PrepStep {
 
 public:
 
-    PrepStep() : m_tag{PrepStepTag::NONE} {}
+    enum class Tag {
+        NONE,
+        CLEAR,
+        ALIAS,
+    };
+
+    PrepStep() : m_tag{Tag::NONE} {}
     PrepStep(const ClearStep& clear)
-    : m_tag{PrepStepTag::CLEAR}, m_u{clear}
+    : m_tag{Tag::CLEAR}, m_u{clear}
     {}
     PrepStep(const AliasStep& alias)
-    : m_tag{PrepStepTag::ALIAS}, m_u{alias}
+    : m_tag{Tag::ALIAS}, m_u{alias}
     {}
 
-    PrepStepTag tag() const { return m_tag; }
+    Tag tag() const { return m_tag; }
 
-    void do_it() const
+    void prep(const Resolver& res) const
     {
         switch (m_tag) {
-        case PrepStepTag::CLEAR:
-            m_u.clear.do_it();
+
+        case Tag::CLEAR:
+            m_u.clear.prep(res);
             break;
-        case PrepStepTag::ALIAS:
-            m_u.alias.do_it();
+
+        case Tag::ALIAS:
+            m_u.alias.prep(res);
             break;
+
         default:
             assert(0 && "invalid prep type");
         }
@@ -96,7 +167,7 @@ public:
 
 private:
 
-    PrepStepTag m_tag;
+    Tag m_tag;
     union u {
         u() = default;
         u(const ClearStep& clear) : clear{clear} {}
@@ -117,16 +188,21 @@ class ControlRenderStep {
 public:
 
     ControlRenderStep() = default;
-    ControlRenderStep(uint8_t ctl_index) : m_ctl_index{ctl_index} {}
+    ControlRenderStep(size_t ctl_index)
+    : m_ctl_index{step_util::index_type(ctl_index)} {}
 
-    void do_it() const
+    render_action make_action(const Resolver& res) const
     {
         std::cout << "crend" << int(m_ctl_index) << std::endl;
+
+        Control *ctl = step_util::index_to_control(m_ctl_index, res);
+        return ctl->make_render_action();
     }
 
 private:
 
-    uint8_t m_ctl_index;
+    step_util::index_type m_ctl_index;
+
     friend class steps_unit_test;
 
 };
@@ -136,18 +212,23 @@ class ModuleRenderStep {
 public:
 
     ModuleRenderStep() = default;
-    ModuleRenderStep(uint8_t mod_index) : m_mod_index{mod_index} {}
+    ModuleRenderStep(size_t mod_index)
+    : m_mod_index{step_util::index_type(mod_index)}
+    {}
 
-    void do_it() const
+    render_action make_action(const Resolver& res) const
     {
         std::cout << "mrend "
                   << int(m_mod_index)
                   << std::endl;
+
+        Module *mod = step_util::index_to_module(m_mod_index, res);
+        return mod->make_render_action();
     }
 
 private:
 
-    uint8_t m_mod_index;
+    step_util::index_type m_mod_index;
 
     friend class steps_unit_test;
 
@@ -158,17 +239,17 @@ class CopyStep {
 public:
 
     CopyStep() = default;
-    CopyStep(uint8_t  dest_port_index,
-             uint8_t  src_port_index,
-             uint8_t  ctl_port_index,
-             Link    *link)
-    : m_dest_port_index{dest_port_index},
-      m_src_port_index{src_port_index},
-      m_ctl_port_index{ctl_port_index},
+    CopyStep(size_t      dest_port_index,
+             ssize_t     src_port_index,
+             ssize_t     ctl_port_index,
+             const Link *link)
+    : m_dest_port_index{step_util::index_type(dest_port_index)},
+      m_src_port_index{step_util::opt_index_type(src_port_index)},
+      m_ctl_port_index{step_util::opt_index_type(ctl_port_index)},
       m_link{link}
     {}
 
-    void do_it() const
+    render_action make_action(const Resolver& res) const
     {
         std::cout << "copy "
                   << int(m_src_port_index)
@@ -179,14 +260,20 @@ public:
                   << " scaled "
                   << m_link->scale()
                   << std::endl;
+
+        InputPort *dest = step_util::index_to_inport(m_dest_port_index, res);
+        OutputPort *src = step_util::index_to_outport(m_src_port_index, res);
+        OutputPort *ctl = step_util::index_to_outport(m_ctl_port_index, res);
+
+        return m_link->make_copy_action(dest, src, ctl);
     }
 
 private:
 
-    uint8_t  m_dest_port_index;
-    uint8_t  m_src_port_index;
-    uint8_t  m_ctl_port_index;
-    Link    *m_link;
+    step_util::index_type     m_dest_port_index;
+    step_util::opt_index_type m_src_port_index;
+    step_util::opt_index_type m_ctl_port_index;
+    const Link               *m_link;
 
     friend class steps_unit_test;
 
@@ -197,17 +284,17 @@ class AddStep {
 public:
 
     AddStep() = default;
-    AddStep(uint8_t  dest_port_index,
-            uint8_t  src_port_index,
-            uint8_t  ctl_port_index,
-            Link    *link)
-    : m_dest_port_index{dest_port_index},
-      m_src_port_index{src_port_index},
-      m_ctl_port_index{ctl_port_index},
+    AddStep(size_t      dest_port_index,
+            ssize_t     src_port_index,
+            ssize_t     ctl_port_index,
+            const Link *link)
+    : m_dest_port_index{step_util::index_type(dest_port_index)},
+      m_src_port_index{step_util::opt_index_type(src_port_index)},
+      m_ctl_port_index{step_util::opt_index_type(ctl_port_index)},
       m_link{link}
     {}
 
-    void do_it() const
+    render_action make_action(const Resolver& res) const
     {
         std::cout << "add "
                   << int(m_src_port_index)
@@ -218,67 +305,80 @@ public:
                   << " scaled "
                   << m_link->scale()
                   << std::endl;
+
+        InputPort *dest = step_util::index_to_inport(m_dest_port_index, res);
+        OutputPort *src = step_util::index_to_outport(m_src_port_index, res);
+        OutputPort *ctl = step_util::index_to_outport(m_ctl_port_index, res);
+
+        return m_link->make_add_action(dest, src, ctl);
+
     }
 
 private:
 
-    uint8_t  m_dest_port_index;
-    uint8_t  m_src_port_index;
-    uint8_t  m_ctl_port_index;
-    Link    *m_link;
+    step_util::index_type     m_dest_port_index;
+    step_util::opt_index_type m_src_port_index;
+    step_util::opt_index_type m_ctl_port_index;
+    const Link               *m_link;
 
     friend class steps_unit_test;
 
 };
 
-enum class RenderStepTag {
-    NONE,
-    CONTROL_RENDER,
-    MODULE_RENDER,
-    COPY,
-    ADD,
-};
 
 class RenderStep {
 
 public:
 
-    RenderStep() : m_tag{RenderStepTag::NONE} {}
+    enum class Tag {
+        NONE,
+        CONTROL_RENDER,
+        MODULE_RENDER,
+        COPY,
+        ADD,
+    };
+
+    RenderStep() : m_tag{Tag::NONE} {}
     RenderStep(const ControlRenderStep& crend)
-    : m_tag{RenderStepTag::CONTROL_RENDER}, m_u{crend}
+    : m_tag{Tag::CONTROL_RENDER}, m_u{crend}
     {}
     RenderStep(const ModuleRenderStep& mrend)
-    : m_tag{RenderStepTag::MODULE_RENDER}, m_u{mrend}
+    : m_tag{Tag::MODULE_RENDER}, m_u{mrend}
     {}
     RenderStep(const CopyStep& copy)
-    : m_tag{RenderStepTag::COPY}, m_u{copy}
+    : m_tag{Tag::COPY}, m_u{copy}
     {}
     RenderStep(const AddStep& add)
-    : m_tag{RenderStepTag::ADD}, m_u{add}
+    : m_tag{Tag::ADD}, m_u{add}
     {}
 
-    RenderStepTag tag() const { return m_tag; }
+    Tag tag() const { return m_tag; }
 
-    void do_it() const
+    render_action make_action(const Resolver& res) const
     {
         switch (m_tag) {
-        case RenderStepTag::COPY:
-            m_u.copy.do_it();
-            break;
-        case RenderStepTag::ADD:
-            m_u.add.do_it();
-            break;
-        case RenderStepTag::MODULE_RENDER:
-            m_u.mrend.do_it();
-            break;
+
+        case Tag::CONTROL_RENDER:
+            return m_u.crend.make_action(res);
+
+        case Tag::MODULE_RENDER:
+            return m_u.mrend.make_action(res);
+
+        case Tag::COPY:
+            return m_u.copy.make_action(res);
+
+        case Tag::ADD:
+            return m_u.add.make_action(res);
+
         default:
             assert(0 && "invalid process type");
+            return [] (size_t) { abort(); };
         }
     }
 
 private:
 
-    RenderStepTag m_tag;
+    Tag m_tag;
     union u {
         u() = default;
         u(const ControlRenderStep& crend) : crend(crend) {}
