@@ -83,6 +83,8 @@ rule is yet.
 Prefer postfix `p++` to prefix `++p`; the PDP-11 has no pre-increment
 addressing mode.  Similarly, prefer `--p` to `p--`.
 
+I am putting off using namespaces.  Eventually, there should probably
+be roughly one namespace per directory.
 
 # Unit Tests
 
