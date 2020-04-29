@@ -25,18 +25,6 @@ public:
         (void)MockPorted();
     }
 
-    void test_copy()
-    {
-        MockPorted pd0;
-        MockPorted pd1(pd0);
-    }
-
-    // void test_assign()
-    // {
-    //     MockPorted pd0, pd1;
-    //     pd1 = pd0;
-    // }
-
     void test_ports()
     {
         MockPorted pd;
@@ -44,6 +32,15 @@ public:
         TS_ASSERT(ports.size() == 2);
         TS_ASSERT(ports.at(0) == &pd.p0);
         TS_ASSERT(ports.at(1) == &pd.p1);
+    }
+
+    void test_copy()
+    {
+        MockPorted pd0;
+        MockPorted pd1(pd0);
+        TS_ASSERT(pd1.ports().size() == 2);
+        TS_ASSERT(pd1.ports().at(0) == &pd1.p0);
+        TS_ASSERT(pd1.ports().at(1) == &pd1.p1);
     }
 
 };

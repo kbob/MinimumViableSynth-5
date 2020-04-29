@@ -24,12 +24,6 @@ public:
         ConcreteControl c2(c1);
     }
 
-    void test_assign()
-    {
-        ConcreteControl c1, c2;
-        c2 = c1;
-    }
-
     void test_port()
     {
         ConcreteControl c;
