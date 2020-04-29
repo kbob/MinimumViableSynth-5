@@ -78,6 +78,11 @@ private:
 // `InputPort` is an abstract base class for input ports.
 class InputPort : public Port {
 
+public:
+
+    virtual void clear(SCALE_TYPE value) = 0;
+    virtual void alias(const void *data) = 0;
+
 protected:
 
     // Abstract base class.  Must subclass to use.
@@ -87,6 +92,9 @@ protected:
 
 // `OutputPort` is an abstract base class for output ports.
 class OutputPort : public Port {
+
+public:
+    virtual const void *void_buf() const = 0;
 
 protected:
 
@@ -107,7 +115,7 @@ public:
 
     std::type_index data_type() const override { return typeid(ElementType); }
 
-    void clear(const ElementType value)
+    void clear(SCALE_TYPE value) override
     {
         m_data = m_buf;
         for (size_t i = 0; i < MAX_FRAMES; i++)
@@ -118,9 +126,9 @@ public:
     // When this port is aliased to another, `m_data` points to the
     // other port's data.  When a port is not aliased, producers write
     // to `m_buf`, and `m_data` points there.
-    void alias(const ElementType *data)
+    void alias(const void *data) override
     {
-        m_data = data ? data : m_buf;
+        m_data = data ? static_cast<const ElementType *>(data) : m_buf;
     }
 
     ElementType operator [] (size_t i) const
@@ -152,6 +160,10 @@ public:
     {
         assert(i < MAX_FRAMES);
         return m_buf[i];
+    }
+    const void *void_buf() const override
+    {
+        return static_cast<const void *>(m_buf);
     }
 
     const ElementType *buf() const { return m_buf; }
