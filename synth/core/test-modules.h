@@ -13,7 +13,16 @@ public:
     Input<> in;
     Output<> out;
     size_t last_size;
-    void render(size_t n) { last_size = n; }
+    void *in_addr;
+    void *out_addr;
+    void render(size_t n)
+    {
+        last_size = n;
+        in_addr = static_cast<void *>(in.buf());
+        out_addr = static_cast<void *>(&out[0]);
+        for (size_t i = 0; i < n; i++)
+            out[i] = -in[i];
+    }
 
 };
 
@@ -39,8 +48,12 @@ public:
         FooModule foo;
         foo.name("Fonzie");
         Module *bar = foo.clone();
+        FooModule *fbar = dynamic_cast<FooModule *>(bar);
+        TS_ASSERT(fbar);
         TS_ASSERT(bar->name() == "Fonzie");
-        TS_ASSERT(dynamic_cast<FooModule *>(bar));
+        TS_ASSERT(bar->ports().size() == 2);
+        TS_ASSERT(bar->ports()[0] == &fbar->in);
+        TS_ASSERT(bar->ports()[1] == &fbar->out);
     }
 
     void test_init()
@@ -60,8 +73,14 @@ public:
     {
         FooModule foo;
         auto action = foo.make_render_action();
+        foo.in.buf()[0] = 3.3f;
+        foo.in.buf()[1] = 4.4f;
         action(2);
         TS_ASSERT(foo.last_size == 2);
+        TS_ASSERT(foo.in_addr == foo.in.buf());
+        TS_ASSERT(foo.out_addr == &foo.out[0]);
+        TS_ASSERT(foo.out[0] == -3.3f);
+        TS_ASSERT(foo.out[1] == -4.4f);
     }
 
 };
