@@ -116,4 +116,38 @@ public:
         TS_ASSERT(r4.m_u.add.m_link == &link4);
     }
 
+    template <class T>
+    std::string
+    to_string(const T& step)
+    {
+        std::stringstream ss;
+        ss << step;
+        return ss.str();
+    }
+
+    void test_ostream()
+    {
+        auto clear = ClearStep(1, 0.5);
+        auto alias = AliasStep(2, -3);
+        TS_ASSERT_EQUALS(to_string(clear), "clear(1, 0.5)")
+        TS_ASSERT_EQUALS(to_string(alias), "alias(2, -3)");
+        TS_ASSERT_EQUALS(to_string(PrepStep(clear)), "clear(1, 0.5)");
+        TS_ASSERT_EQUALS(to_string(PrepStep(alias)), "alias(2, -3)");
+
+        auto dest = Input<>();
+        auto link = Link(&dest, nullptr, nullptr);
+        auto crend = ControlRenderStep(4);
+        auto mrend = ModuleRenderStep(5);
+        auto copy = CopyStep(6, -7, -8, &link);
+        auto add = AddStep(9, -10, -11, &link);
+        TS_ASSERT_EQUALS(to_string(crend), "crend(4)");
+        TS_ASSERT_EQUALS(to_string(mrend), "mrend(5)");
+        TS_ASSERT_EQUALS(to_string(copy), "copy(6, -7, -8)");
+        TS_ASSERT_EQUALS(to_string(add), "add(9, -10, -11)");
+        TS_ASSERT_EQUALS(to_string(RenderStep(crend)), "crend(4)");
+        TS_ASSERT_EQUALS(to_string(RenderStep(mrend)), "mrend(5)");
+        TS_ASSERT_EQUALS(to_string(RenderStep(copy)), "copy(6, -7, -8)");
+        TS_ASSERT_EQUALS(to_string(RenderStep(add)), "add(9, -10, -11)");
+    }
+
 };
