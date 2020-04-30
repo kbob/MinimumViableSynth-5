@@ -2,7 +2,13 @@
 
 #include <cxxtest/TestSuite.h>
 
-#include "modules.h"
+#include "synth/core/controls.h"
+#include "synth/core/modules.h"
+
+class FooControl : public ControlType<FooControl> {
+public:
+    void render(size_t) {}
+};
 
 class EmptyModule : public ModuleType<EmptyModule> {
 public:
@@ -36,6 +42,13 @@ public:
         TS_ASSERT(i.name() == "");
         i.name("Ferdinand");
         TS_ASSERT(i.name() == "Ferdinand");
+    }
+
+    void test_control()
+    {
+        FooControl c;
+
+        TS_ASSERT(c.out.owner() == &c);
     }
 
     void test_module()
@@ -78,6 +91,39 @@ public:
         TS_ASSERT(ib.data_type() != os.data_type());
     }
 
-    // XXX need more tests - use the [] operators.
+    void test_buf()
+    {
+        Input<bool> ib;
+        Output<short> os;
+        TS_ASSERT_EQUALS(ib.buf(), ib.m_buf);
+        TS_ASSERT_EQUALS(os.buf(), os.m_buf);
+    }
+
+    void test_inport_clear()
+    {
+        Input<bool> ib;
+        for (size_t i = 0; i < MAX_FRAMES; i++)
+            ib.m_buf[i] = false;
+        ib.clear(1.0f);
+        for (size_t i = 0; i < MAX_FRAMES; i++)
+            TS_ASSERT_EQUALS(ib[i], true);
+    }
+
+    void test_inport_alias()
+    {
+        Input<> in;
+        Output<> out;
+        for (size_t i = 0; i < MAX_FRAMES; i++) {
+            in.m_buf[i] = 10 + i;
+            out[i] = 20 - i;
+        }
+
+        in.alias(out.void_buf());
+        for (size_t i = 0; i < MAX_FRAMES; i++) {
+            TS_ASSERT_EQUALS(in[i], 20 - i);
+            TS_ASSERT_EQUALS(out[i], 20 - i);
+            TS_ASSERT_EQUALS(in.m_buf[i], 10 + i);
+        }
+    }
 
 };
