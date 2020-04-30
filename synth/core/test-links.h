@@ -141,6 +141,21 @@ public:
         TS_ASSERT(not l5.is_simple());
     }
 
+    void test_ctl_simple()
+    {
+        Link l1{&dest, nullptr, &dsrc,    1.0f};
+        Link l2{&dest, nullptr, nullptr,  1.0f};
+        Link l3{&dest, nullptr, &ctl.out, 1.0f};
+        Link l4{&dest, &dsrc,   &dsrc,    1.0f};
+        Link l5{&dest, nullptr, &dsrc,    0.5f};
+
+        TS_ASSERT(l1.is_ctl_simple());
+        TS_ASSERT(not l2.is_ctl_simple());
+        TS_ASSERT(not l3.is_ctl_simple());
+        TS_ASSERT(not l4.is_ctl_simple());
+        TS_ASSERT(not l5.is_ctl_simple());
+    }
+
     void test_copy_add_DSrcCScale()
     {
         load_data();

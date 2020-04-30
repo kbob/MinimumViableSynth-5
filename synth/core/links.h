@@ -272,12 +272,19 @@ public:
         return this == &that;
     }
 
-    bool is_constant() const { return !m_src && !m_ctl; }
     bool is_simple() const
     {
         return m_src &&
               !m_ctl &&
                m_src->data_type() == m_dest->data_type() &&
+               m_scale == 1.0f;
+    }
+
+    bool is_ctl_simple() const
+    {
+        return m_ctl &&
+              !m_src &&
+               m_ctl->data_type() == m_dest->data_type() &&
                m_scale == 1.0f;
     }
 

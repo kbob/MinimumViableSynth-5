@@ -110,15 +110,6 @@ private:
     find_controls_used(const module_subset&);
 
     void
-    calc_mod_predecessors();
-
-    void
-    calc_links_to();
-
-    module_subset
-    collect_pred(module_subset succ, module_subset candidates);
-
-    void
     assemble_prep_steps(const module_subset&, prep_appender&);
 
     void
@@ -127,6 +118,21 @@ private:
                           module_subset done,
                           render_appender&);
 
+    void
+    calc_mod_predecessors();
+
+    void
+    calc_links_to();
+
+    module_subset
+    collect_pred(module_subset succ, module_subset candidates);
+
+    bool
+    link_is_aliasable(const Link&);
+
+    bool
+    owner_is_timbre(const Port *);
+
     const tc_vec& m_tcontrols;
     const tm_vec& m_tmodules;
     const vc_vec& m_vcontrols;
@@ -134,8 +140,6 @@ private:
     const Universe<link_vec, MAX_LINKS> m_links;
     const om_vec& m_omodules;
     Resolver m_resolver;
-    // std::unique_ptr<mod_pred_type> m_mod_predecessors;
-    // std::unique_ptr<link_rel_type> m_links_to;
     deferred<mod_pred_type> m_mod_predecessors;
     deferred<link_rel_type> m_links_to;
 };

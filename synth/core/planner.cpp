@@ -120,11 +120,8 @@ Planner::assemble_prep_steps(const module_subset& modules,
             m_links_to->get(p);
             for (auto& link: m_links_to->get(p).members()) {
                 link_count++;
-                if (link.is_simple()) {
-                    Module *m = static_cast<Module *>(link.src()->owner());
-                    if (modules.contains(m))
-                        s_link = &link;
-                }
+                if (link_is_aliasable(link))
+                    s_link = &link;
             }
             auto di = port_u.index(p);
             if (link_count == 0) {
@@ -133,7 +130,10 @@ Planner::assemble_prep_steps(const module_subset& modules,
             }
             else if (link_count == 1 && s_link) {
                 // simply connected input: alias it to its source.
-                auto si = port_u.index(s_link->src());
+                auto si = port_u.find(s_link->src());
+                if (si < 0)
+                    si = port_u.find(s_link->ctl());
+                assert(si >= 0);
                 add_step = AliasStep(di, si);
             }
             else {
@@ -176,11 +176,11 @@ Planner::assemble_render_steps(const control_subset& controls,
                 bool copied = false;
                 auto links_to_dest = m_links_to->at(di);
                 for (auto& link: links_to_dest.members()) {
-                    auto si = port_u.find(link.src());
-                    if (link.is_simple() && links_to_dest.size() == 1) {
-                        // skip single simple links
+                    if (link_is_aliasable(link)) {
+                        // skip aliased links
                         break;
                     }
+                    auto si = port_u.find(link.src());
                     auto ci = port_u.find(link.ctl());
                     if (!copied) {
                         add_step = CopyStep(di, si, ci, &link);
@@ -193,26 +193,6 @@ Planner::assemble_render_steps(const control_subset& controls,
         }
         done |= ready;
     }
-}
-
-
-Planner::module_subset
-Planner::collect_pred(module_subset succ, module_subset candidates)
-{
-    auto& mod_u = m_resolver.modules();
-    auto pred = mod_u.none;
-    auto cur = succ;
-    while (true) {
-        auto prev = mod_u.none;
-        for (auto mi: cur.indices())
-            prev |= m_mod_predecessors->at(mi);
-        prev &= candidates;
-        if (prev == 0)
-            break;
-        pred |= prev;
-        cur = prev;
-    }
-    return pred;
 }
 
 void
@@ -237,4 +217,74 @@ Planner::calc_links_to()
 {
     for (auto& link: m_links.all.members())
         m_links_to->add(link.dest(), link);
+}
+
+Planner::module_subset
+Planner::collect_pred(module_subset succ, module_subset candidates)
+{
+    auto& mod_u = m_resolver.modules();
+    auto pred = mod_u.none;
+    auto cur = succ;
+    while (true) {
+        auto prev = mod_u.none;
+        for (auto mi: cur.indices())
+            prev |= m_mod_predecessors->at(mi);
+        prev &= candidates - pred;
+        if (prev == 0)
+            break;
+        pred |= prev;
+        cur = prev;
+    }
+    return pred;
+}
+
+bool
+Planner::link_is_aliasable(const Link& link)
+{
+    // Is this link either simple or ctl_simple?
+    OutputPort *src_or_ctl;
+    if (link.is_simple())
+        src_or_ctl = link.src();
+    else if (link.is_ctl_simple())
+        src_or_ctl = link.ctl();
+    else
+        return false;
+
+    // Is this the only link to the dest?
+    auto dest = link.dest();
+    if (m_links_to->get(dest).count() != 1)
+        return false;
+
+    // Because voice signals have to be summed, a link from
+    // a voice module to a timbre module cannot be aliased.
+    if (owner_is_timbre(dest) && !owner_is_timbre(src_or_ctl))
+        return false;
+    return true;
+}
+
+bool
+Planner::owner_is_timbre(const Port *port)
+{
+    // I expect the timbre to have more controls, and the voice
+    // to have more modules.  So we search the presumed-smaller
+    // array.
+    //
+    // And the owner will be a module more than half the time,
+    // so check for a module first.
+
+    auto owner = port->owner();
+    auto mod = dynamic_cast<const Module *>(owner);
+    if (mod) {
+        auto b = m_tmodules.begin();
+        auto e = m_tmodules.end();
+        return std::find(b, e, mod) != e;
+    }
+    auto ctl = dynamic_cast<const Control *>(owner);
+    if (ctl) {
+        auto b = m_vcontrols.begin();
+        auto e = m_vcontrols.end();
+        return std::find(b, e, ctl) == e;   // not voice; must be timbre
+    }
+    assert(false && "unexpected owner");
+    return false;
 }

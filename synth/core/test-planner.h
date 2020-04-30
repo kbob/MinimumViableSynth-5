@@ -2,6 +2,11 @@
 
 #include <cxxtest/TestSuite.h>
 
+class FooControl : public ControlType<FooControl> {
+public:
+    void render(size_t) {}
+};
+
 class FooModule : public ModuleType<FooModule> {
 public:
     FooModule()
@@ -14,6 +19,18 @@ public:
     Output<> out;
     void render(size_t) {}
 };
+
+std::ostream& operator << (std::ostream& o, const PrepStep::Tag& tag)
+{
+    switch (tag) {
+        case PrepStep::Tag::CLEAR:
+            return o << "clear";
+        case PrepStep::Tag::ALIAS:
+            return o << "alias";
+    default:
+        return o << "PrepStep::Tag(" << static_cast<int>(tag) << ")";
+    }
+}
 
 class planner_unit_test : public CxxTest::TestSuite {
 
@@ -28,99 +45,175 @@ public:
         Planner::link_vec links;
         Planner::om_vec om;
         (void)Planner(tc, tm, vc, vm, links, om);
+        TS_TRACE("sizeof (Planner) = " + std::to_string(sizeof (Planner)));
     }
 
-    // void test_module()
-    // {
-    //     Planner n;
-    //     FooModule foo;
-    //     n.module(foo);
-    //
-    //     TS_ASSERT(n.m_modules.size() == 1);
-    //     TS_ASSERT(n.m_modules.at(0) == &foo);
-    // }
-    //
-    // void test_simple_link()
-    // {
-    //     Planner n;
-    //     FooModule foo1, foo2;
-    //     auto link = make_link(&foo2.in, &foo1.out, nullptr);
-    //     n.module(foo1)
-    //      .module(foo2)
-    //      .connection(link);
-    //
-    //     TS_ASSERT(n.m_links.size() == 1);
-    //     const Link *c = n.m_links.at(0);
-    //     TS_ASSERT(c == &link);
-    // }
-    //
-    // void test_control_link()
-    // {
-    //     Planner n;
-    //     FooModule foo1, foo2;
-    //     auto cl = make_link(&foo2.in, &foo1.out, nullptr);
-    //     n.module(foo1)
-    //      .module(foo2)
-    //      .connection(cl);
-    //
-    //     TS_ASSERT(n.m_links.size() == 1);
-    //     Link *p = n.m_links.at(0);
-    //     TS_ASSERT(p == &cl);
-    // }
-    //
-    // // void test_simple_clone()
-    // // {
-    // //     Planner n;
-    // //     FooModule foo1, foo2;
-    // //     n.module(foo1)
-    // //      .module(foo2)
-    // //      .simple_connection(foo1.out, foo2.in);
-    // //     Voice *v = n.make_voice();
-    // //     Voice::module_vector m = v->modules();
-    // //
-    // //     // std::cout << "\n\n";
-    // //     // std::cout << "&foo1 = " << &foo1 << "\n";
-    // //     // std::cout << "&foo2 = " << &foo2 << "\n";
-    // //     // std::cout << "&m[0] = " << m.at(0) << "\n";
-    // //     // std::cout << "\n" << std::endl;
-    // //
-    // //     TS_ASSERT(m.size() == 2);
-    // //     TS_ASSERT(dynamic_cast<FooModule *>(m.at(0)));
-    // //     TS_ASSERT(m.at(0) != &foo1 && m.at(0) != &foo2);
-    // //
-    // //     delete v;
-    // // }
-    //
-    // void test_simple_plan()
-    // {
-    //     Planner n;
-    //     FooModule foo1, foo2;
-    //     auto link = make_link(&foo2.in, &foo1.out, nullptr);
-    //     n.module(foo1)
-    //      .module(foo2)
-    //      .connection(link);
-    //     Plan p = n.make_plan();
-    //
-    //     TS_ASSERT(p.prep().size() == 2);
-    //     TS_ASSERT(p.prep().at(0).tag() == PrepStepTag::CLEAR);
-    //     TS_ASSERT(p.prep().at(1).tag() == PrepStepTag::ALIAS);
-    //     TS_ASSERT(p.run().size() == 2);
-    //     TS_ASSERT(p.run().at(0).tag() == RenderStepTag::MODULE_RENDER);
-    //     TS_ASSERT(p.run().at(1).tag() == RenderStepTag::MODULE_RENDER);
-    // }
-    //
-    // void test_cycle()
-    // {
-    //     Planner n;
-    //     FooModule foo1, foo2;
-    //     auto link1 = make_link(&foo2.in, &foo1.out, nullptr);
-    //     auto link2 = make_link(&foo1.in, &foo2.out, nullptr);
-    //     n.module(foo1)
-    //      .module(foo2)
-    //      .connection(link1)
-    //      .connection(link2);
-    //
-    //     TS_ASSERT_THROWS(n.make_plan(), std::runtime_error);
-    // }
+    FooControl tc0, tc1, tc2, tc3, vc0, vc1;
+    FooModule tm0, tm1, tm2, vm0, vm1;
+    Planner::tc_vec tc{&tc0, &tc1, &tc2, &tc3};
+    Planner::vc_vec vc{&vc0, &vc1};
+    Planner::tm_vec tm{&tm0, &tm1, &tm2};
+    Planner::vm_vec vm{&vm0, &vm1};
+    // Ports:
+    // [
+    //   tc0.out, tc1.out, tc2.out, tc3.out,
+    //   tm0.in,  tm0.out, tm1.in,  tm1.in,
+    //   tm2.in,  tm2.out, vc0.out, vc1.out,
+    //   vm0.in,  vm0.out, vc1.in,  vm1.out
+    // ]
+
+    planner_unit_test()
+    {
+        tm0.name("tm0");
+        tm1.name("tm1");
+        tm2.name("tm2");
+        vm0.name("vm0");
+        vm1.name("vm1");
+    }
+
+    std::string
+    prep_step_rep(const Plan::prep_step_sequence& seq)
+    {
+        std::stringstream ss;
+        ss << "[";
+        std::ostream_iterator<PrepStep> joiner(ss, " ");
+        std::copy(seq.begin(), seq.end(), joiner);
+        auto s = ss.str();
+        if (seq.begin() != seq.end())
+            s = s.substr(0, s.size() - 1);
+        return s + "]";
+    }
+
+    std::string
+    render_rep(const Plan::render_step_sequence& seq)
+    {
+        std::stringstream ss;
+        ss << "[";
+        std::ostream_iterator<RenderStep> joiner(ss, " ");
+        std::copy(seq.begin(), seq.end(), joiner);
+        auto s = ss.str();
+        if (seq.begin() != seq.end())
+            s = s.substr(0, s.size() - 1);
+        return s + "]";
+    }
+
+    void test_reachability()
+    {
+        // Construct graph:
+        //     (tc0 -> tm0) -> (vc0, tc1 -> vm0) -> (tc2 -> tm1)
+        // tc3, vc1, tm2, and vm1 are disconnected.
+
+        Planner::link_vec links;
+        links.emplace_back(&tm0.in, nullptr, &tc0.out);
+        links.emplace_back(&vm0.in, &tm0.out, &vc0.out);
+        links.emplace_back(&vm0.in, nullptr, &tc1.out);
+        links.emplace_back(&tm1.in, &vm0.out, &tc2.out);
+        Planner::om_vec om{&tm1};
+        Planner planner{tc, tm, vc, vm, links, om};
+        Plan plan = planner.make_plan();
+        TS_ASSERT_EQUALS(prep_step_rep(plan.t_prep()),
+                         "[alias(4, 0) alias(6, -1)]");
+        TS_ASSERT_EQUALS(prep_step_rep(plan.v_prep()),
+                         "[alias(12, -1)]");
+        TS_ASSERT_EQUALS(render_rep(plan.pre_render()),
+                         "[crend(0) crend(1) crend(2) mrend(0)]");
+        TS_ASSERT_EQUALS(render_rep(plan.v_render()),
+                         "[crend(4) copy(12, 5, 10) add(12, -1, 1) mrend(3)]")
+        TS_ASSERT_EQUALS(render_rep(plan.post_render()),
+                         "[copy(6, 13, 2) mrend(1)]");
+    }
+
+    void test_simple_ctl_link()
+    {
+        // Construct graph:
+        //    tc0 -> tm0
+
+        Planner::link_vec links;
+        links.emplace_back(&tm0.in, nullptr, &tc0.out);
+        Planner::om_vec om{&tm0};
+        Planner planner{tc, tm, vc, vm, links, om};
+        auto plan = planner.make_plan();;
+        TS_ASSERT_EQUALS(prep_step_rep(plan.t_prep()),
+                         "[alias(4, 0)]");
+        TS_ASSERT_EQUALS(prep_step_rep(plan.v_prep()),
+                         "[]");
+        TS_ASSERT_EQUALS(render_rep(plan.pre_render()),
+                         "[crend(0)]");
+        TS_ASSERT_EQUALS(render_rep(plan.v_render()),
+                         "[]")
+        TS_ASSERT_EQUALS(render_rep(plan.post_render()),
+                         "[mrend(0)]");
+    }
+
+    void test_simple_mod_link()
+    {
+        // Construct graph:
+        //     tm0 -> tm1
+
+        Planner::link_vec links;
+        links.emplace_back(&tm1.in, &tm0.out, nullptr);
+        Planner::om_vec om{&tm1};
+        Planner planner{tc, tm, vc, vm, links, om};
+        auto plan = planner.make_plan();;
+        TS_ASSERT_EQUALS(prep_step_rep(plan.t_prep()),
+                         "[clear(4, 0) alias(6, 5)]");
+        TS_ASSERT_EQUALS(prep_step_rep(plan.v_prep()),
+                         "[]");
+        TS_ASSERT_EQUALS(render_rep(plan.pre_render()),
+                         "[]");
+        TS_ASSERT_EQUALS(render_rep(plan.v_render()),
+                         "[]")
+        TS_ASSERT_EQUALS(render_rep(plan.post_render()),
+                         "[mrend(0) mrend(1)]");
+    }
+
+    void test_v_to_post_simple_link()
+    {
+        // Construct graph:
+        //     vm0 -> tm0
+
+        Planner::link_vec links;
+        links.emplace_back(&tm0.in, &vm0.out, nullptr);
+        Planner::om_vec om{&tm0};
+        Planner planner{tc, tm, vc, vm, links, om};
+        auto plan = planner.make_plan();;
+        TS_ASSERT_EQUALS(prep_step_rep(plan.t_prep()),
+                         "[alias(4, -1)]");
+        TS_ASSERT_EQUALS(prep_step_rep(plan.v_prep()),
+                         "[clear(12, 0)]");
+        TS_ASSERT_EQUALS(render_rep(plan.pre_render()),
+                         "[]");
+        TS_ASSERT_EQUALS(render_rep(plan.v_render()),
+                         "[mrend(3)]")
+        TS_ASSERT_EQUALS(render_rep(plan.post_render()),
+                         "[copy(4, 13, -1) mrend(0)]");
+    }
+
+    void test_timbre_cycle()
+    {
+        // Construct graph:
+        //     tm0 -> tm1 -> tm0
+
+        Planner::link_vec links;
+        links.emplace_back(&tm1.in, &tm0.out, nullptr);
+        links.emplace_back(&tm0.in, &tm1.out, nullptr);
+        Planner::om_vec om{&tm1};
+        Planner planner{tc, tm, vc, vm, links, om};
+        TS_ASSERT_THROWS(planner.make_plan(), std::runtime_error);
+    }
+
+    void test_voice_cycle()
+    {
+        // Construct graph:
+        //     vm1 -> vm0 -> vm1 -> tm0
+
+        Planner::link_vec links;
+        links.emplace_back(&vm1.in, &vm0.out, nullptr);
+        links.emplace_back(&vm0.in, &vm1.out, nullptr);
+        links.emplace_back(&tm0.in, &vm1.out, nullptr);
+        Planner::om_vec om{&tm0};
+        Planner planner{tc, tm, vc, vm, links, om};
+        TS_ASSERT_THROWS(planner.make_plan(), std::runtime_error);
+    }
 
 };
