@@ -117,10 +117,14 @@ public:
                          "[alias(12, -1)]");
         TS_ASSERT_EQUALS(render_rep(plan.pre_render()),
                          "[crend(0) crend(1) crend(2) mrend(0)]");
+        // TS_ASSERT_EQUALS(render_rep(plan.v_render()),
+        //           "[crend(4) copy(12, 5, 10) add(12, -1, 1) mrend(3)]")
+        // TS_ASSERT_EQUALS(render_rep(plan.post_render()),
+        //                  "[copy(6, 13, 2) mrend(1)]");
         TS_ASSERT_EQUALS(render_rep(plan.v_render()),
-                         "[crend(4) copy(12, 5, 10) add(12, -1, 1) mrend(3)]")
+                         "[crend(4) mrend(3)]")
         TS_ASSERT_EQUALS(render_rep(plan.post_render()),
-                         "[copy(6, 13, 2) mrend(1)]");
+                         "[mrend(1)]");
     }
 
     void test_simple_ctl_link()
@@ -185,8 +189,10 @@ public:
                          "[]");
         TS_ASSERT_EQUALS(render_rep(plan.v_render()),
                          "[mrend(3)]")
+        // TS_ASSERT_EQUALS(render_rep(plan.post_render()),
+        //                  "[copy(4, 13, -1) mrend(0)]");
         TS_ASSERT_EQUALS(render_rep(plan.post_render()),
-                         "[copy(4, 13, -1) mrend(0)]");
+                         "[mrend(0)]");
     }
 
     void test_timbre_cycle()

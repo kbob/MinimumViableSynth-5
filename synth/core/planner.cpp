@@ -180,6 +180,20 @@ Planner::assemble_render_steps(const control_subset& controls,
                         // skip aliased links
                         break;
                     }
+                    // If src is not in this section, don't emit the action.
+                    if (link.src()) {
+                        assert(dynamic_cast<Module *>(link.src()->owner()));
+                        auto mod = static_cast<Module *>(link.src()->owner());
+                        if (!section.contains(mod))
+                            break;
+                    }
+                    // If ctl is not in this section, don't emit the action.
+                    if (link.ctl()) {
+                        auto mod = dynamic_cast<Module *>(link.ctl()->owner());
+                        if (mod && !section.contains(mod))
+                            break;
+                    }
+
                     auto si = port_u.find(link.src());
                     auto ci = port_u.find(link.ctl());
                     if (!copied) {

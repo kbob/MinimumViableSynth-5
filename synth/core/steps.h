@@ -115,7 +115,10 @@ public:
     {
         InputPort *dest = step_util::index_to_inport(m_dest_port_index, res);
         OutputPort *src = step_util::index_to_outport(m_src_port_index, res);
-        dest->alias(src->void_buf());
+        if (src)
+            dest->alias(src->void_buf());
+        else
+            dest->alias(nullptr);
     }
 
     friend std::ostream&

@@ -30,8 +30,9 @@ public:
     typedef fixed_vector<Control *, MAX_TIMBRE_CONTROLS> control_vector;
     typedef fixed_vector<Module *, MAX_TIMBRE_MODULES> module_vector;
 
-    Timbre()
-    : m_current_patch{nullptr},
+    Timbre(bool delete_components = true)
+    : m_delete_components{delete_components},
+      m_current_patch{nullptr},
       m_default_patch{nullptr},
       m_plan{Plan{}},
       m_controls{},
@@ -49,6 +50,7 @@ public:
       m_pre_actions{},
       m_post_actions{}
     {
+        assert(this != &that);
         for (auto *c: that.m_controls)
             m_controls.push_back(c->clone());
         for (auto *m: that.m_modules)
@@ -59,9 +61,15 @@ public:
 
     ~Timbre()
     {
-        while (!m_modules.empty()) {
-            delete m_modules.back();
-            m_modules.pop_back();
+        if (m_delete_components) {
+            while (!m_controls.empty()) {
+                delete m_controls.back();
+                m_controls.pop_back();
+            }
+            while (!m_modules.empty()) {
+                delete m_modules.back();
+                m_modules.pop_back();
+            }
         }
     }
 
@@ -75,10 +83,22 @@ public:
     void plan(const Plan& p) { m_plan = p; }
 
     const control_vector& controls() const { return m_controls; }
-    void add_control(Control *c) { m_controls.push_back(c); }
+    void add_control(Control *c)
+    {
+        control_vector& ctls{m_controls};
+        // Verify it isn't already added.
+        assert(std::find(ctls.begin(), ctls.end(), c) == ctls.end());
+        ctls.push_back(c);
+    }
 
     const module_vector& modules() const { return m_modules; }
-    void add_module(Module *m) { m_modules.push_back(m); }
+    void add_module(Module *m)
+    {
+        module_vector& mods{m_modules};
+        // Verify it isn't already added.
+        assert(std::find(mods.begin(), mods.end(), m) == mods.end());
+        mods.push_back(m);
+    }
 
     const render_action_sequence pre_actions() const { return m_pre_actions; }
     void pre_actions(const render_action_sequence& a) { m_pre_actions = a; }
@@ -99,6 +119,8 @@ public:
     }
 
 private:
+
+    bool m_delete_components;
     Patch *m_current_patch;
     Patch *m_default_patch;     // XXX should be a copy, not a pointer.
     Plan m_plan;

@@ -21,7 +21,7 @@ class Timbre;
 //
 // A Voice can:
 //     start, release, and kill a note.
-//     render a sample chunk.
+//     render a frame chunk.
 
 class Voice {
 
@@ -37,8 +37,10 @@ public:
     typedef fixed_vector<Control *, MAX_VOICE_CONTROLS> control_vector;
     typedef fixed_vector<Module *, MAX_VOICE_MODULES> module_vector;
 
-    Voice()
-    : m_state{State::IDLE} {}
+    Voice(bool delete_components = true)
+    : m_delete_components{delete_components},
+      m_state{State::IDLE}
+    {}
 
     Voice(const Voice& that)
     : m_state{State::IDLE},
@@ -57,13 +59,15 @@ public:
 
     ~Voice()
     {
-        while (!m_modules.empty()) {
-            delete m_modules.back();
-            m_modules.pop_back();
-        }
-        while (!m_controls.empty()) {
-            delete m_controls.back();
-            m_controls.pop_back();
+        if (m_delete_components) {
+            while (!m_modules.empty()) {
+                delete m_modules.back();
+                m_modules.pop_back();
+            }
+            while (!m_controls.empty()) {
+                delete m_controls.back();
+                m_controls.pop_back();
+            }
         }
     }
 
@@ -73,10 +77,22 @@ public:
     void timbre(Timbre *t) { m_timbre = t; }
 
     const control_vector& controls() const { return m_controls; }
-    void add_control(Control *c) { m_controls.push_back(c); }
+    void add_control(Control *c)
+    {
+        control_vector& ctls{m_controls};
+        // Verify it isn't already added.
+        assert(std::find(ctls.begin(), ctls.end(), c) == ctls.end());
+        ctls.push_back(c);
+    }
 
     const module_vector& modules() const { return m_modules; }
-    void add_module(Module *m) { m_modules.push_back(m); }
+    void add_module(Module *m)
+    {
+        module_vector& mods{m_modules};
+        // Verify it isn't already added.
+        assert(std::find(mods.begin(), mods.end(), m) == mods.end());
+        mods.push_back(m);
+    }
 
     const render_action_sequence actions() const { return m_actions; }
     void actions(const render_action_sequence& a) { m_actions = a; }
@@ -105,6 +121,7 @@ public:
 
 private:
 
+    bool m_delete_components;
     State m_state;
     Timbre *m_timbre;
     control_vector m_controls;
