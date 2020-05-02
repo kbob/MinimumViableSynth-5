@@ -56,8 +56,6 @@ public:
     virtual void init() {}
     virtual render_action make_render_action() = 0;
 
-    // virtual void render(size_t frame_count) = 0;
-
 protected:
 
     Module() = default;
@@ -79,12 +77,14 @@ public:
 
     Module *clone() const override
     {
+        assert(dynamic_cast<const M *>(this));
         return new M(static_cast<const M&>(*this));
     }
 
     render_action make_render_action() override
     {
         return [this] (size_t frame_count) {
+            assert(dynamic_cast<M *>(this));
             static_cast<M *>(this)->render(frame_count);
         };
     }
