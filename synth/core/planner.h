@@ -4,7 +4,6 @@
 #include "synth/core/config.h"
 #include "synth/core/links.h"
 #include "synth/core/modules.h"
-#include "synth/core/mod-vector.h"
 #include "synth/core/plan.h"
 #include "synth/core/ported.h"
 #include "synth/core/voice.h"

@@ -2,7 +2,6 @@ example
 test-action
 test-controls
 test-links
-test-mod-vector
 test-modules
 test-patch
 test-plan
