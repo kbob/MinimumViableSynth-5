@@ -40,4 +40,28 @@ private:
 
 };
 
+inline std::ostream&
+operator << (std::ostream& o, const Plan::prep_step_sequence& seq)
+{
+    o << '[';
+    const char *sep = "";
+    for (auto& step: seq) {
+        o << sep << step;
+        sep = " ";
+    }
+    return o << ']';
+}
+
+inline std::ostream&
+operator << (std::ostream& o, const Plan::render_step_sequence& seq)
+{
+    o << '[';
+    const char *sep = "";
+    for (auto& step: seq) {
+        o << sep << step;
+        sep = " ";
+    }
+    return o << ']';
+}
+
 #endif /* !PLAN_included */
