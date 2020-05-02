@@ -2,7 +2,7 @@
 #define PLANNER_included
 
 #include "synth/core/config.h"
-#include "synth/core/links.h"
+#include "synth/core/link.h"
 #include "synth/core/modules.h"
 #include "synth/core/plan.h"
 #include "synth/core/ported.h"

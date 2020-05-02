@@ -4,7 +4,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "synth/core/links.h"
+#include "synth/core/link.h"
 #include "synth/core/resolver.h"
 
 namespace step_util {

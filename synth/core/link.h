@@ -1,5 +1,5 @@
-#ifndef LINKS_included
-#define LINKS_included
+#ifndef LINK_included
+#define LINK_included
 
 #include <cstddef>
 #include <functional>
@@ -320,8 +320,8 @@ private:
     action_maker m_make_copy;
     action_maker m_make_add;
 
-    friend class links_unit_test;
+    friend class link_unit_test;
 
 };
 
-#endif /* !LINKS_included */
+#endif /* !LINK_included */

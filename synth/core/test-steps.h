@@ -2,8 +2,6 @@
 
 #include <cxxtest/TestSuite.h>
 
-#include "synth/core/links.h"
-
 class steps_unit_test : public CxxTest::TestSuite {
 
 public:

@@ -2,7 +2,7 @@
 #define PATCH_included
 
 #include "synth/core/config.h"
-#include "synth/core/links.h"
+#include "synth/core/link.h"
 #include "synth/util/noalloc.h"
 
 

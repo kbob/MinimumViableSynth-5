@@ -1,8 +1,8 @@
-#include "links.h"
+#include "link.h"
 
 #include <cxxtest/TestSuite.h>
 
-class links_unit_test : public CxxTest::TestSuite {
+class link_unit_test : public CxxTest::TestSuite {
 
 public:
 
