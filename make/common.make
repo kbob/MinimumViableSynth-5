@@ -61,7 +61,7 @@ r := $(r:make/common.make=)
 r := $(r:/=)
 
 # invoke make with BUILD=release for release build.
-    debug_OPT := -O0 -fsanitize=bounds -g
+    debug_OPT := -O0 -fsanitize=address,bounds,undefined -g
   release_OPT := -O3 -DNDEBUG
         BUILD := debug
           OPT := $($(BUILD)_OPT)
