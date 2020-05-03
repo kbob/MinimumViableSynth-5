@@ -6,7 +6,7 @@
 #include "synth/core/controls.h"
 #include "synth/core/modules.h"
 #include "synth/core/plan.h"
-#include "synth/util/noalloc.h"
+#include "synth/util/fixed-vector.h"
 
 class Patch;
 

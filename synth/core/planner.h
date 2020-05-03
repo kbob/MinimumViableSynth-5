@@ -7,8 +7,7 @@
 #include "synth/core/plan.h"
 #include "synth/core/ported.h"
 #include "synth/core/voice.h"
-#include "synth/util/bijection.h"
-#include "synth/util/noalloc.h"
+#include "synth/util/fixed-vector.h"
 #include "synth/util/relation.h"
 #include "synth/util/universe.h"
 

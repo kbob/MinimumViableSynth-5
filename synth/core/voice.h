@@ -6,7 +6,7 @@
 #include "synth/core/controls.h"
 #include "synth/core/modules.h"
 #include "synth/core/plan.h"
-#include "synth/util/noalloc.h"
+#include "synth/util/fixed-vector.h"
 
 class Timbre;
 
@@ -43,7 +43,8 @@ public:
     {}
 
     Voice(const Voice& that)
-    : m_state{State::IDLE},
+    : m_delete_components{true},
+      m_state{State::IDLE},
       m_timbre{nullptr},
       m_controls{},
       m_modules{},

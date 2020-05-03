@@ -7,7 +7,7 @@
 #include "synth/core/modules.h"
 #include "synth/core/resolver.h"
 #include "synth/core/steps.h"
-#include "synth/util/noalloc.h"
+#include "synth/util/fixed-vector.h"
 
 // A Plan has five sequences of Steps.
 

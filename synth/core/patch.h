@@ -3,7 +3,7 @@
 
 #include "synth/core/config.h"
 #include "synth/core/link.h"
-#include "synth/util/noalloc.h"
+#include "synth/util/fixed-vector.h"
 
 
 // -- Patch -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //

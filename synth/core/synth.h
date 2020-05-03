@@ -7,7 +7,7 @@
 #include "synth/core/planner.h"
 #include "synth/core/timbre.h"
 #include "synth/core/voice.h"
-#include "synth/util/noalloc.h"
+#include "synth/util/fixed-vector.h"
 
 class Control;
 class Module;

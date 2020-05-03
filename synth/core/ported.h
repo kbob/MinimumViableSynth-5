@@ -3,7 +3,7 @@
 
 #include "synth/core/config.h"
 #include "synth/core/ports.h"
-#include "synth/util/noalloc.h"
+#include "synth/util/fixed-vector.h"
 
 // Ported is a mixin class for objects that have ports.
 class Ported {

@@ -1,7 +1,7 @@
 #include "universe.h"
 
 #include <list>
-#include "synth/util/noalloc.h"
+#include "synth/util/fixed-vector.h"
 
 #include <cxxtest/TestSuite.h>
 

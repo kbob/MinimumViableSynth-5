@@ -4,7 +4,7 @@
 #include <functional>
 
 #include "synth/core/config.h"
-#include "synth/util/noalloc.h"
+#include "synth/util/fixed-vector.h"
 
 typedef std::function<void(size_t)> render_action;
 typedef fixed_vector<render_action, MAX_RENDER_ACTIONS> render_action_sequence;

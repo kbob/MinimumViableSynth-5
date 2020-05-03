@@ -816,7 +816,18 @@ public:
         TS_ASSERT(!(v4 != v4));
     }
 
-    void test_less_than()
+    // Consolidate these tests so the test runner progress bar
+    // doesn't overrun column 80.
+
+    void test_inequality_operators()
+    {
+        subtest_less_than();
+        subtest_less_or_equal();
+        subtest_greater_than();
+        subtest_greater_or_equal();
+    }
+
+    void subtest_less_than()
     {
         fixed_vector<int, 4> v1{1}, v2{1, 2}, v3{1, 3}, v4{1, 2};
         TS_ASSERT(!(v1 < v1));
@@ -840,7 +851,7 @@ public:
         TS_ASSERT(!(v4 < v4));
     }
 
-    void test_less_or_equal()
+    void subtest_less_or_equal()
     {
         fixed_vector<int, 4> v1{1}, v2{1, 2}, v3{1, 3}, v4{1, 2};
 
@@ -865,7 +876,7 @@ public:
         TS_ASSERT( (v4 <= v4));
     }
 
-    void test_greater_than()
+    void subtest_greater_than()
     {
         fixed_vector<int, 4> v1{1}, v2{1, 2}, v3{1, 3}, v4{1, 2};
 
@@ -890,7 +901,7 @@ public:
         TS_ASSERT(!(v4 > v4));
     }
 
-    void test_greater_or_equal()
+    void subtest_greater_or_equal()
     {
         fixed_vector<int, 4> v1{1}, v2{1, 2}, v3{1, 3}, v4{1, 2};
 

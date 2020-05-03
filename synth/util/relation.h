@@ -1,7 +1,7 @@
 #ifndef RELATION_included
 #define RELATION_included
 
-#include "synth/util/noalloc.h"
+#include "synth/util/fixed-vector.h"
 #include "synth/util/universe.h"
 
 template <class U1, class U2>

@@ -6,7 +6,7 @@
 #include "synth/core/action.h"
 #include "synth/core/ported.h"
 #include "synth/core/ports.h"
-#include "synth/util/noalloc.h"
+#include "synth/util/fixed-vector.h"
 
 // -- Modules  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 //
