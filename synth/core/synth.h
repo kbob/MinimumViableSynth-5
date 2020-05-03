@@ -49,8 +49,8 @@ public:
       m_finalized{false}
     {
         assert(polyphony && timbrality);
-        m_timbres.reserve(MAX_TIMBRALITY);  // XXX should not be needed
-        m_voices.reserve(MAX_POLYPHONY);    // XXX
+        // m_timbres.reserve(MAX_TIMBRALITY);  // XXX should not be needed
+        // m_voices.reserve(MAX_POLYPHONY);    // XXX
         m_timbres.emplace_back(false);
         m_voices.emplace_back(false);
     }
