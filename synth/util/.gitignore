@@ -1,5 +1,6 @@
 test-bijection
 test-deferred
+test-fixed-vector
 test-noalloc
 test-relation
 test-span-map
