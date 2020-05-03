@@ -33,6 +33,11 @@ public:
         return m_matrix[m_u1.index(v1)].test(m_u2.index(v2));
     }
 
+    const sub2_type& operator [] (size_t index) const
+    {
+        return m_matrix[index];
+    }
+
     const sub2_type& at(size_t index) const
     {
         return m_matrix.at(index);

@@ -15,7 +15,8 @@ class Subset;
 //      u == u
 //      u != u2
 //      u.size()                // 3
-//      u[0]                    // 'a'
+//      u[0]                    // 'a' - undefined if out of range
+//      u.at(1)                 // 'b' - throws if out of range
 //      u.find('b')             // 1; -1 if not present
 //      u.index('c')            // 2; throws if not present
 //      ostream << u            // "{a b c}"
@@ -28,8 +29,6 @@ class Subset;
 //      u.none                  // {}
 //      u.all                   // {a b c}
 
-// XXX need to consistently provide both operator [] and .at() with
-//     appropriate error checking.
 template <class C, size_t N>
 class Universe {
 
@@ -69,6 +68,11 @@ public:
     }
 
     const member_type& operator [] (size_t index) const
+    {
+        return m_ref[index];
+    }
+
+    const member_type& at(size_t index) const
     {
         return m_ref.at(index);
     }

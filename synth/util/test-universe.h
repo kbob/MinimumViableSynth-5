@@ -106,7 +106,16 @@ public:
         TS_ASSERT_EQUALS(u[1], Turtle::Mich);
         TS_ASSERT_EQUALS(u[2], Turtle::Don);
         TS_ASSERT_EQUALS(u[3], Turtle::Raph);
-        TS_ASSERT_THROWS(u[4], std::logic_error);
+    }
+
+    void test_at()
+    {
+        const U u(turtles);
+        TS_ASSERT_EQUALS(u.at(0), Turtle::Leo);
+        TS_ASSERT_EQUALS(u.at(1), Turtle::Mich);
+        TS_ASSERT_EQUALS(u.at(2), Turtle::Don);
+        TS_ASSERT_EQUALS(u.at(3), Turtle::Raph);
+        TS_ASSERT_THROWS(u.at(4), std::out_of_range);
     }
 
     void test_subset_bits()
