@@ -1,4 +1,3 @@
-TESTS := test-bijection test-deferred test-fixed-vector test-noalloc    \
-         test-relation test-span-map test-universe test-vec-map
+TESTS := test-deferred test-fixed-vector test-relation test-universe
 
 include ../../make/common.make
