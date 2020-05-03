@@ -4,6 +4,7 @@
 #include <cassert>
 #include <initializer_list>
 #include <stdexcept>
+#include <utility>
 
 
 // A vector with fixed memory allocation.
@@ -16,6 +17,7 @@
 //    - `allocator_type` is undefiend.
 //    - `get_allocator` is undefined.
 //    - move constructor moves elements instead of moving vector.
+//    - `swap` and `std::swap` swap elements instead of whole vector.
 
 template <class T, size_t N>
 class fixed_vector {
@@ -36,9 +38,6 @@ class fixed_vector {
                 I
             >::type;
 
-    template <class V>
-    class iter_tmpl {};
-
 public:
 
     // Types
@@ -47,8 +46,6 @@ public:
     typedef const T&                              const_reference;
     typedef T                                    *pointer;
     typedef const T                              *const_pointer;
-    // typedef iter_tmpl<T>                          iterator;
-    // typedef iter_tmpl<const T>                    const_iterator;
     typedef pointer                               iterator;
     typedef const_pointer                         const_iterator;
     typedef std::reverse_iterator<iterator>       reverse_iterator;
@@ -121,7 +118,9 @@ public:
     iterator insert(const_iterator, const value_type&);
     iterator insert(const_iterator, size_type, const value_type&);
     template <class InputIterator>
-        iterator insert(const_iterator, InputIterator, InputIterator);
+        iterator insert(const_iterator,
+                        InputIterator,
+                        compat_input_iter<InputIterator>);
     iterator insert(const_iterator, value_type&&);
     iterator insert(const_iterator, std::initializer_list<value_type>);
     iterator erase(const_iterator);
@@ -132,17 +131,6 @@ public:
         iterator emplace(const_iterator, Args&&...);
     template <class... Args>
         void emplace_back(Args&&...);
-
-    // Relational Operators
-    friend bool operator == (const fixed_vector&, const fixed_vector&);
-    friend bool operator != (const fixed_vector&, const fixed_vector&);
-    friend bool operator <  (const fixed_vector&, const fixed_vector&);
-    friend bool operator <= (const fixed_vector&, const fixed_vector&);
-    friend bool operator >  (const fixed_vector&, const fixed_vector&);
-    friend bool operator >= (const fixed_vector&, const fixed_vector&);
-
-    // Swap
-    friend void swap(fixed_vector&, fixed_vector&);
 
 private:
 
@@ -165,6 +153,25 @@ private:
 
 };
 
+// Relational Operators
+template <class T, size_t N>
+bool operator == (const fixed_vector<T, N>&, const fixed_vector<T, N>&);
+
+template <class T, size_t N>
+bool operator != (const fixed_vector<T, N>&, const fixed_vector<T, N>&);
+
+template <class T, size_t N>
+bool operator < (const fixed_vector<T, N>&, const fixed_vector<T, N>&);
+
+template <class T, size_t N>
+bool operator <= (const fixed_vector<T, N>&, const fixed_vector<T, N>&);
+
+template <class T, size_t N>
+bool operator > (const fixed_vector<T, N>&, const fixed_vector<T, N>&);
+
+template <class T, size_t N>
+bool operator >= (const fixed_vector<T, N>&, const fixed_vector<T, N>&);
+
 
 // -- Constructors - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 
@@ -182,7 +189,7 @@ fixed_vector<T, N>::fixed_vector(size_type n)
 {
     assert(n <= N);
     for (size_t i = 0; i < n; i++)
-        (void)new (m_end++) T;
+        emplace_back();
 }
 
 template<class T, size_t N>
@@ -192,7 +199,7 @@ fixed_vector<T, N>::fixed_vector(size_type n, const value_type& val)
 {
     assert(n <= N);
     for (size_t i = 0; i < n; i++)
-        (void)new (m_end++) T(val);
+        push_back(val);
 }
 
 template <class T, size_t N>
@@ -205,22 +212,22 @@ fixed_vector<T, N>::fixed_vector(
 : m_end{ptr()}
 {
     for ( ; first != last; ++first)
-         emplace_back(*first);
+         push_back(*first);
 }
 
 template <class T, size_t N>
 inline
 fixed_vector<T, N>::fixed_vector(const fixed_vector& that)
-: m_end(ptr())
+: m_end{ptr()}
 {
     for (auto& item: that)
-        emplace_back(item);
+        push_back(item);
 }
 
 template <class T, size_t N>
 inline
 fixed_vector<T, N>::fixed_vector(fixed_vector&& that)
-: m_end(ptr())
+: m_end{ptr()}
 {
     for (auto& item: that)
         (void) new (m_end++) T(std::move(item));
@@ -230,7 +237,7 @@ fixed_vector<T, N>::fixed_vector(fixed_vector&& that)
 template <class T, size_t N>
 inline
 fixed_vector<T, N>::fixed_vector(std::initializer_list<value_type> il)
-: m_end(ptr())
+: m_end{ptr()}
 {
     for (auto& item: il)
         emplace_back(item);
@@ -243,11 +250,7 @@ template <class T, size_t N>
 inline
 fixed_vector<T, N>::~fixed_vector()
 {
-    // XXX
-    // while (size())
-    //     pop_back();
-    for (size_t i = size(); i-- > 0; )
-        ptr()[i].~T();
+    clear();
 }
 
 
@@ -259,14 +262,9 @@ fixed_vector<T, N>&
 fixed_vector<T, N>::operator = (const fixed_vector& that)
 {
     if (this != &that) {
-        // XXX use:
-        // while (size())
-        //     pop_back();
-        for (size_t i = size(); i-- > 0; )
-            ptr()[i].~T();
-        m_end = ptr();
+        clear();
         for (auto& item: that)
-            emplace_back(item);
+            push_back(item);
     }
     return *this;
 }
@@ -277,12 +275,7 @@ fixed_vector<T, N>&
 fixed_vector<T, N>::operator = (fixed_vector&& that)
 {
     if (this != &that) {
-        // XXX use:
-        // while (size())
-        //     pop_back();
-        for (size_t i = size(); i-- > 0; )
-            ptr()[i].~T();
-        m_end = ptr();
+        clear();
         for (auto& item: that)
             (void)new (m_end++) T(std::move(item));
     }
@@ -295,12 +288,7 @@ fixed_vector<T, N>&
 fixed_vector<T, N>::operator = (std::initializer_list<value_type> il)
 {
     assert(il.size() <= N);
-    // XXX use:
-    // while (size())
-    //     pop_back();
-    for (size_t i = size(); i-- > 0; )
-        ptr()[i].~T();
-    m_end = ptr();
+    clear();
     for (auto& item: il)
         emplace_back(item);
     return *this;
@@ -451,7 +439,7 @@ fixed_vector<T, N>::resize(size_type n, const value_type& val)
     } else {
         assert(n <= N);
         while (n > size())
-            emplace_back(val);
+            push_back(val);
     }
 }
 
@@ -591,30 +579,48 @@ fixed_vector<T, N>::assign(
         compat_input_iter<InputIterator> last
     )
 {
-    while (size())
-        pop_back();
+    clear();
     for ( ; first != last; ++first)
-         emplace_back(*first);
+         push_back(*first);
 }
-
-// void assign(size_type, const value_type&);
-// void assign(std::initializer_list<value_type>);
 
 template <class T, size_t N>
 inline
 void
-fixed_vector<T, N>::push_back(const value_type& item)
+fixed_vector<T, N>::assign(size_type n, const value_type& val)
 {
-    emplace_back(item);
+    assert(n <= N);
+    clear();
+    for (size_t i = 0; i < n; i++)
+        push_back(val);
 }
 
 template <class T, size_t N>
 inline
 void
-fixed_vector<T, N>::push_back(value_type&& item)
+fixed_vector<T, N>::assign(std::initializer_list<value_type> il)
+{
+    assert(il.size() <= N);
+    clear();
+    for (auto& item: il)
+        emplace_back(item);
+}
+
+template <class T, size_t N>
+inline
+void
+fixed_vector<T, N>::push_back(const value_type& val)
+{
+    emplace_back(val);
+}
+
+template <class T, size_t N>
+inline
+void
+fixed_vector<T, N>::push_back(value_type&& val)
 {
     assert(size() < N);
-    (void)new (m_end++) T(std::move(item));
+    (void)new (m_end++) T(std::move(val));
 }
 
 template <class T, size_t N>
@@ -626,19 +632,161 @@ fixed_vector<T, N>::pop_back()
     (--m_end)->~T();
 }
 
-// void pop_back();
-// iterator insert(const_iterator, const value_type&);
-// iterator insert(const_iterator, size_type, const value_type&);
-// template <class InputIterator>
-//     iterator insert(const_iterator, InputIterator, InputIterator);
-// iterator insert(const_iterator, value_type&&);
-// iterator insert(const_iterator, std::initializer_list<value_type>);
-// iterator erase(const_iterator);
-// iterator erase(const_iterator, const_iterator);
-// void swap(fixed_vector&);
-// void clear() noexcept;
-// template <class... Args>
-//     iterator emplace(const_iterator, Args&&...);
+template <class T, size_t N>
+inline
+typename fixed_vector<T, N>::iterator
+fixed_vector<T, N>::insert(const_iterator pos, const value_type& val)
+{
+    assert(size() + 1 <= N);
+    assert(ptr() <= pos && pos <= m_end);
+    T *to = m_end + 1;
+    T *from = m_end++;
+    while (from != pos)
+        (void)new (--to) T(std::move(*--from));
+    (void)new (from) T(val);
+    return from;
+}
+
+template <class T, size_t N>
+inline
+typename fixed_vector<T, N>::iterator
+fixed_vector<T, N>::insert(const_iterator pos,
+                           size_type n,
+                           const value_type& val)
+{
+    assert(size() + n <= N);
+    assert(ptr() <= pos && pos <= m_end);
+    T *to = m_end + n;
+    T *from = m_end;
+    m_end += n;
+    while (from != pos)
+        (void)new (--to) T(std::move(*--from));
+    for (size_t i = 0; i < n; i++)
+        (void)new (from + i) T(val);
+    return from;
+}
+
+template <class T, size_t N>
+template <class InputIterator>
+inline
+typename fixed_vector<T, N>::iterator
+fixed_vector<T, N>::insert(const_iterator pos,
+                           InputIterator first,
+                           compat_input_iter<InputIterator> last)
+{
+    size_t n = std::distance(first, last);
+    assert(size() + n <= N);
+    assert(ptr() <= pos && pos <= m_end);
+    T *to = m_end + n;
+    T *from = m_end;
+    m_end += n;
+    while (from != pos)
+        (void)new (--to) T(std::move(*--from));
+    for (to = from; first != last; first++)
+        (void)new (to++) T(*first);
+    return from;
+}
+
+template <class T, size_t N>
+inline
+typename fixed_vector<T, N>::iterator
+fixed_vector<T, N>::insert(const_iterator pos, value_type&& val)
+{
+    assert(size() + 1 <= N);
+    assert(ptr() <= pos && pos <= m_end);
+    T *to = m_end + 1;
+    T *from = m_end++;
+    while (from != pos)
+        (void)new (--to) T(std::move(*--from));
+    (void)new (from) T(std::move(val));
+    return from;
+}
+
+template <class T, size_t N>
+inline
+typename fixed_vector<T, N>::iterator
+fixed_vector<T, N>::insert(const_iterator pos,
+                           std::initializer_list<value_type> il)
+{
+    size_t n = il.size();
+    assert(size() + n <= N);
+    assert(ptr() <= pos && pos <= m_end);
+    T *to = m_end + n;
+    T *from = m_end;
+    m_end += n;
+    while (from != pos)
+        (void)new (--to) T(std::move(*--from));
+    to = from;
+    for (auto& item: il)
+        (void)new (to++) T(item);
+    return from;
+}
+
+template <class T, size_t N>
+inline
+typename fixed_vector<T, N>::iterator
+fixed_vector<T, N>::erase(const_iterator pos)
+{
+    assert(size() >= 1);
+    assert(ptr() <= pos && pos + 1 <= m_end);
+    T *to = const_cast<T *>(pos);
+    T *from = to + 1;
+    to->~T();
+    while (from != m_end)
+        (void)new (to++) T(std::move(*from++));
+    m_end -= 1;
+    return const_cast<iterator>(pos);
+}
+
+template <class T, size_t N>
+inline
+typename fixed_vector<T, N>::iterator
+fixed_vector<T, N>::erase(const_iterator first, const_iterator last)
+{
+    assert(ptr() <= first && first <= last && last <= m_end);
+    T *first_mut = const_cast<T *>(first);
+    for (T *p = first_mut; p != last; p++)
+        p->~T();
+    T *from = const_cast<T *>(last);
+    T *to = first_mut;
+    while (from != m_end)
+        (void)new (to++) T(std::move(*from++));
+    m_end = to;
+    return first_mut;
+}
+
+template <class T, size_t N>
+inline
+void
+fixed_vector<T, N>::swap(fixed_vector& that)
+{
+    std::swap(*this, that);
+}
+
+template <class T, size_t N>
+inline
+void
+fixed_vector<T, N>::clear() noexcept
+{
+    while (size())
+        pop_back();
+}
+
+template <class T, size_t N>
+template <class... Args>
+inline
+typename fixed_vector<T, N>::iterator
+fixed_vector<T, N>::emplace(const_iterator pos, Args&&... args)
+{
+    assert(size() + 1 <= N);
+    assert(ptr() <= pos && pos <= m_end);
+    T *to = m_end + 1;
+    T *from = m_end++;
+    while (from != pos)
+        (void)new (--to) T(std::move(*--from));
+    (void)new (from) T(args...);
+    return from;
+}
 
 template <class T, size_t N>
 template <class... Args>
@@ -652,16 +800,66 @@ fixed_vector<T, N>::emplace_back(Args&&... args)
 
 // -- Relational Operators -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 
-// friend bool operator == (const fixed_vector&, const fixed_vector&);
-// friend bool operator != (const fixed_vector&, const fixed_vector&);
-// friend bool operator <  (const fixed_vector&, const fixed_vector&);
-// friend bool operator <= (const fixed_vector&, const fixed_vector&);
-// friend bool operator >  (const fixed_vector&, const fixed_vector&);
-// friend bool operator >= (const fixed_vector&, const fixed_vector&);
+template <class T, size_t N>
+inline
+bool
+operator == (const fixed_vector<T, N>& a, const fixed_vector<T, N>& b)
+{
+    if (a.size() != b.size())
+        return false;
+    for (auto ai = a.begin(), bi = b.begin(); ai != a.end(); ai++, bi++)
+        if (*ai != *bi)
+            return false;
+    return true;
+}
 
+template <class T, size_t N>
+inline
+bool
+operator != (const fixed_vector<T, N>& a, const fixed_vector<T, N>& b)
+{
+    return !(a == b);
+}
 
-// -- Swap  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
+template <class T, size_t N>
+inline
+bool
+operator < (const fixed_vector<T, N>& a, const fixed_vector<T, N>& b)
+{
+    for (auto ai = a.begin(), bi = b.begin();
+         ai != a.end() && bi != b.end();
+         ai++, bi++)
+    {
+        if (*ai < *bi)
+            return true;
+        if (*bi < *ai)
+            return false;
+    }
+    return a.size() < b.size();
+}
 
-// friend void swap(fixed_vector&, fixed_vector&);
+template <class T, size_t N>
+inline
+bool
+operator <= (const fixed_vector<T, N>& a, const fixed_vector<T, N>& b)
+{
+    return !(b < a);
+}
+
+template <class T, size_t N>
+inline
+bool
+operator > (const fixed_vector<T, N>& a, const fixed_vector<T, N>& b)
+{
+    return b < a;
+}
+
+template <class T, size_t N>
+inline
+bool
+operator >= (const fixed_vector<T, N>& a, const fixed_vector<T, N>& b)
+{
+    return !(a < b);
+}
 
 #endif /* !FIXED_VECTOR_included */
