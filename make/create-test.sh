@@ -10,20 +10,26 @@ then
     exit 1
 fi
 
-camel="$(python3 -c "print('$1'.title().replace('-', ''))")"
+kebab="$(python3 -c "print('$1'.lower().replace('_', '-'))")"
+snake="$(python3 -c "print('$kebab'.lower().replace('-', '_'))")"
+camel="$(python3 -c "print('$kebab'.title().replace('-', ''))")"
+
+echo "kebab = $kebab"
+echo "snake = $snake"
+echo "camel = $camel"
 
 cat > "$testname" <<EOF
-#include "$1.h"
+#include "$kebab.h"
 
 #include <cxxtest/TestSuite.h>
 
-class ${1}_unit_test : public CxxTest::TestSuite {
+class ${snake}_unit_test : public CxxTest::TestSuite {
 
 public:
 
-    void test_x()
+    void test_instantiate()
     {
-
+        (void)${snake}();
     }
 
 };
