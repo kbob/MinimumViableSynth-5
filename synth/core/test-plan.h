@@ -4,7 +4,7 @@
 
 #include <cxxtest/TestSuite.h>
 
-class PlanUnitTest : public CxxTest::TestSuite {
+class plan_unit_test : public CxxTest::TestSuite {
 
 public:
 

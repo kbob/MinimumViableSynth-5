@@ -4,7 +4,7 @@
 
 using namespace midi;
 
-class MidiControlsUnitTest : public CxxTest::TestSuite {
+class midi_controls_unit_test : public CxxTest::TestSuite {
 
 public:
 

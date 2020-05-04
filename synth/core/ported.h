@@ -45,7 +45,7 @@ private:
 
     port_vector m_ports;
 
-    friend class PortedUnitTest;
+    friend class ported_unit_test;
 
 };
 

@@ -18,7 +18,7 @@ public:
     MockPort p0, p1;
 };
 
-class PortedUnitTest : public CxxTest::TestSuite {
+class ported_unit_test : public CxxTest::TestSuite {
 
 public:
 

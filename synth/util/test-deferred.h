@@ -65,7 +65,7 @@ public:
 std::stringstream Logged::logs;
 size_t Logged::count;
 
-class DeferredUnitTest : public CxxTest::TestSuite {
+class deferred_unit_test : public CxxTest::TestSuite {
 
 public:
 
