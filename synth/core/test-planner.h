@@ -20,18 +20,6 @@ public:
     void render(size_t) {}
 };
 
-std::ostream& operator << (std::ostream& o, const PrepStep::Tag& tag)
-{
-    switch (tag) {
-        case PrepStep::Tag::CLEAR:
-            return o << "clear";
-        case PrepStep::Tag::ALIAS:
-            return o << "alias";
-    default:
-        return o << "PrepStep::Tag(" << static_cast<int>(tag) << ")";
-    }
-}
-
 class planner_unit_test : public CxxTest::TestSuite {
 
 public:
