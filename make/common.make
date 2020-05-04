@@ -112,7 +112,7 @@ pre-commit-check:
 	    make -j world BUILD=release
 
 cloc:
-	    @cloc --vcs=git --force-lang=make,make
+	    @cloc --vcs=git --force-lang=make,make --exclude-dir=experiments
 
 help: general-help local-help
 
