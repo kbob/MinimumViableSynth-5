@@ -2,9 +2,17 @@
 #define STEPS_included
 
 #include <cassert>
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
+#include <limits>
 
+#include "synth/core/action.h"
+#include "synth/core/config.h"
+#include "synth/core/controls.h"
 #include "synth/core/link.h"
+#include "synth/core/modules.h"
+#include "synth/core/ports.h"
 #include "synth/core/resolver.h"
 
 namespace step_util {

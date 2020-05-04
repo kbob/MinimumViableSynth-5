@@ -2,7 +2,9 @@
 #define PATCH_included
 
 #include "synth/core/config.h"
+#include "synth/core/controls.h"
 #include "synth/core/link.h"
+#include "synth/core/ports.h"
 #include "synth/util/fixed-vector.h"
 
 

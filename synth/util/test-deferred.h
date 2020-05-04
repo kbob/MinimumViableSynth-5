@@ -1,6 +1,8 @@
 #include "deferred.h"
 
 #include <sstream>
+#include <string>
+#include <utility>
 
 #include <cxxtest/TestSuite.h>
 

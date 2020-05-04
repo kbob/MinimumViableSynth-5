@@ -1,5 +1,8 @@
 #include "steps.h"
 
+#include <sstream>
+#include <string>
+
 #include <cxxtest/TestSuite.h>
 
 class steps_unit_test : public CxxTest::TestSuite {

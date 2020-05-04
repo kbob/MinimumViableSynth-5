@@ -1,6 +1,12 @@
 #include "timbre.h"
 
+#include <sstream>
+#include <string>
+
 #include <cxxtest/TestSuite.h>
+
+#include "synth/core/ports.h"
+#include "synth/core/steps.h"
 
 class FooControl : public ControlType<FooControl> {
 public:
@@ -13,8 +19,6 @@ public:
     Output<> out;
     void render(size_t) {}
 };
-
-class Patch {};                 // XXX this will probably break...
 
 class timbre_unit_test : public CxxTest::TestSuite {
 

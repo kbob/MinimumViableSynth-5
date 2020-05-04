@@ -1,15 +1,19 @@
 #ifndef PLANNER_included
 #define PLANNER_included
 
+#include <iterator>
+
 #include "synth/core/config.h"
-#include "synth/core/link.h"
-#include "synth/core/modules.h"
 #include "synth/core/plan.h"
-#include "synth/core/ported.h"
-#include "synth/core/voice.h"
+#include "synth/core/resolver.h"
+#include "synth/util/deferred.h"
 #include "synth/util/fixed-vector.h"
 #include "synth/util/relation.h"
 #include "synth/util/universe.h"
+
+class Control;
+class Link;
+class Module;
 
 // A Planner creates a Plan from a set of controls, modules, links,
 // and control values.

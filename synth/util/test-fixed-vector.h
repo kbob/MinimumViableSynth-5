@@ -1,6 +1,9 @@
 #include "fixed-vector.h"
 
+#include <iostream>
 #include <list>
+#include <sstream>
+#include <string>
 
 #include <cxxtest/TestSuite.h>
 

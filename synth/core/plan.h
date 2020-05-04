@@ -4,8 +4,6 @@
 #include <iostream>
 
 #include "synth/core/config.h"
-#include "synth/core/modules.h"
-#include "synth/core/resolver.h"
 #include "synth/core/steps.h"
 #include "synth/util/fixed-vector.h"
 

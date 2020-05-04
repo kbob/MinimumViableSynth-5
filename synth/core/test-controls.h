@@ -1,5 +1,7 @@
 #include "controls.h"
 
+#include <string>
+
 #include <cxxtest/TestSuite.h>
 
 enum class Color { RED, GREEN, BLUE, PURPLE };

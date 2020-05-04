@@ -1,5 +1,8 @@
 #include "link.h"
 
+#include <string>
+#include <vector>
+
 #include <cxxtest/TestSuite.h>
 
 class link_unit_test : public CxxTest::TestSuite {

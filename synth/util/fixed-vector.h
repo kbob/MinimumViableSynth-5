@@ -1,9 +1,12 @@
 #ifndef FIXED_VECTOR_included
 #define FIXED_VECTOR_included
 
+#include <algorithm>
 #include <cassert>
 #include <initializer_list>
+#include <iterator>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 

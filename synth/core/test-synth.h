@@ -1,6 +1,12 @@
 #include "synth.h"
 
+#include <sstream>
+#include <string>
+
 #include <cxxtest/TestSuite.h>
+
+#include "synth/core/plan.h"
+#include "synth/core/ports.h"
 
 class synth_unit_test : public CxxTest::TestSuite {
 

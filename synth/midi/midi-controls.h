@@ -1,10 +1,11 @@
 #ifndef MIDI_CONTROLS_included
 #define MIDI_CONTROLS_included
 
+#include <cassert>
 #include <cstdint>
 
+#include "synth/core/config.h"
 #include "synth/core/controls.h"
-#include "synth/core/ports.h"
 
 // MIDI CCs that are not controllers
 //   bank select        CC     0/32

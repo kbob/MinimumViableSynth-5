@@ -1,6 +1,8 @@
 #ifndef CORE_CONTROLS_included
 #define CORE_CONTROLS_included
 
+#include <cassert>
+
 #include "synth/core/action.h"
 #include "synth/core/config.h"
 #include "synth/core/ported.h"

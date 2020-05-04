@@ -1,6 +1,7 @@
 #ifndef LINK_included
 #define LINK_included
 
+#include <cassert>
 #include <cstddef>
 #include <functional>
 

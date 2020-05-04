@@ -1,5 +1,9 @@
 #include "relation.h"
 
+#include <deque>
+#include <stdexcept>
+#include <vector>
+
 #include <cxxtest/TestSuite.h>
 
 class relation_unit_test : public CxxTest::TestSuite {

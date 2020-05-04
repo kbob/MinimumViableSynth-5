@@ -1,8 +1,10 @@
 #include "voice.h"
 
+#include <sstream>
+
 #include <cxxtest/TestSuite.h>
 
-#include "synth/core/config.h"
+#include "synth/core/ports.h"
 
 class FooControl : public ControlType<FooControl> {
 public:

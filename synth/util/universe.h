@@ -1,8 +1,13 @@
 #ifndef UNIVERSE_included
 #define UNIVERSE_included
 
+#include <algorithm>
 #include <bitset>
+#include <cassert>
 #include <iostream>
+#include <iterator>
+#include <stdexcept>
+#include <string>
 
 template <class C, size_t N>
 class Subset;

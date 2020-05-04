@@ -2,6 +2,8 @@
 
 #include <array>
 #include <list>
+#include <stdexcept>
+#include <string>
 
 #include <cxxtest/TestSuite.h>
 

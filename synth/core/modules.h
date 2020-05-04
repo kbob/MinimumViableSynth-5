@@ -1,12 +1,13 @@
 #ifndef MODULE_included
 #define MODULE_included
 
-#include <vector>
+#include <cassert>
+#include <string>
 
 #include "synth/core/action.h"
 #include "synth/core/ported.h"
 #include "synth/core/ports.h"
-#include "synth/util/fixed-vector.h"
+
 
 // -- Modules  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 //

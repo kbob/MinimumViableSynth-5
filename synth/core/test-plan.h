@@ -1,5 +1,7 @@
 #include "plan.h"
 
+#include <string>
+
 #include <cxxtest/TestSuite.h>
 
 class PlanUnitTest : public CxxTest::TestSuite {

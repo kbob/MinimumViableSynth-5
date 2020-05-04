@@ -1,10 +1,13 @@
 #ifndef SYNTH_included
 #define SYNTH_included
 
+#include <cassert>
+
 #include "synth/core/action.h"
 #include "synth/core/config.h"
 #include "synth/core/patch.h"
 #include "synth/core/planner.h"
+#include "synth/core/resolver.h"
 #include "synth/core/timbre.h"
 #include "synth/core/voice.h"
 #include "synth/util/fixed-vector.h"

@@ -1,10 +1,14 @@
 #ifndef TIMBRE_included
 #define TIMBRE_included
 
+#include <algorithm>
+#include <cassert>
+
 #include "synth/core/action.h"
 #include "synth/core/config.h"
 #include "synth/core/controls.h"
 #include "synth/core/modules.h"
+#include "synth/core/patch.h"
 #include "synth/core/plan.h"
 #include "synth/util/fixed-vector.h"
 

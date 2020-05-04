@@ -1,5 +1,7 @@
 #include "ported.h"
 
+#include <typeindex>
+
 #include <cxxtest/TestSuite.h>
 
 class MockPort : public Port {

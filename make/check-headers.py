@@ -87,7 +87,7 @@ std_names_to_files = {
     'ostream_iterator': 'iterator',
     'ostringstream': 'sstream',
     'out_of_range': 'stdexcept',
-    'pair': 'pair',
+    'pair': 'utility',
     'reverse_iterator': 'iterator',
     'runtime_error': 'stdexcept',
     'string': 'string',
@@ -110,8 +110,8 @@ class IncludeList(SimpleNamespace):
     def field_key(self, field):
         return {
             'self': 1,
-            'framework': 2,
-            'system': 3,
+            'system': 2,
+            'framework': 3,
             'local': 4,
         }[field]
 
@@ -129,7 +129,7 @@ class IncludeList(SimpleNamespace):
                 stmts += separator
                 separator = '\n'
                 for file in files:
-                    if group == 'system':
+                    if group in ('framework', 'system'):
                         stmts += f'#include <{file}>\n'
                     else:
                         stmts += f'#include "{file}"\n'
@@ -286,12 +286,14 @@ def print_differences(info_by_path):
         if actual == expected:
             print(f'{path}: OK')
         else:
+            print('================')
+            print()
             print(f'{path}: different')
             print()
             print(actual)
             print('---')
             print(expected)
-        print('================\n')
+            print('================')
 
 
 def main(argv):

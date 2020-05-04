@@ -1,6 +1,8 @@
 #include "synth/core/planner.h"
 
-#include <array>
+#include <algorithm>
+#include <cassert>
+#include <stdexcept>
 
 #include "synth/core/steps.h"
 

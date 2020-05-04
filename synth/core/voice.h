@@ -1,6 +1,9 @@
 #ifndef VOICE_included
 #define VOICE_included
 
+#include <algorithm>
+#include <cassert>
+
 #include "synth/core/action.h"
 #include "synth/core/config.h"
 #include "synth/core/controls.h"

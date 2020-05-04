@@ -1,9 +1,11 @@
 #include "universe.h"
 
-#include <list>
-#include "synth/util/fixed-vector.h"
+#include <sstream>
+#include <vector>
 
 #include <cxxtest/TestSuite.h>
+
+#include "synth/util/fixed-vector.h"
 
 enum class Turtle { Leo, Mich, Don, Raph, Splinter };
 // N.B., Splinter is not a turtle.

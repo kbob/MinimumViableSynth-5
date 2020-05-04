@@ -6,9 +6,11 @@
 #include "synth/core/config.h"
 #include "synth/core/controls.h"
 #include "synth/core/modules.h"
-#include "synth/core/ports.h"
 #include "synth/util/deferred.h"
+#include "synth/util/fixed-vector.h"
 #include "synth/util/universe.h"
+
+class Port;
 
 
 // -- Resolver -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //

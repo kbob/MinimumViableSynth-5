@@ -1,6 +1,13 @@
 #include "planner.h"
 
+#include <algorithm>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+
 #include <cxxtest/TestSuite.h>
+
+#include "synth/core/steps.h"
 
 class FooControl : public ControlType<FooControl> {
 public:
