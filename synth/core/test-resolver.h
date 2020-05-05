@@ -7,27 +7,27 @@
 
 #include <cxxtest/TestSuite.h>
 
-class ConcreteControl : public ControlType<ConcreteControl> {
-public:
-    void render(size_t) {}
-};
-
-class ConcreteModule : public ModuleType<ConcreteModule> {
-public:
-    ConcreteModule()
-    {
-        in.name("in");
-        out.name("out");
-        ports(in, out);
-    }
-    Input<> in;
-    Output<> out;
-    void render(size_t) {}
-};
-
 class resolver_unit_test : public CxxTest::TestSuite {
 
 public:
+
+    class ConcreteControl : public ControlType<ConcreteControl> {
+    public:
+        void render(size_t) {}
+    };
+
+    class ConcreteModule : public ModuleType<ConcreteModule> {
+    public:
+        ConcreteModule()
+        {
+            in.name("in");
+            out.name("out");
+            ports(in, out);
+        }
+        Input<> in;
+        Output<> out;
+        void render(size_t) {}
+    };
 
     void test_instantiate()
     {

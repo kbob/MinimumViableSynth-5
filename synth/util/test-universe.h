@@ -7,35 +7,16 @@
 
 #include "synth/util/fixed-vector.h"
 
-enum class Turtle { Leo, Mich, Don, Raph, Splinter };
-// N.B., Splinter is not a turtle.
-
-std::ostream& operator << (std::ostream& o, const Turtle& turtle)
-{
-    switch (turtle) {
-        case Turtle::Leo:
-            return o << "Leo";
-        case Turtle::Mich:
-            return o << "Mich";
-        case Turtle::Don:
-            return o << "Don";
-        case Turtle::Raph:
-            return o << "Raph";
-        case Turtle::Splinter:
-            return o << "Splinter";
-        default:
-            assert(false);
-    }
-}
-
 class universe_unit_test : public CxxTest::TestSuite {
 
 public:
 
+    enum class Turtle { Leo, Mich, Don, Raph, Splinter };
+    // N.B., Splinter is not a turtle.
+
     typedef fixed_vector<Turtle, 4> V;
     typedef Universe<V, 4> U;
     typedef U::subset_type S;
-    // typedef U::referent V;
     const V turtles = {Turtle::Leo, Turtle::Mich, Turtle::Don, Turtle::Raph};
     const U u{turtles};
 
@@ -174,6 +155,27 @@ public:
 class subset_unit_test : public CxxTest::TestSuite {
 
 public:
+
+    enum class Turtle { Leo, Mich, Don, Raph, Splinter };
+    // N.B., Splinter is not a turtle.
+
+    friend std::ostream& operator << (std::ostream& o, const Turtle& turtle)
+    {
+        switch (turtle) {
+            case Turtle::Leo:
+                return o << "Leo";
+            case Turtle::Mich:
+                return o << "Mich";
+            case Turtle::Don:
+                return o << "Don";
+            case Turtle::Raph:
+                return o << "Raph";
+            case Turtle::Splinter:
+                return o << "Splinter";
+            default:
+                assert(false);
+        }
+    }
 
     typedef Universe<fixed_vector<Turtle, 4>, 4> U;
     typedef U::referent V;

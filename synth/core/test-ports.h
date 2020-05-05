@@ -5,30 +5,30 @@
 #include "synth/core/controls.h"
 #include "synth/core/modules.h"
 
-class FooControl : public ControlType<FooControl> {
-public:
-    void render(size_t) {}
-};
-
-class EmptyModule : public ModuleType<EmptyModule> {
-public:
-    void render(size_t) {}
-};
-
-class IOModule : public ModuleType<IOModule> {
-public:
-    IOModule()
-    {
-        ports(in, out);
-    }
-    Input<> in;
-    Output<> out;
-    void render(size_t) {}
-};
-
 class ports_unit_test : public CxxTest::TestSuite {
 
 public:
+
+    class FooControl : public ControlType<FooControl> {
+    public:
+        void render(size_t) {}
+    };
+
+    class EmptyModule : public ModuleType<EmptyModule> {
+    public:
+        void render(size_t) {}
+    };
+
+    class IOModule : public ModuleType<IOModule> {
+    public:
+        IOModule()
+        {
+            ports(in, out);
+        }
+        Input<> in;
+        Output<> out;
+        void render(size_t) {}
+    };
 
     void test_instantiate()
     {

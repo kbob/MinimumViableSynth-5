@@ -9,27 +9,27 @@
 
 #include "synth/core/steps.h"
 
-class FooControl : public ControlType<FooControl> {
-public:
-    void render(size_t) {}
-};
-
-class FooModule : public ModuleType<FooModule> {
-public:
-    FooModule()
-    {
-        in.name("in");
-        out.name("out");
-        ports(in, out);
-    }
-    Input<> in;
-    Output<> out;
-    void render(size_t) {}
-};
-
 class planner_unit_test : public CxxTest::TestSuite {
 
 public:
+
+    class FooControl : public ControlType<FooControl> {
+    public:
+        void render(size_t) {}
+    };
+
+    class FooModule : public ModuleType<FooModule> {
+    public:
+        FooModule()
+        {
+            in.name("in");
+            out.name("out");
+            ports(in, out);
+        }
+        Input<> in;
+        Output<> out;
+        void render(size_t) {}
+    };
 
     void test_instantiate()
     {

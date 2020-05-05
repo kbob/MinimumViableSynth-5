@@ -6,68 +6,81 @@
 
 #include <cxxtest/TestSuite.h>
 
-class Logged {
-
-public:
-
-    static std::stringstream logs;
-    static size_t count;
-
-    static void reset()
-    {
-        logs.str("");
-        count = 0;
-    }
-    static std::string log()
-    {
-        return logs.str();
-    }
-    Logged()
-    : id{count++}
-    {
-        logs << 'd' << id << ' ';
-    }
-    Logged(int arg)
-    : id{count++}
-    {
-        logs << 'a' << id << '(' << arg << ") ";
-    }
-    Logged(float a1, const char *a2)
-    : id{count++}
-    {
-        logs << 'b' << id << '(' << a1 << ", " << a2 << ") ";
-    }
-    Logged(const Logged& that)
-    : id{count++}
-    {
-        logs << 'c' << id << "<-" << that.id << ' ';
-    }
-
-    ~Logged()
-    {
-        logs << '~' << id << ' ';
-    }
-
-    size_t method()
-    {
-        logs << 'm' << id << ' ';
-        return id;
-    }
-
-    size_t method() const
-    {
-        logs << "mc" << id << ' ';
-        return id;
-    }
-
-    size_t id;
-};
-std::stringstream Logged::logs;
-size_t Logged::count;
-
 class deferred_unit_test : public CxxTest::TestSuite {
 
 public:
+
+    class Logged {
+
+    public:
+
+        static void reset()
+        {
+            logs().str("");
+            counter() = 0;
+        }
+
+        static std::string log()
+        {
+            return logs().str();
+        }
+
+        Logged()
+        : id{counter()++}
+        {
+            logs() << 'd' << id << ' ';
+        }
+
+        Logged(int arg)
+        : id{counter()++}
+        {
+            logs() << 'a' << id << '(' << arg << ") ";
+        }
+
+        Logged(float a1, const char *a2)
+        : id{counter()++}
+        {
+            logs() << 'b' << id << '(' << a1 << ", " << a2 << ") ";
+        }
+
+        Logged(const Logged& that)
+        : id{counter()++}
+        {
+            logs() << 'c' << id << "<-" << that.id << ' ';
+        }
+
+        ~Logged()
+        {
+            logs() << '~' << id << ' ';
+        }
+
+        size_t method()
+        {
+            logs() << 'm' << id << ' ';
+            return id;
+        }
+
+        size_t method() const
+        {
+            logs() << "mc" << id << ' ';
+            return id;
+        }
+
+        size_t id;
+
+        static std::stringstream& logs()
+        {
+            static std::stringstream ss;
+            return ss;
+        }
+
+        static size_t& counter()
+        {
+            static size_t cnt;
+            return cnt;
+        }
+
+    };
 
     void test_instantiate()
     {

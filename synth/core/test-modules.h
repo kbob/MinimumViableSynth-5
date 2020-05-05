@@ -2,33 +2,32 @@
 
 #include <cxxtest/TestSuite.h>
 
-class FooModule : public ModuleType<FooModule> {
-public:
-    FooModule()
-    {
-        in.name("in");
-        out.name("out");
-        ports(in, out);
-    }
-    Input<> in;
-    Output<> out;
-    size_t last_size;
-    void *in_addr;
-    void *out_addr;
-    void render(size_t n)
-    {
-        last_size = n;
-        in_addr = static_cast<void *>(in.buf());
-        out_addr = static_cast<void *>(&out[0]);
-        for (size_t i = 0; i < n; i++)
-            out[i] = -in[i];
-    }
-
-};
-
 class modules_unit_test : public CxxTest::TestSuite {
 
 public:
+
+    class FooModule : public ModuleType<FooModule> {
+    public:
+        FooModule()
+        {
+            in.name("in");
+            out.name("out");
+            ports(in, out);
+        }
+        Input<> in;
+        Output<> out;
+        size_t last_size;
+        void *in_addr;
+        void *out_addr;
+        void render(size_t n)
+        {
+            last_size = n;
+            in_addr = static_cast<void *>(in.buf());
+            out_addr = static_cast<void *>(&out[0]);
+            for (size_t i = 0; i < n; i++)
+                out[i] = -in[i];
+        }
+    };
 
     void test_instantiate()
     {

@@ -8,21 +8,21 @@
 #include "synth/core/ports.h"
 #include "synth/core/steps.h"
 
-class FooControl : public ControlType<FooControl> {
-public:
-    void render(size_t) {}
-};
-
-class FooModule : public ModuleType<FooModule> {
-public:
-    Input<> in;
-    Output<> out;
-    void render(size_t) {}
-};
-
 class timbre_unit_test : public CxxTest::TestSuite {
 
 public:
+
+    class FooControl : public ControlType<FooControl> {
+    public:
+        void render(size_t) {}
+    };
+
+    class FooModule : public ModuleType<FooModule> {
+    public:
+        Input<> in;
+        Output<> out;
+        void render(size_t) {}
+    };
 
     void test_instantiate()
     {

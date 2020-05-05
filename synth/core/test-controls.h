@@ -4,20 +4,20 @@
 
 #include <cxxtest/TestSuite.h>
 
-enum class Color { RED, GREEN, BLUE, PURPLE };
-
-class ConcreteControl : public ControlType<ConcreteControl, Color> {
-public:
-    void render(size_t frame_count)
-    {
-        for (size_t i = 0; i < frame_count; i++)
-            out[i] = static_cast<Color>(i % 4);
-    }
-};
-
 class core_controls_unit_test : public CxxTest::TestSuite {
 
 public:
+
+    enum class Color { RED, GREEN, BLUE, PURPLE };
+
+    class ConcreteControl : public ControlType<ConcreteControl, Color> {
+    public:
+        void render(size_t frame_count)
+        {
+            for (size_t i = 0; i < frame_count; i++)
+                out[i] = static_cast<Color>(i % 4);
+        }
+    };
 
     void test_instantiate()
     {

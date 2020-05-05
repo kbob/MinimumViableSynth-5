@@ -5,24 +5,23 @@
 #include <cxxtest/TestSuite.h>
 
 #include "synth/core/ports.h"
-
-class FooControl : public ControlType<FooControl> {
-public:
-    void render(size_t) {}
-};
-
-class FooModule : public ModuleType<FooModule> {
-public:
-    Input<> in;
-    Output<> out;
-    void render(size_t) {}
-};
-
-class Timbre {};                // XXX this may break...
+#include "synth/core/timbre.h"
 
 class voice_unit_test : public CxxTest::TestSuite {
 
 public:
+
+    class FooControl : public ControlType<FooControl> {
+    public:
+        void render(size_t) {}
+    };
+
+    class FooModule : public ModuleType<FooModule> {
+    public:
+        Input<> in;
+        Output<> out;
+        void render(size_t) {}
+    };
 
     void test_instantiation()
     {
