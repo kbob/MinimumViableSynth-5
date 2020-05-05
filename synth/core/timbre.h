@@ -46,7 +46,8 @@ public:
     {}
 
     Timbre(const Timbre& that)
-    : m_current_patch{that.m_current_patch},
+    : m_delete_components{true},
+      m_current_patch{that.m_current_patch},
       m_default_patch{that.m_default_patch},
       m_plan{that.m_plan},
       m_controls{},
