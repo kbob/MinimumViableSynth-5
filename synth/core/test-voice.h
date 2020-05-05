@@ -41,13 +41,16 @@ public:
 
         auto ctls = v2.controls();
         TS_ASSERT_EQUALS(ctls.size(), 2);
-        TS_ASSERT(ctls.at(0) != c1 && ctls.at(0) != c2);
+        TS_ASSERT_DIFFERS(ctls.at(0), c1);
+        TS_ASSERT_DIFFERS(ctls.at(0), c2);
         TS_ASSERT(dynamic_cast<FooControl *>(ctls.at(0)));
         auto mods = v2.modules();
-        TS_ASSERT(mods.size() == 2);
-        TS_ASSERT(mods.at(0) != m1 && mods.at(0) != m2);
+        TS_ASSERT_EQUALS(mods.size(), 2);
+        TS_ASSERT_DIFFERS(mods.at(0), m1)
+        TS_ASSERT_DIFFERS(mods.at(0), m2);
         TS_ASSERT(dynamic_cast<FooModule *>(mods.at(0)));
-        TS_ASSERT(mods.at(1) != m1 && mods.at(1) != m2);
+        TS_ASSERT_DIFFERS(mods.at(1), m1)
+        TS_ASSERT_DIFFERS(mods.at(1), m2);
         TS_ASSERT(dynamic_cast<FooModule *>(mods.at(1)));
     }
 
@@ -73,9 +76,9 @@ public:
         v.add_control(foo);
 
         const Voice::control_vector& cv = v.controls();
-        TS_ASSERT(cv.size() == 1);
-        TS_ASSERT(cv.at(0) == foo);
-        TS_ASSERT(cv.capacity() <= MAX_VOICE_CONTROLS);
+        TS_ASSERT_EQUALS(cv.size(), 1);
+        TS_ASSERT_EQUALS(cv.at(0), foo);
+        TS_ASSERT_LESS_THAN_EQUALS(cv.capacity(), MAX_VOICE_CONTROLS);
     }
 
     void test_add_module()
@@ -85,9 +88,9 @@ public:
         v.add_module(foo);
 
         const Voice::module_vector& mv = v.modules();
-        TS_ASSERT(mv.size() == 1);
-        TS_ASSERT(mv.at(0) == foo);
-        TS_ASSERT(mv.capacity() <= MAX_VOICE_MODULES);
+        TS_ASSERT_EQUALS(mv.size(), 1);
+        TS_ASSERT_EQUALS(mv.at(0), foo);
+        TS_ASSERT_LESS_THAN_EQUALS(mv.capacity(), MAX_VOICE_MODULES);
     }
 
     void test_two_modules()
@@ -98,9 +101,9 @@ public:
         v.add_module(foo2);
 
         auto m = v.modules();
-        TS_ASSERT(m.size() == 2);
-        TS_ASSERT(m.at(0) == foo1);
-        TS_ASSERT(m.at(1) == foo2);
+        TS_ASSERT_EQUALS(m.size(), 2);
+        TS_ASSERT_EQUALS(m.at(0), foo1);
+        TS_ASSERT_EQUALS(m.at(1), foo2);
     }
 
     void note()

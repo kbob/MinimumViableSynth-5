@@ -31,8 +31,8 @@ public:
     {
         ConcreteControl c1;
         ConcreteControl c2(c1);
-        TS_ASSERT(c2.ports().size() == 1)
-        TS_ASSERT(c2.ports().at(0) == &c2.out);
+        TS_ASSERT_EQUALS(c2.ports().size(), 1)
+        TS_ASSERT_EQUALS(c2.ports().at(0), &c2.out);
     }
 
     void test_clone()
@@ -41,17 +41,17 @@ public:
         Control *c2 = c1.clone();
         ConcreteControl *cc2 = dynamic_cast<ConcreteControl *>(c2);
         TS_ASSERT(cc2);
-        TS_ASSERT(c2->ports().size() == 1)
-        TS_ASSERT(c2->ports().at(0) == &cc2->out);
+        TS_ASSERT_EQUALS(c2->ports().size(), 1)
+        TS_ASSERT_EQUALS(c2->ports().at(0), &cc2->out);
     }
 
     void test_port()
     {
         ConcreteControl c;
         Ported::port_vector ports = c.ports();
-        TS_ASSERT(ports.size() == 1);
-        TS_ASSERT(ports.at(0) == &c.out);
-        TS_ASSERT(c.out.name() == "out");
+        TS_ASSERT_EQUALS(ports.size(), 1);
+        TS_ASSERT_EQUALS(ports.at(0), &c.out);
+        TS_ASSERT_EQUALS(c.out.name(), "out");
     }
 
     void test_render_action()
@@ -62,7 +62,7 @@ public:
             c.out[i] = Color::RED;
         render(MAX_FRAMES);
         for (size_t i = 0; i < MAX_FRAMES; i++)
-            TS_ASSERT(c.out[i] == static_cast<Color>(i % 4));
+            TS_ASSERT_EQUALS(c.out[i], static_cast<Color>(i % 4));
     }
 
 };

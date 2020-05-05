@@ -31,18 +31,18 @@ public:
     {
         MockPorted pd;
         const MockPorted::port_vector& ports = pd.ports();
-        TS_ASSERT(ports.size() == 2);
-        TS_ASSERT(ports.at(0) == &pd.p0);
-        TS_ASSERT(ports.at(1) == &pd.p1);
+        TS_ASSERT_EQUALS(ports.size(), 2);
+        TS_ASSERT_EQUALS(ports.at(0), &pd.p0);
+        TS_ASSERT_EQUALS(ports.at(1), &pd.p1);
     }
 
     void test_copy()
     {
         MockPorted pd0;
         MockPorted pd1(pd0);
-        TS_ASSERT(pd1.ports().size() == 2);
-        TS_ASSERT(pd1.ports().at(0) == &pd1.p0);
-        TS_ASSERT(pd1.ports().at(1) == &pd1.p1);
+        TS_ASSERT_EQUALS(pd1.ports().size(), 2);
+        TS_ASSERT_EQUALS(pd1.ports().at(0), &pd1.p0);
+        TS_ASSERT_EQUALS(pd1.ports().at(1), &pd1.p1);
     }
 
 };

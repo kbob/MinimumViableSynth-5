@@ -44,40 +44,40 @@ public:
     {
         Link link{&dest, &src, &ctl.out};
 
-        TS_ASSERT(link.dest() == &dest);
-        TS_ASSERT(link.src() == &src);
-        TS_ASSERT(link.ctl() == &ctl.out);
-        TS_ASSERT(link.scale() == 1.0f);
+        TS_ASSERT_EQUALS(link.dest(), &dest);
+        TS_ASSERT_EQUALS(link.src(), &src);
+        TS_ASSERT_EQUALS(link.ctl(), &ctl.out);
+        TS_ASSERT_EQUALS(link.scale(), 1.0f);
     }
 
     void test_instantiate_DC()
     {
         Link link{&dest, nullptr, &ctl.out};
 
-        TS_ASSERT(link.dest() == &dest);
-        TS_ASSERT(link.src() == nullptr);
-        TS_ASSERT(link.ctl() == &ctl.out);
-        TS_ASSERT(link.scale() == 1.0f);
+        TS_ASSERT_EQUALS(link.dest(), &dest);
+        TS_ASSERT_EQUALS(link.src(), nullptr);
+        TS_ASSERT_EQUALS(link.ctl(), &ctl.out);
+        TS_ASSERT_EQUALS(link.scale(), 1.0f);
     }
 
     void test_instantiate_DS()
     {
         Link link{&dest, &src, nullptr};
 
-        TS_ASSERT(link.dest() == &dest);
-        TS_ASSERT(link.src() == &src);
-        TS_ASSERT(link.ctl() == nullptr);
-        TS_ASSERT(link.scale() == 1.0f);
+        TS_ASSERT_EQUALS(link.dest(), &dest);
+        TS_ASSERT_EQUALS(link.src(), &src);
+        TS_ASSERT_EQUALS(link.ctl(), nullptr);
+        TS_ASSERT_EQUALS(link.scale(), 1.0f);
     }
 
     void test_instantiate_D()
     {
         Link link{&dest, nullptr, nullptr};
 
-        TS_ASSERT(link.dest() == &dest);
-        TS_ASSERT(link.src() == nullptr);
-        TS_ASSERT(link.ctl() == nullptr);
-        TS_ASSERT(link.scale() == 1.0f);
+        TS_ASSERT_EQUALS(link.dest(), &dest);
+        TS_ASSERT_EQUALS(link.src(), nullptr);
+        TS_ASSERT_EQUALS(link.ctl(), nullptr);
+        TS_ASSERT_EQUALS(link.scale(), 1.0f);
     }
 
     void test_instantiate_scale()
@@ -87,20 +87,20 @@ public:
         Link l3{&dest, &src,    nullptr,  0.3f};
         Link l4{&dest, nullptr, nullptr,  0.4f};
 
-        TS_ASSERT(l1.scale() == 0.1f);
-        TS_ASSERT(l2.scale() == 0.2f);
-        TS_ASSERT(l3.scale() == 0.3f);
-        TS_ASSERT(l4.scale() == 0.4f);
+        TS_ASSERT_EQUALS(l1.scale(), 0.1f);
+        TS_ASSERT_EQUALS(l2.scale(), 0.2f);
+        TS_ASSERT_EQUALS(l3.scale(), 0.3f);
+        TS_ASSERT_EQUALS(l4.scale(), 0.4f);
     }
 
     void test_copy()
     {
         Link link{&dest0, &src0, &ctl0.out, 0.5f};
         Link l2(link);
-        TS_ASSERT(l2.dest() == &dest0);
-        TS_ASSERT(l2.src() == &src0);
-        TS_ASSERT(l2.ctl() == &ctl0.out);
-        TS_ASSERT(l2.scale() == 0.5f);
+        TS_ASSERT_EQUALS(l2.dest(), &dest0);
+        TS_ASSERT_EQUALS(l2.src(), &src0);
+        TS_ASSERT_EQUALS(l2.ctl(), &ctl0.out);
+        TS_ASSERT_EQUALS(l2.scale(), 0.5f);
 
         load_data();
         render_action copy = l2.make_copy_action(&dest, &src, &ctl.out);
@@ -116,10 +116,10 @@ public:
         Link link{&dest0, &src0, &ctl0.out, 0.5f};
         Link l2(&other_dest, nullptr, nullptr);
         l2 = link;
-        TS_ASSERT(l2.dest() == &dest0);
-        TS_ASSERT(l2.src() == &src0);
-        TS_ASSERT(l2.ctl() == &ctl0.out);
-        TS_ASSERT(l2.scale() == 0.5f);
+        TS_ASSERT_EQUALS(l2.dest(), &dest0);
+        TS_ASSERT_EQUALS(l2.src(), &src0);
+        TS_ASSERT_EQUALS(l2.ctl(), &ctl0.out);
+        TS_ASSERT_EQUALS(l2.scale(), 0.5f);
 
         load_data();
         render_action copy = l2.make_copy_action(&dest, &src, &ctl.out);

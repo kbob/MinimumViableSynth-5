@@ -53,13 +53,13 @@ public:
     void test_size()
     {
         const U u{turtles};
-        TS_ASSERT(u.size() == 4)
+        TS_ASSERT_EQUALS(u.size(), 4)
 
         typedef Universe<fixed_vector<Turtle, 17>, 17> U2;
         typedef U2::referent V2;
         const V2 turtles2(turtles.begin(), turtles.end());
         const U2 u2(turtles2);
-        TS_ASSERT(u2.size() == 4);
+        TS_ASSERT_EQUALS(u2.size(), 4);
     }
 
     void test_find()
@@ -147,7 +147,7 @@ public:
         std::ostringstream stream;
         stream << u;
         std::string str = stream.str();
-        TS_ASSERT(stream.str() == "{2 3 5 7}")
+        TS_ASSERT_EQUALS(stream.str(), "{2 3 5 7}")
     }
 
 };
@@ -311,77 +311,77 @@ public:
 
     void test_and_xor_or()
     {
-        TS_ASSERT((ld & mdr) == U::bits(0b0100));
-        TS_ASSERT((u.none & u.none) == u.none);
-        TS_ASSERT((u.none & ld) == u.none);
-        TS_ASSERT((u.none & u.all) == u.none);
-        TS_ASSERT((ld & u.all) == ld)
-        TS_ASSERT((ld & ld) == ld);
-        TS_ASSERT((u.all & u.all) == u.all);
+        TS_ASSERT_EQUALS((ld & mdr), U::bits(0b0100));
+        TS_ASSERT_EQUALS((u.none & u.none), u.none);
+        TS_ASSERT_EQUALS((u.none & ld), u.none);
+        TS_ASSERT_EQUALS((u.none & u.all), u.none);
+        TS_ASSERT_EQUALS((ld & u.all), ld)
+        TS_ASSERT_EQUALS((ld & ld), ld);
+        TS_ASSERT_EQUALS((u.all & u.all), u.all);
 
-        TS_ASSERT((ld ^ mdr) == U::bits(0b1011));
-        TS_ASSERT((u.none ^ u.none) == u.none);
-        TS_ASSERT((u.none ^ ld) == ld);
-        TS_ASSERT((u.none ^ u.all) == u.all);
-        TS_ASSERT((ld ^ u.all) == 0b1010);
-        TS_ASSERT((ld ^ ld) == u.none);
-        TS_ASSERT((u.all ^ u.all) == u.none);
+        TS_ASSERT_EQUALS((ld ^ mdr), U::bits(0b1011));
+        TS_ASSERT_EQUALS((u.none ^ u.none), u.none);
+        TS_ASSERT_EQUALS((u.none ^ ld), ld);
+        TS_ASSERT_EQUALS((u.none ^ u.all), u.all);
+        TS_ASSERT_EQUALS((ld ^ u.all), 0b1010);
+        TS_ASSERT_EQUALS((ld ^ ld), u.none);
+        TS_ASSERT_EQUALS((u.all ^ u.all), u.none);
 
-        TS_ASSERT((ld | md) == 0b0111);
-        TS_ASSERT((u.none | u.none) == u.none);
-        TS_ASSERT((u.none | ld) == ld);
-        TS_ASSERT((u.none | u.all) == u.all);
-        TS_ASSERT((ld | ld) == ld);
-        TS_ASSERT((ld | u.all) == u.all);
-        TS_ASSERT((u.all | u.all) == u.all);
+        TS_ASSERT_EQUALS((ld | md), 0b0111);
+        TS_ASSERT_EQUALS((u.none | u.none), u.none);
+        TS_ASSERT_EQUALS((u.none | ld), ld);
+        TS_ASSERT_EQUALS((u.none | u.all), u.all);
+        TS_ASSERT_EQUALS((ld | ld), ld);
+        TS_ASSERT_EQUALS((ld | u.all), u.all);
+        TS_ASSERT_EQUALS((u.all | u.all), u.all);
     }
 
     void test_difference()
     {
-        TS_ASSERT(mdr - ld == U::bits(0b1010));
-        TS_ASSERT(u.none - u.all == u.none);
-        TS_ASSERT(u.all - u.all == u.none);
-        TS_ASSERT(u.all - u.none == u.all);
-        TS_ASSERT(u.all - ld == U::bits(0b1010));
+        TS_ASSERT_EQUALS(mdr - ld, U::bits(0b1010));
+        TS_ASSERT_EQUALS(u.none - u.all, u.none);
+        TS_ASSERT_EQUALS(u.all - u.all, u.none);
+        TS_ASSERT_EQUALS(u.all - u.none, u.all);
+        TS_ASSERT_EQUALS(u.all - ld, U::bits(0b1010));
     }
 
     void test_op_types()
     {
         S diff = mdr - ld;
         TS_ASSERT(typeid(diff) == typeid(mdr - ld));
-        TS_ASSERT(diff.m_universe == mdr.m_universe);
+        TS_ASSERT_EQUALS(diff.m_universe, mdr.m_universe);
 
         S prod = ld & mdr;
         TS_ASSERT(typeid(prod) == typeid(ld & mdr));
-        TS_ASSERT(prod.m_universe == ld.m_universe);
+        TS_ASSERT_EQUALS(prod.m_universe, ld.m_universe);
 
         S sdif = ld ^ mdr;
         TS_ASSERT(typeid(sdif) == typeid(ld ^ mdr));
-        TS_ASSERT(prod.m_universe == ld.m_universe);
+        TS_ASSERT_EQUALS(prod.m_universe, ld.m_universe);
 
         S sum = ld | mdr;
         TS_ASSERT(typeid(sum) == typeid(ld | mdr));
-        TS_ASSERT(prod.m_universe == ld.m_universe);
+        TS_ASSERT_EQUALS(prod.m_universe, ld.m_universe);
     }
 
     void test_assign_ops()
     {
         S s = ld;
         s &= md;
-        TS_ASSERT(s == 0b0100);
-        TS_ASSERT(s.m_universe == ld.m_universe);
+        TS_ASSERT_EQUALS(s, 0b0100);
+        TS_ASSERT_EQUALS(s.m_universe, ld.m_universe);
 
         s = ld;
         s ^= md;
-        TS_ASSERT(s == 0b0011);
+        TS_ASSERT_EQUALS(s, 0b0011);
 
         s = ld;
         s |= md;
-        TS_ASSERT(s == 0b0111);
+        TS_ASSERT_EQUALS(s, 0b0111);
 
         s = ld;
         s -= md;
-        TS_ASSERT(s == 0b0001);
+        TS_ASSERT_EQUALS(s, 0b0001);
     }
 
     void test_subscript()
@@ -394,10 +394,10 @@ public:
 
     void test_test()
     {
-        TS_ASSERT(ld.test(0) == true);
-        TS_ASSERT(ld.test(1) == false);
-        TS_ASSERT(ld.test(2) == true);
-        TS_ASSERT(ld.test(3) == false);
+        TS_ASSERT_EQUALS(ld.test(0), true);
+        TS_ASSERT_EQUALS(ld.test(1), false);
+        TS_ASSERT_EQUALS(ld.test(2), true);
+        TS_ASSERT_EQUALS(ld.test(3), false);
         TS_ASSERT_THROWS(ld.test(4), std::out_of_range);
     }
 
@@ -405,25 +405,24 @@ public:
     {
         S s = md;
         s.set(3);
-        TS_ASSERT(s == mdr);
+        TS_ASSERT_EQUALS(s, mdr);
 
         s = u.none;
         for (size_t i = 0; i < 4; i++)
             s.set(i);
-        TS_ASSERT(s == u.all);
-
+        TS_ASSERT_EQUALS(s, u.all);
     }
 
     void test_add()
     {
         S s = md;
         s.add(Turtle::Raph);
-        TS_ASSERT(s == mdr);
+        TS_ASSERT_EQUALS(s, mdr);
 
         s = u.none;
         for (auto t: turtles)
             s.add(t);
-        TS_ASSERT(s == u.all);
+        TS_ASSERT_EQUALS(s, u.all);
     }
 
     void test_index_iterator()
@@ -492,15 +491,15 @@ public:
     {
         std::ostringstream stream;
         stream << ld;
-        TS_ASSERT(stream.str() == "{Leo Don}");
+        TS_ASSERT_EQUALS(stream.str(), "{Leo Don}");
 
         stream.str("");
         stream << u.none;
-        TS_ASSERT(stream.str() == "{}");
+        TS_ASSERT_EQUALS(stream.str(), "{}");
 
         stream.str("");
         stream << u.all;
-        TS_ASSERT(stream.str() == "{Leo Mich Don Raph}");
+        TS_ASSERT_EQUALS(stream.str(), "{Leo Mich Don Raph}");
     }
 
 };

@@ -39,16 +39,16 @@ public:
     void test_name()
     {
         Input<> i;
-        TS_ASSERT(i.name() == "");
+        TS_ASSERT_EQUALS(i.name(), "");
         i.name("Ferdinand");
-        TS_ASSERT(i.name() == "Ferdinand");
+        TS_ASSERT_EQUALS(i.name(), "Ferdinand");
     }
 
     void test_control()
     {
         FooControl c;
 
-        TS_ASSERT(c.out.owner() == &c);
+        TS_ASSERT_EQUALS(c.out.owner(), &c);
     }
 
     void test_module()
@@ -57,22 +57,22 @@ public:
         Output<> o;
         EmptyModule m;
 
-        TS_ASSERT(i.owner() == nullptr);
-        TS_ASSERT(o.owner() == nullptr);
+        TS_ASSERT_EQUALS(i.owner(), nullptr);
+        TS_ASSERT_EQUALS(o.owner(), nullptr);
         i.owner(m);
         o.owner(m);
-        TS_ASSERT(i.owner() == &m);
-        TS_ASSERT(o.owner() == &m);
+        TS_ASSERT_EQUALS(i.owner(), &m);
+        TS_ASSERT_EQUALS(o.owner(), &m);
     }
 
     void test_module_ports()
     {
         IOModule m;
 
-        TS_ASSERT(m.ports().at(0) == &m.in);
-        TS_ASSERT(m.ports().at(1) == &m.out);
-        TS_ASSERT(m.in.owner() == &m);
-        TS_ASSERT(m.out.owner() == &m);
+        TS_ASSERT_EQUALS(m.ports().at(0), &m.in);
+        TS_ASSERT_EQUALS(m.ports().at(1), &m.out);
+        TS_ASSERT_EQUALS(m.in.owner(), &m);
+        TS_ASSERT_EQUALS(m.out.owner(), &m);
     }
 
     void test_types()
@@ -86,9 +86,10 @@ public:
         Input<bool> ib;
         Output<short> os;
 
+        // can't use TS_ASSERT_EQUALS here.
         TS_ASSERT(ib.data_type() == typeid(bool));
         TS_ASSERT(os.data_type() == typeid(short));
-        TS_ASSERT(ib.data_type() != os.data_type());
+        TS_ASSERT_DIFFERS(ib.data_type(), os.data_type());
     }
 
     void test_buf()

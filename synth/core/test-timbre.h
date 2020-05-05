@@ -41,11 +41,11 @@ public:
 
         auto ctls = t2.controls();
         TS_ASSERT_EQUALS(ctls.size(), 1);
-        TS_ASSERT(ctls.at(0) != c);
+        TS_ASSERT_DIFFERS(ctls.at(0), c);
         TS_ASSERT(dynamic_cast<FooControl *>(ctls.at(0)));
         auto mods = t2.modules();
-        TS_ASSERT(mods.size() == 1);
-        TS_ASSERT(mods.at(0) != m);
+        TS_ASSERT_EQUALS(mods.size(), 1);
+        TS_ASSERT_DIFFERS(mods.at(0), m);
         TS_ASSERT(dynamic_cast<FooModule *>(mods.at(0)));
     }
 
@@ -82,9 +82,9 @@ public:
         t.add_control(foo);
 
         const Timbre::control_vector& cv = t.controls();
-        TS_ASSERT(cv.size() == 1);
-        TS_ASSERT(cv.at(0) == foo);
-        TS_ASSERT(cv.capacity() <= MAX_VOICE_CONTROLS);
+        TS_ASSERT_EQUALS(cv.size(), 1);
+        TS_ASSERT_EQUALS(cv.at(0), foo);
+        TS_ASSERT_LESS_THAN_EQUALS(cv.capacity(), MAX_VOICE_CONTROLS);
     }
 
     void test_add_module()
@@ -94,9 +94,9 @@ public:
         t.add_module(foo);
 
         const Timbre::module_vector& mv = t.modules();
-        TS_ASSERT(mv.size() == 1);
-        TS_ASSERT(mv.at(0) == foo);
-        TS_ASSERT(mv.capacity() <= MAX_VOICE_MODULES);
+        TS_ASSERT_EQUALS(mv.size(), 1);
+        TS_ASSERT_EQUALS(mv.at(0), foo);
+        TS_ASSERT_LESS_THAN_EQUALS(mv.capacity(), MAX_VOICE_MODULES);
     }
 
     void test_pre_render()

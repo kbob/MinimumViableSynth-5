@@ -151,11 +151,11 @@ public:
         Voice& v = s.voices().at(0);
         s.attach_voice_to_timbre(t, v);
 
-        TS_ASSERT(v.timbre() == &t);
+        TS_ASSERT_EQUALS(v.timbre(), &t);
 
         log().str("");
         v.render(4);
-        TS_ASSERT(log().str() == "vm0.4 ");
+        TS_ASSERT_EQUALS(log().str(), "vm0.4 ");
     }
 
     std::string

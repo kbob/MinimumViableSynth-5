@@ -566,7 +566,7 @@ public:
         log().str("");
         auto pl = vl.insert(vl.begin() + 1, lx);
         TS_ASSERT_EQUALS(log().str(), "c5(99) c5(98) c4(120) ");
-        TS_ASSERT(pl == vl.begin() + 1);
+        TS_ASSERT_EQUALS(pl, vl.begin() + 1);
     }
 
     void test_insert_fill()
@@ -586,7 +586,7 @@ public:
         log().str("");
         auto pl = vl.insert(vl.begin() + 1, 2, lx);
         TS_ASSERT_EQUALS(log().str(), "c5(98) c4(120) c4(120) ");
-        TS_ASSERT(pl == vl.begin() + 1);
+        TS_ASSERT_EQUALS(pl, vl.begin() + 1);
     }
 
     void test_insert_range()
@@ -606,7 +606,7 @@ public:
         log().str("");
         auto pl = vl.insert(vl.begin() + 1, lseq, lseq + 2);
         TS_ASSERT_EQUALS(log().str(), "c5(98) c4(120) c4(121) ");
-        TS_ASSERT(pl == vl.begin() + 1);
+        TS_ASSERT_EQUALS(pl, vl.begin() + 1);
     }
 
     void test_insert_move()
@@ -626,7 +626,7 @@ public:
         log().str("");
         auto pl = vl.insert(vl.begin() + 1, std::move(lx));
         TS_ASSERT_EQUALS(log().str(), "c5(99) c5(98) c5(120) ");
-        TS_ASSERT(pl == vl.begin() + 1);
+        TS_ASSERT_EQUALS(pl, vl.begin() + 1);
     }
 
     void test_insert_initializer_list()
@@ -645,7 +645,7 @@ public:
         log().str("");
         auto pl = vl.insert(vl.begin() + 1, il);
         TS_ASSERT_EQUALS(log().str(), "c5(98) c4(120) c4(121) ");
-        TS_ASSERT(pl == vl.begin() + 1);
+        TS_ASSERT_EQUALS(pl, vl.begin() + 1);
     }
 
     void test_erase_single()
@@ -740,7 +740,7 @@ public:
         log().str("");
         auto pl1 = vl.emplace(vl.begin() + 1, 'x');
         TS_ASSERT_EQUALS(log().str(), "c5(98) c1(120) ");
-        TS_ASSERT(pl1 == vl.begin() + 1);
+        TS_ASSERT_EQUALS(pl1, vl.begin() + 1);
 
         log().str("");
         auto pl2 = vl.emplace(vl.begin() + 1);

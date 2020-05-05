@@ -64,17 +64,17 @@ public:
 
     void test_at()
     {
-        TS_ASSERT(rel.at(0) == u2.subset(0b01001));
-        TS_ASSERT(rel.at(1) == u2.subset(0b10010));
-        TS_ASSERT(rel.at(2) == u2.subset(0b00100));
+        TS_ASSERT_EQUALS(rel.at(0), u2.subset(0b01001));
+        TS_ASSERT_EQUALS(rel.at(1), u2.subset(0b10010));
+        TS_ASSERT_EQUALS(rel.at(2), u2.subset(0b00100));
         TS_ASSERT_THROWS(rel.at(3), std::logic_error);
     }
 
     void test_get()
     {
-        TS_ASSERT(rel.get(1.1f) == u2.subset(0b01001));
-        TS_ASSERT(rel.get(2.2f) == u2.subset(0b10010));
-        TS_ASSERT(rel.get(3.3f) == u2.subset(0b00100));
+        TS_ASSERT_EQUALS(rel.get(1.1f), u2.subset(0b01001));
+        TS_ASSERT_EQUALS(rel.get(2.2f), u2.subset(0b10010));
+        TS_ASSERT_EQUALS(rel.get(3.3f), u2.subset(0b00100));
         TS_ASSERT_THROWS(rel.get(4.4f), std::logic_error);
     }
 

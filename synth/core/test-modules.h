@@ -37,9 +37,9 @@ public:
     void test_name()
     {
         FooModule foo;
-        TS_ASSERT(foo.name() == "");
+        TS_ASSERT_EQUALS(foo.name(), "");
         foo.name("FerdinandOscarOmmitage");
-        TS_ASSERT(foo.name() == "FerdinandOscarOmmitage");
+        TS_ASSERT_EQUALS(foo.name(), "FerdinandOscarOmmitage");
     }
 
     void test_clone()
@@ -49,10 +49,10 @@ public:
         Module *bar = foo.clone();
         FooModule *fbar = dynamic_cast<FooModule *>(bar);
         TS_ASSERT(fbar);
-        TS_ASSERT(bar->name() == "Fonzie");
-        TS_ASSERT(bar->ports().size() == 2);
-        TS_ASSERT(bar->ports()[0] == &fbar->in);
-        TS_ASSERT(bar->ports()[1] == &fbar->out);
+        TS_ASSERT_EQUALS(bar->name(), "Fonzie");
+        TS_ASSERT_EQUALS(bar->ports().size(), 2);
+        TS_ASSERT_EQUALS(bar->ports()[0], &fbar->in);
+        TS_ASSERT_EQUALS(bar->ports()[1], &fbar->out);
     }
 
     void test_init()
@@ -65,7 +65,7 @@ public:
     {
         FooModule foo;
         foo.render(1);
-        TS_ASSERT(foo.last_size == 1);
+        TS_ASSERT_EQUALS(foo.last_size, 1);
     }
 
     void test_render_action()
@@ -75,11 +75,11 @@ public:
         foo.in.buf()[0] = 3.3f;
         foo.in.buf()[1] = 4.4f;
         action(2);
-        TS_ASSERT(foo.last_size == 2);
-        TS_ASSERT(foo.in_addr == foo.in.buf());
-        TS_ASSERT(foo.out_addr == &foo.out[0]);
-        TS_ASSERT(foo.out[0] == -3.3f);
-        TS_ASSERT(foo.out[1] == -4.4f);
+        TS_ASSERT_EQUALS(foo.last_size, 2);
+        TS_ASSERT_EQUALS(foo.in_addr, foo.in.buf());
+        TS_ASSERT_EQUALS(foo.out_addr, &foo.out[0]);
+        TS_ASSERT_EQUALS(foo.out[0], -3.3f);
+        TS_ASSERT_EQUALS(foo.out[1], -4.4f);
     }
 
 };
