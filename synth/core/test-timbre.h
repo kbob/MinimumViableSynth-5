@@ -101,7 +101,7 @@ public:
 
     void test_pre_render()
     {
-        std::stringstream log;
+        std::ostringstream log;
         auto a0 = [&] (size_t n) {
             log << 'a' << n << ' ';
         };
@@ -118,7 +118,7 @@ public:
 
     void test_post_render()
     {
-        std::stringstream log;
+        std::ostringstream log;
         auto a0 = [&] (size_t n) {
             log << 'a' << n << ' ';
         };

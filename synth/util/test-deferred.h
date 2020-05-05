@@ -68,9 +68,9 @@ public:
 
         size_t id;
 
-        static std::stringstream& logs()
+        static std::ostringstream& logs()
         {
-            static std::stringstream ss;
+            static std::ostringstream ss;
             return ss;
         }
 

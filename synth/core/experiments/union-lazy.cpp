@@ -44,7 +44,7 @@ std::string arglist_types(T last)
 
 std::string haddr(const void *p)
 {
-    std::stringstream stream;
+    std::ostringstream stream;
     stream << "..."
            << std::hex
            << (reinterpret_cast<uintptr_t>(p) & 0xFFF);

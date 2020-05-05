@@ -11,9 +11,9 @@ class fixed_vector_unit_test : public CxxTest::TestSuite {
 
 public:
 
-    static std::stringstream& log()
+    static std::ostringstream& log()
     {
-        static std::stringstream ss;
+        static std::ostringstream ss;
         return ss;
     }
 
@@ -23,7 +23,7 @@ public:
 
         std::string haddr()
         {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << std::hex
                << "..."
                << (reinterpret_cast<uintptr_t>(this) & 0xFFF);

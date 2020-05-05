@@ -121,7 +121,7 @@ public:
     std::string
     to_string(const T& step)
     {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << step;
         return ss.str();
     }

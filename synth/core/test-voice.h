@@ -137,7 +137,7 @@ public:
 
     void test_render()
     {
-        std::stringstream log;
+        std::ostringstream log;
         auto a0 = [&] (size_t n) {
             log << 'a' << n << ' ';
         };

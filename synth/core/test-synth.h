@@ -15,9 +15,9 @@ public:
     static const size_t POLY = 3;
     static const size_t TIMB = 3;
 
-    static std::stringstream& log()
+    static std::ostringstream& log()
     {
-        static std::stringstream ss;
+        static std::ostringstream ss;
         return ss;
     }
 
@@ -169,7 +169,7 @@ public:
     std::string
     render_step_rep(const Plan::render_step_sequence& seq)
     {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << seq;
         return ss.str();
     }

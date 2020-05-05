@@ -490,7 +490,7 @@ public:
 
     void test_ostream_inserter()
     {
-        std::stringstream stream;
+        std::ostringstream stream;
         stream << ld;
         TS_ASSERT(stream.str() == "{Leo Don}");
 

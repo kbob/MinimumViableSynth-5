@@ -69,7 +69,7 @@ public:
     std::string
     prep_step_rep(const Plan::prep_step_sequence& seq)
     {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "[";
         std::ostream_iterator<PrepStep> joiner(ss, " ");
         std::copy(seq.begin(), seq.end(), joiner);
@@ -82,7 +82,7 @@ public:
     std::string
     render_rep(const Plan::render_step_sequence& seq)
     {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "[";
         std::ostream_iterator<RenderStep> joiner(ss, " ");
         std::copy(seq.begin(), seq.end(), joiner);
