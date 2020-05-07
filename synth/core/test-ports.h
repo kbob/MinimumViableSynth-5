@@ -100,6 +100,15 @@ public:
         TS_ASSERT_EQUALS(os.buf(), os.m_buf);
     }
 
+    void test_inport_copy()
+    {
+        Input<> in;
+        Input<> copy(in);
+
+        TS_ASSERT(in.m_data == in.m_buf);
+        TS_ASSERT(copy.m_data == copy.m_buf);
+    }
+
     void test_inport_clear()
     {
         Input<bool> ib;

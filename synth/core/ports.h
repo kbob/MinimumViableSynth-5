@@ -7,6 +7,8 @@
 
 #include "synth/core/config.h"
 
+class Ported;
+
 
 // -- Ports -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 //
@@ -41,17 +43,17 @@ public:
         return *this;
     }
 
-    const class Ported *owner() const
+    const Ported *owner() const
     {
         return m_owner;
     }
 
-    class Ported *owner()
+    Ported *owner()
     {
         return m_owner;
     }
 
-    void owner(class Ported& owner)
+    void owner(Ported& owner)
     {
         m_owner = &owner;
     }
@@ -68,7 +70,7 @@ protected:
 
 private:
 
-    class Ported *m_owner;
+    Ported *m_owner;
     std::string m_name;
 
     friend class ports_unit_test;
@@ -110,6 +112,10 @@ class Input : public InputPort {
 public:
 
     Input()
+    : m_data{m_buf}
+    {}
+
+    Input(const Input&)
     : m_data{m_buf}
     {}
 
