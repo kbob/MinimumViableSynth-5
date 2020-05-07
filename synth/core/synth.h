@@ -8,6 +8,7 @@
 #include "synth/core/patch.h"
 #include "synth/core/planner.h"
 #include "synth/core/resolver.h"
+#include "synth/core/summer.h"
 #include "synth/core/timbre.h"
 #include "synth/core/voice.h"
 #include "synth/util/fixed-vector.h"
@@ -52,8 +53,6 @@ public:
       m_finalized{false}
     {
         assert(polyphony && timbrality);
-        // m_timbres.reserve(MAX_TIMBRALITY);  // XXX should not be needed
-        // m_voices.reserve(MAX_POLYPHONY);    // XXX
         m_timbres.emplace_back(false);
         m_voices.emplace_back(false);
     }
@@ -91,6 +90,15 @@ public:
     {
         assert(!m_finalized);
         m_voices.front().add_module(&mod);
+        return *this;
+    }
+
+    template <class ElementType = DEFAULT_SAMPLE_TYPE>
+    Synth& add_summer(Summer<ElementType>& sum)
+    {
+        assert(!m_finalized);
+        add_timbre_module(sum.timbre_side);
+        add_voice_module(sum.voice_side);
         return *this;
     }
 
@@ -164,6 +172,7 @@ public:
         auto& plan = timbre.plan();
 
         voice.timbre(&timbre);
+        timbre.add_voice(&voice - m_voices.data());
 
         // perform the prep steps.
         for (auto& step: plan.v_prep())
@@ -174,6 +183,12 @@ public:
         for (auto& step: plan.v_render())
             actions.push_back(step.make_action(resolver));
         voice.actions(actions);
+    }
+
+    void detach_voice_from_timbre(Timbre& timbre, Voice& voice)
+    {
+        voice.timbre(nullptr);
+        timbre.remove_voice(&voice - m_voices.data());
     }
 
 private:

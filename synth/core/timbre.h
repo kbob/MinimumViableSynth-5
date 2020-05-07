@@ -2,6 +2,7 @@
 #define TIMBRE_included
 
 #include <algorithm>
+#include <bitset>
 #include <cassert>
 
 #include "synth/core/action.h"
@@ -22,6 +23,7 @@ class Patch;
 //     per-timbre modules
 //     a pre-voice render action sequence
 //     a post-voice render action sequence
+//     a bit vector of attached voices
 //
 // A Timbre can:
 //     pre-render a frame chunk.
@@ -33,6 +35,7 @@ public:
 
     typedef fixed_vector<Control *, MAX_TIMBRE_CONTROLS> control_vector;
     typedef fixed_vector<Module *, MAX_TIMBRE_MODULES> module_vector;
+    typedef std::bitset<MAX_POLYPHONY> voice_set;
 
     Timbre(bool delete_components = true)
     : m_delete_components{delete_components},
@@ -58,8 +61,11 @@ public:
         assert(this != &that);
         for (auto *c: that.m_controls)
             m_controls.push_back(c->clone());
-        for (auto *m: that.m_modules)
-            m_modules.push_back(m->clone());
+        for (auto *m: that.m_modules) {
+            auto new_m = m->clone();
+            m_modules.push_back(new_m);
+            new_m->set_timbre(this);
+        }
     }
 
     Timbre& operator = (const Timbre&) = delete;
@@ -103,6 +109,7 @@ public:
         // Verify it isn't already added.
         assert(std::find(mods.begin(), mods.end(), m) == mods.end());
         mods.push_back(m);
+        m->set_timbre(this);
     }
 
     const render_action_sequence pre_actions() const { return m_pre_actions; }
@@ -110,6 +117,10 @@ public:
 
     const render_action_sequence post_actions() const { return m_post_actions; }
     void post_actions(const render_action_sequence& a) { m_post_actions = a; }
+
+    const voice_set& attached_voices() const { return m_attached_voices; }
+    void add_voice(size_t index) { m_attached_voices.set(index); }
+    void remove_voice(size_t index) { m_attached_voices.reset(index); }
 
     void pre_render(size_t frame_count) const
     {
@@ -133,6 +144,7 @@ private:
     module_vector m_modules;
     render_action_sequence m_pre_actions;
     render_action_sequence m_post_actions;
+    voice_set m_attached_voices;
 
     friend class timbre_unit_test;
 

@@ -103,6 +103,17 @@ public:
         TS_ASSERT_EQUALS(v.modules().at(1), &vm1);
     }
 
+    void test_add_summer()
+    {
+        Summer<> sum0;
+        Synth s{"Foo", POLY, TIMB};
+        s.add_summer(sum0)
+         .finalize();
+
+        TS_ASSERT_EQUALS(s.timbres().front().modules()[0], &sum0.timbre_side);
+        TS_ASSERT_EQUALS(s.voices().front().modules()[0], &sum0.voice_side);
+    }
+
     void test_apply_patch()
     {
         Synth s{"Foo", POLY, TIMB};
@@ -156,6 +167,37 @@ public:
         log().str("");
         v.render(4);
         TS_ASSERT_EQUALS(log().str(), "vm0.4 ");
+
+        s.detach_voice_from_timbre(t, v);
+        TS_ASSERT_EQUALS(v.timbre(), nullptr);
+    }
+
+    void test_attach_two_voices()
+    {
+        Synth s{"Foo", POLY, TIMB};
+        s.add_timbre_module(tm0)
+         .add_timbre_module(tm1, true)
+         .add_voice_module(vm0)
+         .finalize();
+        Patch p;
+        p.connect(vm0.in, tm0.out)
+         .connect(tm1.in, vm0.out);
+        Timbre& t = s.timbres().front();
+        s.apply_patch(p, t);
+        Voice& v0 = s.voices().at(0);
+        Voice& v2 = s.voices().at(2);
+        s.attach_voice_to_timbre(t, v0);
+        s.attach_voice_to_timbre(t, v2);
+
+        TS_ASSERT_EQUALS(v0.timbre(), &t);
+        TS_ASSERT_EQUALS(v2.timbre(), &t);
+        TS_ASSERT_EQUALS(t.attached_voices(), 0b101);
+
+        s.detach_voice_from_timbre(t, v0);
+        s.detach_voice_from_timbre(t, v2);
+        TS_ASSERT_EQUALS(v0.timbre(), nullptr);
+        TS_ASSERT_EQUALS(v2.timbre(), nullptr);
+        TS_ASSERT_EQUALS(t.attached_voices(), 0b000);
     }
 
     std::string

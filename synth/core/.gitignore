@@ -9,6 +9,7 @@ test-ported
 test-ports
 test-resolver
 test-steps
+test-summer
 test-synth
 test-timbre
 test-voice
