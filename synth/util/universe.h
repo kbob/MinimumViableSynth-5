@@ -51,6 +51,13 @@ public:
       m_ref{ref}
     {}
 
+    Universe(const referent& ref, size_t size)
+    : all{*this, (1 << size) - 1},
+      none{*this},
+      m_ref{ref}
+    {}
+
+    // No two universes are equal.
     bool operator == (const Universe& that) const { return this == &that; }
     bool operator != (const Universe& that) const { return this != &that; }
 
@@ -117,23 +124,25 @@ private:
 // Subsets are created by Universes.
 //
 // Examples:
-//      s1 = u.subset(0b101)    // s1 = {a c}
-//      s1 == s2                // set equality
-//      s1 != s2                // set inequality
-//      s1 < s2                 // proper subset
-//      s1 <= s2                // subset
-//      s1 >= s2                // superset
-//      s1 > s2                 // proper superset
+//      s = u.subset(0b101)     // s = {a c}
+//      s == s2                 // set equality
+//      s != s2                 // set inequality
+//      s < s2                  // proper subset
+//      s <= s2                 // subset
+//      s >= s2                 // superset
+//      s > s2                  // proper superset
 //      // subsets can also be compared to std::bitset<> and to
 //      // integers that coerce to bitsets.
 //
 //      // Membership
-//      s1.add('a')             // add 'a' to s1
-//      s1.contains('b')        // true iff s1 contains 'b'
-//      s1.test(2)              // true iff s1 contains 'c'
-//      for (auto i: s1.indices()) {} // iterate by index: 0, 2
-//      for (auto v: s1.members()) {}  // iterate by member: 'a', 'c'
-//      ostream << s1           // "{a c}"
+//      s.add('a')              // add 'a' to s1
+//      s.remove('c')           // throws if 'c' not in s
+//      s.discard('b')          // OK if 'b' not in s
+//      s.contains('b')         // true iff s contains 'b'
+//      s.test(2)               // true iff s contains 'c'
+//      for (auto i: s.indices()) {} // iterate by index: 0, 2
+//      for (auto v: s.members()) {}  // iterate by member: 'a', 'c'
+//      ostream << s            // "{a c}"
 //
 //      // Operators
 //      s1 | s2, s1 |= s2       // union
@@ -378,6 +387,19 @@ public:
     void add(const member_type& member)
     {
         super::set(m_universe->index(member));
+    }
+
+    void remove(const member_type& member)
+    {
+        ssize_t idx = m_universe->index(member);
+        if (!super::test(idx))
+            throw std::runtime_error("subset");
+        super::reset(idx);
+    }
+
+    void discard(const member_type& member)
+    {
+        super::reset(m_universe->index(member));
     }
 
     const index_iterable indices() const

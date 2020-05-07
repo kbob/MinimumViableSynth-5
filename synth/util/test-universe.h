@@ -38,6 +38,17 @@ public:
         // std::cout << std::endl;
     }
 
+    void test_construct_early()
+    {
+        V ref;
+        U u(ref, 2);
+        ref = {Turtle::Raph, Turtle::Don};
+        TS_ASSERT_EQUALS(u.size(), 2);
+        TS_ASSERT_EQUALS(u.index(Turtle::Don), 1);
+        TS_ASSERT_EQUALS(u.find(Turtle::Mich), -1);
+        TS_ASSERT_EQUALS(u[0], Turtle::Raph);
+    }
+
     void test_equality()
     {
         const U u(turtles);
@@ -423,6 +434,23 @@ public:
         for (auto t: turtles)
             s.add(t);
         TS_ASSERT_EQUALS(s, u.all);
+    }
+
+    void test_remove()
+    {
+        S s = md;
+        s.remove(Turtle::Mich);
+        TS_ASSERT_EQUALS(s, 0b0100);
+        TS_ASSERT_THROWS(s.remove(Turtle::Leo), std::runtime_error);
+    }
+
+    void test_discard()
+    {
+        S s = md;
+        s.discard(Turtle::Mich);
+        TS_ASSERT_EQUALS(s, 0b0100);
+        s.discard(Turtle::Leo);
+        TS_ASSERT_EQUALS(s, 0b0100);
     }
 
     void test_index_iterator()
