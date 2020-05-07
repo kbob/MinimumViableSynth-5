@@ -8,6 +8,8 @@
 #include "synth/core/ported.h"
 #include "synth/core/ports.h"
 
+class Timbre;
+
 
 // -- Modules  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 //
@@ -53,6 +55,9 @@ public:
         return m_name;
     }
 
+    void set_timbre(Timbre *t) { m_timbre = t; }
+
+
     virtual Module *clone() const = 0;
     virtual void init() {}
     virtual render_action make_render_action() = 0;
@@ -60,6 +65,13 @@ public:
 protected:
 
     Module() = default;
+    Module(const Module& that)
+    : Ported{that},
+      m_timbre{nullptr},
+      m_name{that.m_name}
+    {}
+
+    Timbre *m_timbre;
 
 private:
 

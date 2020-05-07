@@ -2,6 +2,8 @@
 
 #include <cxxtest/TestSuite.h>
 
+#include "synth/core/timbre.h"
+
 class modules_unit_test : public CxxTest::TestSuite {
 
 public:
@@ -42,13 +44,25 @@ public:
         TS_ASSERT_EQUALS(foo.name(), "FerdinandOscarOmmitage");
     }
 
+    void test_timbre()
+    {
+        Timbre t;
+        FooModule foo;
+        TS_ASSERT_EQUALS(foo.m_timbre, nullptr);
+        foo.set_timbre(&t);
+        TS_ASSERT_EQUALS(foo.m_timbre, &t);
+    }
+
     void test_clone()
     {
+        Timbre t;
         FooModule foo;
+        foo.set_timbre(&t);
         foo.name("Fonzie");
         Module *bar = foo.clone();
         FooModule *fbar = dynamic_cast<FooModule *>(bar);
         TS_ASSERT(fbar);
+        TS_ASSERT_EQUALS(bar->m_timbre, nullptr);
         TS_ASSERT_EQUALS(bar->name(), "Fonzie");
         TS_ASSERT_EQUALS(bar->ports().size(), 2);
         TS_ASSERT_EQUALS(bar->ports()[0], &fbar->in);
