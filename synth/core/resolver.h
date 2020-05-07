@@ -40,7 +40,6 @@ class Port;
 // Universes are stored in the Resolver but are not constructed
 // until `finalize` is called.
 
-
 class Resolver {
 
     typedef fixed_vector<Control *, MAX_CONTROLS> cvec_type;

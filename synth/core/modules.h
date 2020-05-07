@@ -64,7 +64,10 @@ public:
 
 protected:
 
-    Module() = default;
+    Module()
+    : m_timbre{nullptr}
+    {}
+
     Module(const Module& that)
     : Ported{that},
       m_timbre{nullptr},
