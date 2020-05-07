@@ -1,36 +1,15 @@
 #!/usr/bin/env python3
 
-# get list of files
-# find declarations (not in test-*.h):
-#    ^typedef ... name;
-#    ^class name ...
+# Analyze a set of C++ headers, sources, and test suites.
+# Calculate dependencies, compare to the #include dependencies.
+# Print a list of differences.
 #
-# find current imports
-#    #include "path"
-#    #include <system-path>
+# This tool is approximate.  It does not actually parse C++ source;
+# it just looks for specific regular expression patterns to indicate
+# uses and definitions.
 #
-# find uses
-#    find uses of names found above
-#    in files other than the declarer.
-#
-# find std
-#    std::name
-#
-# maintain a table of std::name -> system header
-#
-# Generate expected includes.
-#
-#   system headers used (angle brackets)
-#   local headers used (path from project root, double quotes)
-#   for test-*.h:
-#       add modulename.h first (no path).
-#       add "cxxtest/testsuite.h"
-#       exclude headers included by modulename.h.
-#   for *.cpp:
-#       add modulename.h first
-#       exclude headers included by modulename.h.
-#
-# Compare expected includes to actual.
+# The function, `apply_heuristics`, has special rules for test suites
+# and sources.
 
 from itertools import groupby
 from pathlib import PurePath
@@ -42,7 +21,7 @@ findall_define = re.compile(r'^\s*#\s*define\s+(\w+)', re.MULTILINE).findall
 findall_typedef = re.compile(r'^typedef [^;]* (\w+)\s*;', re.MULTILINE).findall
 findall_using = re.compile(r'^using\s+(\w+)\s*=', re.MULTILINE).findall
 findall_class = re.compile(r'^class\s+(\w+)\s*[:{]', re.MULTILINE).findall
-findall_class = re.compile(r'^class\s+(\w+)\s*(?:\:|\{[^}])', re.M).findall
+findall_forward_class = re.compile(r'^class\s+(\w+)\s*;', re.MULTILINE).findall
 
 findall_std = re.compile(r'\bstd::\w+').findall
 findall_assert = re.compile(r'\bassert\b').findall
@@ -204,6 +183,9 @@ def find_headers(contents):
         return m.group(0)
     return ''
 
+def find_forward_declarations(contents):
+    classes = findall_forward_class(contents);
+    return set(classes);
 
 def process_file(path):
     with open(path) as f:
@@ -215,6 +197,7 @@ def process_file(path):
         fi.declarations = set()
     else:
         fi.declarations = find_declarations(contents)
+    fi.forward_declarations = find_forward_declarations(contents)
     fi.std_uses = find_std_uses(contents)
     return fi
 
@@ -275,7 +258,7 @@ def apply_heuristics(fi, info_by_path):
 def process_expected_includes(fi, global_decls):
     name_to_file = lambda u: std_names_to_files[u.replace('std::', '')]
     sys_inc = {name_to_file(u) for u in fi.std_uses}
-    local_inc = {global_decls[u] for u in fi.uses}
+    local_inc = {global_decls[u] for u in fi.uses - fi.forward_declarations}
     fi.set_expected_includes(IncludeList(system=sys_inc, local=local_inc))
 
 
