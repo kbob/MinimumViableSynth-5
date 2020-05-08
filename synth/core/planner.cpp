@@ -79,6 +79,37 @@ Planner::partition_modules_used()
     return mod_partition{pre_mods, voice_mods, post_mods};
 }
 
+Planner::module_subset
+Planner::collect_pred(module_subset succ, module_subset candidates)
+{
+    auto& mod_u = m_resolver.modules();
+    auto pred = mod_u.none;
+    auto cur = succ;
+
+    // Hackery alert!
+    //
+    // Some modules have "twins".  A module implicitly receives data
+    // from its twin, so we need to add the twin to predecessors.
+    for (auto *m: succ.members()) {
+        Module *twin = m->twin();
+        if (twin && candidates.contains(twin)) {
+            pred.add(twin);
+        }
+    }
+
+    while (true) {
+        auto prev = mod_u.none;
+        for (auto mi: cur.indices())
+            prev |= m_mod_predecessors->at(mi);
+        prev &= candidates - pred;
+        if (prev == 0)
+            break;
+        pred |= prev;
+        cur = prev;
+    }
+    return pred;
+}
+
 Planner::fcu_result
 Planner::find_controls_used(const module_subset& modules)
 {
@@ -231,27 +262,18 @@ Planner::calc_mod_predecessors()
 void
 Planner::calc_links_to()
 {
-    for (auto& link: m_links.all.members())
-        m_links_to->add(link.dest(), link);
-}
+    // `m_links_to` maps each InputPort to the set of links
+    // that feed it.
+    //
+    // Check that there are no links from voice modules to timbre
+    // modules.  Direct links are not possible; signals have to go
+    // through a Summer.
 
-Planner::module_subset
-Planner::collect_pred(module_subset succ, module_subset candidates)
-{
-    auto& mod_u = m_resolver.modules();
-    auto pred = mod_u.none;
-    auto cur = succ;
-    while (true) {
-        auto prev = mod_u.none;
-        for (auto mi: cur.indices())
-            prev |= m_mod_predecessors->at(mi);
-        prev &= candidates - pred;
-        if (prev == 0)
-            break;
-        pred |= prev;
-        cur = prev;
+    for (auto& link: m_links.all.members()) {
+        if (link_is_v2t(link))
+            throw std::runtime_error("graph has voice to timbre link");
+        m_links_to->add(link.dest(), link);
     }
-    return pred;
 }
 
 bool
@@ -271,11 +293,19 @@ Planner::link_is_aliasable(const Link& link)
     if (m_links_to->get(dest).count() != 1)
         return false;
 
-    // Because voice signals have to be summed, a link from
-    // a voice module to a timbre module cannot be aliased.
-    if (owner_is_timbre(dest) && !owner_is_timbre(src_or_ctl))
-        return false;
     return true;
+}
+
+bool
+Planner::link_is_v2t(const Link& link)
+{
+    if (!owner_is_timbre(link.dest()))
+        return false;
+    if (link.src() && !owner_is_timbre(link.src()))
+        return true;
+    if (link.ctl() && !owner_is_timbre(link.ctl()))
+        return true;
+    return false;
 }
 
 bool

@@ -33,6 +33,7 @@ public:
     class FooModule : public ModuleType<FooModule> {
     public:
         FooModule()
+        : m_twin{nullptr}
         {
             in.name("in");
             out.name("out");
@@ -44,6 +45,8 @@ public:
         {
             log() << name() << '.' << frame_count << ' ';
         }
+        Module *twin() const override { return m_twin; }
+        Module *m_twin;
     };
 
     void test_instantiate()
@@ -65,6 +68,7 @@ public:
         tm1.name("tm1");
         vm0.name("vm0");
         vm1.name("vm1");
+        tm1.m_twin = &vm0;
     }
 
     void test_properties()
@@ -122,13 +126,15 @@ public:
          .add_voice_module(vm0)
          .finalize();
         Patch p;
-        p.connect(vm0.in, tm0.out)
-         .connect(tm1.in, vm0.out);
+        p.connect(vm0.in, tm0.out);
         Timbre& t = s.timbres().front();
         s.apply_patch(p, t);
         auto plan = t.plan();
+        // Ports:
+        //    tm0.in  tm0.out tm1.in  tm1.out
+        //    vm0.in  vm0.out
         TS_ASSERT_EQUALS(prep_step_rep(plan.t_prep()),
-                         "[clear(0, 0) alias(2, -1)]");
+                         "[clear(0, 0) clear(2, 0)]");
         TS_ASSERT_EQUALS(prep_step_rep(plan.v_prep()),
                          "[alias(4, 1)]");
         TS_ASSERT_EQUALS(render_step_rep(plan.pre_render()),
@@ -155,8 +161,7 @@ public:
          .add_voice_module(vm0)
          .finalize();
         Patch p;
-        p.connect(vm0.in, tm0.out)
-         .connect(tm1.in, vm0.out);
+        p.connect(vm0.in, tm0.out);
         Timbre& t = s.timbres().front();
         s.apply_patch(p, t);
         Voice& v = s.voices().at(0);
@@ -180,8 +185,7 @@ public:
          .add_voice_module(vm0)
          .finalize();
         Patch p;
-        p.connect(vm0.in, tm0.out)
-         .connect(tm1.in, vm0.out);
+        p.connect(vm0.in, tm0.out);
         Timbre& t = s.timbres().front();
         s.apply_patch(p, t);
         Voice& v0 = s.voices().at(0);

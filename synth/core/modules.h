@@ -61,6 +61,7 @@ public:
     virtual Module *clone() const = 0;
     virtual void init() {}
     virtual render_action make_render_action() = 0;
+    virtual Module *twin() const { return nullptr; }
 
 protected:
 

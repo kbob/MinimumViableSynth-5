@@ -52,11 +52,17 @@ class Summer {
 
     public:
 
-        TimbreSide(in_vector& voice_ports)
-        : m_voice_ports{voice_ports}
+        TimbreSide(VoiceSide *v_side, in_vector& voice_ports)
+        : m_voice_side{v_side},
+          m_voice_ports{voice_ports}
         {
             out.name("out");
             super::ports(out);
+        }
+
+        Module *twin() const override
+        {
+            return m_voice_side;
         }
 
         Output<ElementType> out;
@@ -77,6 +83,7 @@ class Summer {
 
     private:
 
+        VoiceSide *m_voice_side;
         in_vector& m_voice_ports;
 
         friend class summer_unit_test;
@@ -90,7 +97,7 @@ public:
 
     Summer()
     : voice_side(*this),
-      timbre_side{m_voice_ports}
+      timbre_side{&voice_side, m_voice_ports}
     {}
 
     VoiceSide voice_side;

@@ -133,6 +133,9 @@ private:
     link_is_aliasable(const Link&);
 
     bool
+    link_is_v2t(const Link& link);
+
+    bool
     owner_is_timbre(const Port *);
 
     const tc_vec& m_tcontrols;

@@ -21,6 +21,7 @@ public:
     class FooModule : public ModuleType<FooModule> {
     public:
         FooModule()
+        : m_twin{nullptr}
         {
             in.name("in");
             out.name("out");
@@ -29,6 +30,8 @@ public:
         Input<> in;
         Output<> out;
         void render(size_t) {}
+        Module *twin() const override { return m_twin; }
+        Module *m_twin;
     };
 
     void test_instantiate()
@@ -95,27 +98,25 @@ public:
     void test_reachability()
     {
         // Construct graph:
-        //     (tc0 -> tm0) -> (vc0, tc1 -> vm0) -> (tc2 -> tm1)
+        //     (tc0 -> tm0) -> (vc0, tc1 -> vm0) :: (tc2 -> tm1)
         // tc3, vc1, tm2, and vm1 are disconnected.
 
         Planner::link_vec links;
         links.emplace_back(&tm0.in, nullptr, &tc0.out);
         links.emplace_back(&vm0.in, &tm0.out, &vc0.out);
         links.emplace_back(&vm0.in, nullptr, &tc1.out);
-        links.emplace_back(&tm1.in, &vm0.out, &tc2.out);
+        links.emplace_back(&tm1.in, nullptr, &tc2.out);
+        tm1.m_twin = &vm0;
         Planner::om_vec om{&tm1};
         Planner planner{tc, tm, vc, vm, links, om};
         Plan plan = planner.make_plan();
+        tm1.m_twin = nullptr;
         TS_ASSERT_EQUALS(prep_step_rep(plan.t_prep()),
-                         "[alias(4, 0) alias(6, -1)]");
+                         "[alias(4, 0) alias(6, 2)]");
         TS_ASSERT_EQUALS(prep_step_rep(plan.v_prep()),
                          "[alias(12, -1)]");
         TS_ASSERT_EQUALS(render_rep(plan.pre_render()),
                          "[crend(0) crend(1) crend(2) mrend(0)]");
-        // TS_ASSERT_EQUALS(render_rep(plan.v_render()),
-        //           "[crend(4) copy(12, 5, 10) add(12, -1, 1) mrend(3)]")
-        // TS_ASSERT_EQUALS(render_rep(plan.post_render()),
-        //                  "[copy(6, 13, 2) mrend(1)]");
         TS_ASSERT_EQUALS(render_rep(plan.v_render()),
                          "[crend(4) mrend(3)]")
         TS_ASSERT_EQUALS(render_rep(plan.post_render()),
@@ -166,30 +167,6 @@ public:
                          "[mrend(0) mrend(1)]");
     }
 
-    void test_v_to_post_simple_link()
-    {
-        // Construct graph:
-        //     vm0 -> tm0
-
-        Planner::link_vec links;
-        links.emplace_back(&tm0.in, &vm0.out, nullptr);
-        Planner::om_vec om{&tm0};
-        Planner planner{tc, tm, vc, vm, links, om};
-        auto plan = planner.make_plan();;
-        TS_ASSERT_EQUALS(prep_step_rep(plan.t_prep()),
-                         "[alias(4, -1)]");
-        TS_ASSERT_EQUALS(prep_step_rep(plan.v_prep()),
-                         "[clear(12, 0)]");
-        TS_ASSERT_EQUALS(render_rep(plan.pre_render()),
-                         "[]");
-        TS_ASSERT_EQUALS(render_rep(plan.v_render()),
-                         "[mrend(3)]")
-        // TS_ASSERT_EQUALS(render_rep(plan.post_render()),
-        //                  "[copy(4, 13, -1) mrend(0)]");
-        TS_ASSERT_EQUALS(render_rep(plan.post_render()),
-                         "[mrend(0)]");
-    }
-
     void test_timbre_cycle()
     {
         // Construct graph:
@@ -206,15 +183,49 @@ public:
     void test_voice_cycle()
     {
         // Construct graph:
-        //     vm1 -> vm0 -> vm1 -> tm0
+        //     vm1 -> vm0 -> vm1 :: tm0
 
         Planner::link_vec links;
         links.emplace_back(&vm1.in, &vm0.out, nullptr);
         links.emplace_back(&vm0.in, &vm1.out, nullptr);
-        links.emplace_back(&tm0.in, &vm1.out, nullptr);
+        tm0.m_twin = &vm1;
         Planner::om_vec om{&tm0};
         Planner planner{tc, tm, vc, vm, links, om};
         TS_ASSERT_THROWS(planner.make_plan(), std::runtime_error);
+        tm0.m_twin = nullptr;
+    }
+
+    void test_twin()
+    {
+        FooModule tm0, vm0, tm1;
+        tm0.name("tm0");
+        tm1.name("tm1");
+        vm0.name("vm0");
+        tm1.m_twin = &vm0;
+        Planner::tc_vec tc;
+        Planner::vc_vec vc;
+        Planner::tm_vec tm{&tm0, &tm1};
+        Planner::vm_vec vm{&vm0};
+        // Ports:
+        //   0: tm0.in  tm0.out tm1.in  tm1.out
+        //   4: vm0.in  vm0.out
+        Planner::om_vec om{&tm1};
+        Planner::link_vec links;
+        links.emplace_back(&vm0.in, &tm0.out, nullptr);
+        Planner planner{tc, tm, vc, vm, links, om};
+        Plan plan = planner.make_plan();
+
+        TS_ASSERT_EQUALS(prep_step_rep(plan.t_prep()),
+                         "[clear(0, 0) clear(2, 0)]");
+        TS_ASSERT_EQUALS(prep_step_rep(plan.v_prep()),
+                         "[alias(4, 1)]");
+        TS_ASSERT_EQUALS(render_rep(plan.pre_render()),
+                         "[mrend(0)]");
+        TS_ASSERT_EQUALS(render_rep(plan.v_render()),
+                         "[mrend(2)]")
+        TS_ASSERT_EQUALS(render_rep(plan.post_render()),
+                         "[mrend(1)]");
+
     }
 
 };
