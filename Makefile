@@ -1,5 +1,5 @@
  .DEFAULT_GOAL := help
-       SUBDIRS := synth platforms targets products
+       SUBDIRS := synth platforms
     SUBMODULES := submodules/cxxtest
 
 include make/common.make
