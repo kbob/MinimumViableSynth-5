@@ -142,16 +142,6 @@ private:
     pointer m_end;
     pod_type m_store[N];
 
-    pointer ptr()
-    {
-        return reinterpret_cast<pointer>(m_store);
-    }
-
-    const_pointer ptr() const
-    {
-        return reinterpret_cast<const_pointer>(m_store);
-    }
-
     friend class fixed_vector_unit_test;
 
 };
@@ -182,13 +172,13 @@ bool operator >= (const fixed_vector<T, N>&, const fixed_vector<T, N>&);
 template <class T, size_t N>
 inline
 fixed_vector<T, N>::fixed_vector()
-: m_end{ptr()}
+: m_end{data()}
 {}
 
 template<class T, size_t N>
 inline
 fixed_vector<T, N>::fixed_vector(size_type n)
-: m_end{ptr()}
+: m_end{data()}
 {
     assert(n <= N);
     for (size_t i = 0; i < n; i++)
@@ -198,7 +188,7 @@ fixed_vector<T, N>::fixed_vector(size_type n)
 template<class T, size_t N>
 inline
 fixed_vector<T, N>::fixed_vector(size_type n, const value_type& val)
-: m_end{ptr()}
+: m_end{data()}
 {
     assert(n <= N);
     for (size_t i = 0; i < n; i++)
@@ -212,7 +202,7 @@ fixed_vector<T, N>::fixed_vector(
         InputIterator first,
         fixed_vector<T, N>::compat_input_iter<InputIterator> last
     )
-: m_end{ptr()}
+: m_end{data()}
 {
     for ( ; first != last; ++first)
          push_back(*first);
@@ -221,7 +211,7 @@ fixed_vector<T, N>::fixed_vector(
 template <class T, size_t N>
 inline
 fixed_vector<T, N>::fixed_vector(const fixed_vector& that)
-: m_end{ptr()}
+: m_end{data()}
 {
     for (auto& item: that)
         push_back(item);
@@ -230,17 +220,17 @@ fixed_vector<T, N>::fixed_vector(const fixed_vector& that)
 template <class T, size_t N>
 inline
 fixed_vector<T, N>::fixed_vector(fixed_vector&& that)
-: m_end{ptr()}
+: m_end{data()}
 {
     for (auto& item: that)
         (void) new (m_end++) T(std::move(item));
-    that.m_end = that.ptr();
+    that.m_end = that.data();
 }
 
 template <class T, size_t N>
 inline
 fixed_vector<T, N>::fixed_vector(std::initializer_list<value_type> il)
-: m_end{ptr()}
+: m_end{data()}
 {
     for (auto& item: il)
         emplace_back(item);
@@ -305,7 +295,7 @@ inline
 typename fixed_vector<T, N>::iterator
 fixed_vector<T, N>::begin() noexcept
 {
-    return ptr();
+    return data();
 }
 
 template <class T, size_t N>
@@ -313,7 +303,7 @@ inline
 typename fixed_vector<T, N>:: const_iterator
 fixed_vector<T, N>::begin() const noexcept
 {
-    return ptr();
+    return data();
 }
 
 template <class T, size_t N>
@@ -369,7 +359,7 @@ inline
 typename fixed_vector<T, N>:: const_iterator
 fixed_vector<T, N>::cbegin() const noexcept
 {
-    return ptr();
+    return data();
 }
 
 template <class T, size_t N>
@@ -403,7 +393,7 @@ template <class T, size_t N>
 typename fixed_vector<T, N>::size_type
 fixed_vector<T, N>::size() const noexcept
 {
-    return m_end - ptr();
+    return m_end - data();
 }
 
 template <class T, size_t N>
@@ -459,7 +449,7 @@ inline
 bool
 fixed_vector<T, N>::empty() const noexcept
 {
-    return m_end == ptr();
+    return m_end == data();
 }
 
 template <class T, size_t N>
@@ -486,7 +476,7 @@ typename fixed_vector<T, N>::reference
 fixed_vector<T, N>::operator [] (size_type i)
 {
     assert(i < size());
-    return ptr()[i];
+    return data()[i];
 }
 
 template <class T, size_t N>
@@ -495,7 +485,7 @@ typename fixed_vector<T, N>::const_reference
 fixed_vector<T, N>::operator [] (size_type i) const
 {
     assert(i < size());
-    return ptr()[i];
+    return data()[i];
 }
 
 template <class T, size_t N>
@@ -505,7 +495,7 @@ fixed_vector<T, N>::at(size_type i)
 {
     if (i >= size())
         throw std::out_of_range("fixed_vector");
-    return ptr()[i];
+    return data()[i];
 }
 
 template <class T, size_t N>
@@ -515,7 +505,7 @@ fixed_vector<T, N>::at(size_type i) const
 {
     if (i >= size())
         throw std::out_of_range("fixed_vector");
-    return ptr()[i];
+    return data()[i];
 }
 
 template <class T, size_t N>
@@ -524,7 +514,7 @@ typename fixed_vector<T, N>::reference
 fixed_vector<T, N>::front()
 {
     assert(size());
-    return *ptr();
+    return *data();
 }
 
 template <class T, size_t N>
@@ -533,7 +523,7 @@ typename fixed_vector<T, N>::const_reference
 fixed_vector<T, N>::front() const
 {
     assert(size());
-    return *ptr();
+    return *data();
 }
 
 template <class T, size_t N>
@@ -559,7 +549,7 @@ inline
 typename fixed_vector<T, N>::value_type *
 fixed_vector<T, N>::data() noexcept
 {
-    return ptr();
+    return reinterpret_cast<value_type *>(m_store);
 }
 
 template <class T, size_t N>
@@ -567,7 +557,7 @@ inline
 const typename fixed_vector<T, N>::value_type *
 fixed_vector<T, N>::data() const noexcept
 {
-    return ptr();
+    return reinterpret_cast<const value_type *>(m_store);
 }
 
 
@@ -641,7 +631,7 @@ typename fixed_vector<T, N>::iterator
 fixed_vector<T, N>::insert(const_iterator pos, const value_type& val)
 {
     assert(size() + 1 <= N);
-    assert(ptr() <= pos && pos <= m_end);
+    assert(data() <= pos && pos <= m_end);
     T *to = m_end + 1;
     T *from = m_end++;
     while (from != pos)
@@ -658,7 +648,7 @@ fixed_vector<T, N>::insert(const_iterator pos,
                            const value_type& val)
 {
     assert(size() + n <= N);
-    assert(ptr() <= pos && pos <= m_end);
+    assert(data() <= pos && pos <= m_end);
     T *to = m_end + n;
     T *from = m_end;
     m_end += n;
@@ -679,7 +669,7 @@ fixed_vector<T, N>::insert(const_iterator pos,
 {
     size_t n = std::distance(first, last);
     assert(size() + n <= N);
-    assert(ptr() <= pos && pos <= m_end);
+    assert(data() <= pos && pos <= m_end);
     T *to = m_end + n;
     T *from = m_end;
     m_end += n;
@@ -696,7 +686,7 @@ typename fixed_vector<T, N>::iterator
 fixed_vector<T, N>::insert(const_iterator pos, value_type&& val)
 {
     assert(size() + 1 <= N);
-    assert(ptr() <= pos && pos <= m_end);
+    assert(data() <= pos && pos <= m_end);
     T *to = m_end + 1;
     T *from = m_end++;
     while (from != pos)
@@ -713,7 +703,7 @@ fixed_vector<T, N>::insert(const_iterator pos,
 {
     size_t n = il.size();
     assert(size() + n <= N);
-    assert(ptr() <= pos && pos <= m_end);
+    assert(data() <= pos && pos <= m_end);
     T *to = m_end + n;
     T *from = m_end;
     m_end += n;
@@ -731,7 +721,7 @@ typename fixed_vector<T, N>::iterator
 fixed_vector<T, N>::erase(const_iterator pos)
 {
     assert(size() >= 1);
-    assert(ptr() <= pos && pos + 1 <= m_end);
+    assert(data() <= pos && pos + 1 <= m_end);
     T *to = const_cast<T *>(pos);
     T *from = to + 1;
     to->~T();
@@ -746,7 +736,7 @@ inline
 typename fixed_vector<T, N>::iterator
 fixed_vector<T, N>::erase(const_iterator first, const_iterator last)
 {
-    assert(ptr() <= first && first <= last && last <= m_end);
+    assert(data() <= first && first <= last && last <= m_end);
     T *first_mut = const_cast<T *>(first);
     for (T *p = first_mut; p != last; p++)
         p->~T();
@@ -782,7 +772,7 @@ typename fixed_vector<T, N>::iterator
 fixed_vector<T, N>::emplace(const_iterator pos, Args&&... args)
 {
     assert(size() + 1 <= N);
-    assert(ptr() <= pos && pos <= m_end);
+    assert(data() <= pos && pos <= m_end);
     T *to = m_end + 1;
     T *from = m_end++;
     while (from != pos)
