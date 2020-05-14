@@ -26,6 +26,7 @@ class Patch;
 //     a bit vector of attached voices
 //
 // A Timbre can:
+//     configure itself.
 //     pre-render a frame chunk.
 //     post-render a frame chunk.
 
@@ -121,6 +122,14 @@ public:
     const voice_set& attached_voices() const { return m_attached_voices; }
     void add_voice(size_t index) { m_attached_voices.set(index); }
     void remove_voice(size_t index) { m_attached_voices.reset(index); }
+
+    void configure(const AudioConfig& ac)
+    {
+        for (auto *c: m_controls)
+            c->configure(ac);
+        for (auto *m: m_modules)
+            m->configure(ac);
+    }
 
     void pre_render(size_t frame_count) const
     {

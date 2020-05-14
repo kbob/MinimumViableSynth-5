@@ -8,6 +8,7 @@
 #include "synth/core/ported.h"
 #include "synth/core/ports.h"
 
+class AudioConfig;
 class Timbre;
 
 
@@ -59,7 +60,7 @@ public:
 
 
     virtual Module *clone() const = 0;
-    virtual void init() {}
+    virtual void configure(const AudioConfig&) {}
     virtual render_action make_render_action() = 0;
     virtual Module *twin() const { return nullptr; }
 

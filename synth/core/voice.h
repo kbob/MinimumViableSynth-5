@@ -23,6 +23,7 @@ class Timbre;
 //     a render action sequence
 //
 // A Voice can:
+//     configure itself.
 //     start, release, and kill a note.
 //     render a frame chunk.
 
@@ -100,6 +101,14 @@ public:
 
     const render_action_sequence actions() const { return m_actions; }
     void actions(const render_action_sequence& a) { m_actions = a; }
+
+    void configure(const AudioConfig& ac)
+    {
+        for (auto *c: m_controls)
+            c->configure(ac);
+        for (auto *m: m_modules)
+            m->configure(ac);
+    }
 
     void start_note()
     {

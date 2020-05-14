@@ -8,12 +8,12 @@ class runner_unit_test : public CxxTest::TestSuite {
 
 public:
 
-    class FooRunnable {
+    class FooTarget {
     public:
-        FooRunnable(const AudioConfig&, Module& out)
+        FooTarget(const AudioConfig& ac, Module& out)
         : m_synth("FooSynth", 1, 1)
         {
-            m_synth.add_timbre_module(out, true).finalize();
+            m_synth.add_timbre_module(out, true).finalize(ac);
             m_synth.apply_patch(m_patch, m_synth.timbres().front());
         }
         Synth& synth() { return m_synth; }
@@ -23,11 +23,11 @@ public:
 
     void test_instantiate()
     {
-        (void)Runner<FooRunnable>();
+        (void)Runner<FooTarget>();
     }
 
     void test_run()
     {
-        Runner<FooRunnable>().run();
+        Runner<FooTarget>().run();
     }
 };

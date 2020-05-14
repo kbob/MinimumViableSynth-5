@@ -2,6 +2,7 @@
 
 #include <cxxtest/TestSuite.h>
 
+#include "synth/core/audio-config.h"
 #include "synth/core/timbre.h"
 
 class modules_unit_test : public CxxTest::TestSuite {
@@ -69,10 +70,11 @@ public:
         TS_ASSERT_EQUALS(bar->ports()[1], &fbar->out);
     }
 
-    void test_init()
+    void test_configure()
     {
+        AudioConfig ac;
         FooModule foo;
-        foo.init();
+        foo.configure(ac);
     }
 
     void test_render()

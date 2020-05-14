@@ -82,10 +82,6 @@
 #define MAX_RENDER_ACTIONS MAX_RENDER_STEPS
 #endif
 
-#ifndef SAMPLE_RATE
-#define SAMPLE_RATE 44100
-#endif
-
 #ifndef DEFAULT_SAMPLE_TYPE
 #define DEFAULT_SAMPLE_TYPE float
 #endif

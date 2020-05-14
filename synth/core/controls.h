@@ -8,6 +8,8 @@
 #include "synth/core/ported.h"
 #include "synth/core/ports.h"
 
+class AudioConfig;
+
 // Abstract base class for controls.
 //
 // parameterized by type.
@@ -23,6 +25,7 @@ public:
     virtual Control *clone() const = 0;
     virtual ~Control() = default;
 
+    virtual void configure(const AudioConfig&) {}
     virtual render_action make_render_action() = 0;
 
 protected:

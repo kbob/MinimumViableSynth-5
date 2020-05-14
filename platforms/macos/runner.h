@@ -7,7 +7,7 @@
 #include "platforms/macos/soundscope.h"
 #include "synth/core/audio-config.h"
 
-template <class Runnable>
+template <class Target>
 class Runner {
 
 public:
@@ -56,39 +56,39 @@ private:
 
 };
 
-template <class Runnable>
+template <class Target>
 int
-Runner<Runnable>::run_serial()
+Runner<Target>::run_serial()
 {
     Soundscope out;
-    Runnable runnable(m_config, out);
+    Target target(m_config, out);
 
     int nframes = int(m_duration * m_config.sample_rate);
     for (int chunk_size, i = 0; i < nframes; i += chunk_size) {
         chunk_size = MAX_FRAMES;
         if (chunk_size > nframes - i)
             chunk_size = nframes - i;
-        for (auto& t: runnable.synth().timbres())
+        for (auto& t: target.synth().timbres())
             t.pre_render(chunk_size);
-        for (auto& v: runnable.synth().voices())
+        for (auto& v: target.synth().voices())
             v.render(chunk_size);
-        for (auto& t: runnable.synth().timbres())
+        for (auto& t: target.synth().timbres())
             t.post_render(chunk_size);
     }
     return 0;
 }
 
-template <class Runnable>
+template <class Target>
 int
-Runner<Runnable>::run_parallel()
+Runner<Target>::run_parallel()
 {
     // XXX write me
     return 0;
 }
 
-template <class Runnable>
+template <class Target>
 unsigned
-Runner<Runnable>::calc_thread_count()
+Runner<Target>::calc_thread_count()
 {
     std::int32_t cpu_count = -1;
     size_t cpu_count_size = sizeof cpu_count;

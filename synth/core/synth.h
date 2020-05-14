@@ -102,7 +102,7 @@ public:
         return *this;
     }
 
-    void finalize()
+    void finalize(const AudioConfig& ac)
     {
         assert(!m_finalized);
         // N.B., the first timbre and voice are already allocated.
@@ -113,6 +113,12 @@ public:
         for (size_t i = 1; i < polyphony; i++)
             m_voices.emplace_back(m_voices.front());
         m_finalized = true;
+
+        for (auto& t: m_timbres)
+            t.configure(ac);
+
+        for (auto& v: m_voices)
+            v.configure(ac);
     }
 
     void apply_patch(Patch& patch, Timbre& timbre)

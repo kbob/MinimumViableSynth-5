@@ -1,6 +1,9 @@
 #ifndef NAIVE_SQUARE_included
 #define NAIVE_SQUARE_included
 
+#include <cassert>
+
+#include "synth/core/audio-config.h"
 #include "synth/core/config.h"
 #include "synth/core/modules.h"
 
@@ -9,7 +12,8 @@ class NaiveSquare : public ModuleType<NaiveSquare> {
 public:
 
     NaiveSquare()
-    : m_phase{0}
+    : m_inv_Fs{0},
+      m_phase{0}
     {
         freq.name("freq");
         out.name("out");
@@ -21,16 +25,24 @@ public:
 
     void render(size_t frame_count)
     {
+        float inv_Fs = m_inv_Fs;
+        assert(inv_Fs);
         for (size_t i = 0; i < frame_count; i++) {
             out[i] = m_phase < 0.5 ? +1 : -1;
-            m_phase += freq[i] * (1.0 / SAMPLE_RATE);
+            m_phase += inv_Fs * freq[i];
             if (m_phase >= 1)
                 m_phase -= 1;
         }
     }
 
+    void configure(const AudioConfig& ac)
+    {
+        m_inv_Fs = 1.0 / ac.sample_rate;
+    }
+
 private:
 
+    float m_inv_Fs;
     float m_phase;
 
 };

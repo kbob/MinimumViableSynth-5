@@ -5,6 +5,7 @@
 
 #include <cxxtest/TestSuite.h>
 
+#include "synth/core/audio-config.h"
 #include "synth/core/plan.h"
 #include "synth/core/ports.h"
 
@@ -57,6 +58,7 @@ public:
 
     FooControl tc0, tc1, vc0, vc1;
     FooModule tm0, tm1, vm0, vm1;
+    AudioConfig ac;
 
     synth_unit_test()
     {
@@ -90,7 +92,7 @@ public:
          .add_timbre_module(tm1, true)
          .add_voice_module(vm0)
          .add_voice_module(vm1)
-         .finalize();
+         .finalize(ac);
 
         const Timbre& t = s.m_timbres.front();
         TS_ASSERT_EQUALS(t.controls().size(), 2);
@@ -112,7 +114,7 @@ public:
         Summer<> sum0;
         Synth s{"Foo", POLY, TIMB};
         s.add_summer(sum0)
-         .finalize();
+         .finalize(ac);
 
         TS_ASSERT_EQUALS(s.timbres().front().modules()[0], &sum0.timbre_side);
         TS_ASSERT_EQUALS(s.voices().front().modules()[0], &sum0.voice_side);
@@ -124,7 +126,7 @@ public:
         s.add_timbre_module(tm0)
          .add_timbre_module(tm1, true)
          .add_voice_module(vm0)
-         .finalize();
+         .finalize(ac);
         Patch p;
         p.connect(vm0.in, tm0.out);
         Timbre& t = s.timbres().front();
@@ -159,7 +161,7 @@ public:
         s.add_timbre_module(tm0)
          .add_timbre_module(tm1, true)
          .add_voice_module(vm0)
-         .finalize();
+         .finalize(ac);
         Patch p;
         p.connect(vm0.in, tm0.out);
         Timbre& t = s.timbres().front();
@@ -183,7 +185,7 @@ public:
         s.add_timbre_module(tm0)
          .add_timbre_module(tm1, true)
          .add_voice_module(vm0)
-         .finalize();
+         .finalize(ac);
         Patch p;
         p.connect(vm0.in, tm0.out);
         Timbre& t = s.timbres().front();

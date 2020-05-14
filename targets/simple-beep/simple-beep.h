@@ -11,15 +11,11 @@ public:
 
     template <class OutputModule>
     SimpleBeep(const AudioConfig& ac, OutputModule& out)
-    : m_config{ac},
-      m_synth{"SimpleBeep", 1, 1}
+    : m_synth{"SimpleBeep", 1, 1}
     {
-        // m_synth.add_timbre_module(out, true)
-        //        .add_timbre_module(m_osc)
-        //        .finalize();
         m_synth.add_timbre_module(m_osc)
                .add_timbre_module(out, true)
-               .finalize();
+               .finalize(ac);
         Patch p;
         p.connect(out.in, m_osc.out)
          .connect(m_osc.freq, 440.)
@@ -35,7 +31,6 @@ public:
 
 private:
 
-    AudioConfig m_config;
     NaiveSquare m_osc;
     Synth m_synth;
 
