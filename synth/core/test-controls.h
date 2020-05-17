@@ -65,4 +65,13 @@ public:
             TS_ASSERT_EQUALS(c.out[i], static_cast<Color>(i % 4));
     }
 
+    void test_lifetime_stuff()
+    {
+        // I don't know how much good it does to test these...
+        ConcreteControl c;
+        c.start_note();
+        c.release_note();
+        c.kill_note();
+    }
+
 };

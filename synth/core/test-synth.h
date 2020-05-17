@@ -168,6 +168,7 @@ public:
         s.apply_patch(p, t);
         Voice& v = s.voices().at(0);
         s.attach_voice_to_timbre(t, v);
+        v.start_note();
 
         TS_ASSERT_EQUALS(v.timbre(), &t);
 

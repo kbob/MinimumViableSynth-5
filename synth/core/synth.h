@@ -86,10 +86,10 @@ public:
         return *this;
     }
 
-    Synth& add_voice_module(Module& mod)
+    Synth& add_voice_module(Module& mod, bool is_lifetime_moderator = false)
     {
         assert(!m_finalized);
-        m_voices.front().add_module(&mod);
+        m_voices.front().add_module(&mod, is_lifetime_moderator);
         return *this;
     }
 

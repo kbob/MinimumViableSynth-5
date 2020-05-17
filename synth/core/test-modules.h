@@ -98,4 +98,13 @@ public:
         TS_ASSERT_EQUALS(foo.out[1], -4.4f);
     }
 
+    void test_lifetime_stuff()
+    {
+        // I don't know how much good it does to test these...
+        FooModule foo;
+        foo.start_note();
+        foo.release_note();
+        foo.kill_note();
+    }
+
 };

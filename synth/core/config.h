@@ -13,6 +13,9 @@
 #include PRODUCT_CONFIG_H       /* product config overrides both */
 #endif
 
+
+// -- Sizes -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
+//
 // The default maxima below are just good enough for the unit tests.
 // Most applications will need to override most of them.
 
@@ -42,6 +45,10 @@
 
 #ifndef MAX_VOICE_MODULES
 #define MAX_VOICE_MODULES 4
+#endif
+
+#ifndef MAX_VOICE_LIFE_MODULES
+#define MAX_VOICE_LIFE_MODULES 4
 #endif
 
 #ifndef MAX_OUTPUT_MODULES
@@ -82,6 +89,9 @@
 #define MAX_RENDER_ACTIONS MAX_RENDER_STEPS
 #endif
 
+
+// -- Other -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
+
 #ifndef DEFAULT_SAMPLE_TYPE
 #define DEFAULT_SAMPLE_TYPE float
 #endif
@@ -92,6 +102,10 @@
 
 #ifndef DEFAULT_SCALE
 #define DEFAULT_SCALE 1.0f
+#endif
+
+#ifndef NOTE_SHUTDOWN_TIME
+#define NOTE_SHUTDOWN_TIME 0.010 // seconds
 #endif
 
 #endif /* CONFIG_included */

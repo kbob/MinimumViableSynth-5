@@ -106,36 +106,54 @@ public:
         TS_ASSERT_EQUALS(m.at(1), foo2);
     }
 
-    void note()
+    void test_note()
     {
         Voice v;
         TS_ASSERT_EQUALS(v.state(), Voice::State::IDLE);
         v.start_note();
-        TS_ASSERT_EQUALS(v.state(), Voice::State::ACTIVE);
+        TS_ASSERT_EQUALS(v.state(), Voice::State::ON);
         v.release_note();
         TS_ASSERT_EQUALS(v.state(), Voice::State::RELEASING);
+        v.render(1);
+        TS_ASSERT_EQUALS(v.state(), Voice::State::IDLE);
     }
 
-    void kill_note()
+    void test_kill_note()
     {
+        AudioConfig ac;
         Voice v;
+        v.configure(ac);
         TS_ASSERT_EQUALS(v.state(), Voice::State::IDLE);
         v.start_note();
-        TS_ASSERT_EQUALS(v.state(), Voice::State::ACTIVE);
+        TS_ASSERT_EQUALS(v.state(), Voice::State::ON);
         v.kill_note();
         TS_ASSERT_EQUALS(v.state(), Voice::State::STOPPING);
+        int shutdown_frames = ac.sample_rate * NOTE_SHUTDOWN_TIME;
+        for (int frame = 0; frame < shutdown_frames; frame += MAX_FRAMES) {
+            TS_ASSERT_EQUALS(v.state(), Voice::State::STOPPING);
+            v.render(MAX_FRAMES);
+        }
+        TS_ASSERT_EQUALS(v.state(), Voice::State::IDLE);
     }
 
-    void kill_released_note()
+    void test_kill_released_note()
     {
+        AudioConfig ac;
         Voice v;
+        v.configure(ac);
         TS_ASSERT_EQUALS(v.state(), Voice::State::IDLE);
         v.start_note();
-        TS_ASSERT_EQUALS(v.state(), Voice::State::ACTIVE);
+        TS_ASSERT_EQUALS(v.state(), Voice::State::ON);
         v.release_note();
         TS_ASSERT_EQUALS(v.state(), Voice::State::RELEASING);
         v.kill_note();
         TS_ASSERT_EQUALS(v.state(), Voice::State::STOPPING);
+        int shutdown_frames = ac.sample_rate * NOTE_SHUTDOWN_TIME;
+        for (int frame = 0; frame < shutdown_frames; frame += MAX_FRAMES) {
+            TS_ASSERT_EQUALS(v.state(), Voice::State::STOPPING);
+            v.render(MAX_FRAMES);
+        }
+        TS_ASSERT_EQUALS(v.state(), Voice::State::IDLE);
     }
 
     void test_render()
@@ -152,8 +170,9 @@ public:
         v.actions(seq);
         v.start_note();
         TS_ASSERT_EQUALS(v.actions().size(), 2);
-        v.render(10);
-        TS_ASSERT_EQUALS(log.str(), "a10 b10 ");
+        TS_ASSERT_EQUALS(v.state(), Voice::State::ON);
+        v.render(4);
+        TS_ASSERT_EQUALS(log.str(), "a4 b4 ");
     }
 
 };

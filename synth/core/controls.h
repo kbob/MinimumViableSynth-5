@@ -28,6 +28,20 @@ public:
     virtual void configure(const AudioConfig&) {}
     virtual render_action make_render_action() = 0;
 
+    // Voice controls may override these to participate in voice
+    // lifetime management.
+    virtual void start_note() {}
+    virtual void release_note() {}
+    virtual void kill_note() {}
+    virtual bool note_is_done() const
+    {
+        // This will never be called for most control subclasses,
+        // but the default implementation is useless, so controls
+        // that do use it (e.g. note frequency) should override.
+        assert(!"subclass should override");
+        return true;
+    }
+
 protected:
 
     Control() = default;

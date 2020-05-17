@@ -62,7 +62,24 @@ public:
     virtual Module *clone() const = 0;
     virtual void configure(const AudioConfig&) {}
     virtual render_action make_render_action() = 0;
+
+    // `twin` is a wart for Summers to associate their voice sides
+    // with their timbre sides.
     virtual Module *twin() const { return nullptr; }
+
+    // Voice modules may override these to participate in voice lifetime
+    // management.
+    virtual void start_note() {}
+    virtual void release_note() {}
+    virtual void kill_note() {}
+    virtual bool note_is_done() const
+    {
+        // This will never be called for most module subclasses,
+        // but the default implementation is useless, so subclasses
+        // that do use it (e.g. envelope generators) should override.
+        assert(!"subclass should override");
+        return true;
+    }
 
 protected:
 
