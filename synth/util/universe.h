@@ -135,13 +135,20 @@ private:
 //      // integers that coerce to bitsets.
 //
 //      // Membership
-//      s.add('a')              // add 'a' to s1
+//      s.add('a')              // add 'a' to s
+//      s.set(0)                // add 'a' to s
 //      s.remove('c')           // throws if 'c' not in s
 //      s.discard('b')          // OK if 'b' not in s
-//      s.contains('b')         // true iff s contains 'b'
-//      s.test(2)               // true iff s contains 'c'
+//      s.reset(1)              // discards 'b' from s
+//      s.contains('b')         // true if s contains 'b'
+//      s.test(1)               // true if s contains 'b'
+//      s.any()                 // true if nonempty
+//      s.all()                 // true if all members present
+//      s.none()                // true if empty
+//      s.count()               // number of members
+//
 //      for (auto i: s.indices()) {} // iterate by index: 0, 2
-//      for (auto v: s.members()) {}  // iterate by member: 'a', 'c'
+//      for (auto& v: s.members()) {} // iterate by member: 'a', 'c'
 //      ostream << s            // "{a c}"
 //
 //      // Operators
