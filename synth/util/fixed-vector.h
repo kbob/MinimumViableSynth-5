@@ -513,7 +513,7 @@ inline
 typename fixed_vector<T, N>::reference
 fixed_vector<T, N>::front()
 {
-    assert(size());
+    assert(!empty());
     return *data();
 }
 
@@ -522,7 +522,7 @@ inline
 typename fixed_vector<T, N>::const_reference
 fixed_vector<T, N>::front() const
 {
-    assert(size());
+    assert(!empty());
     return *data();
 }
 
@@ -531,7 +531,7 @@ inline
 typename fixed_vector<T, N>::reference
 fixed_vector<T, N>::back()
 {
-    assert(size());
+    assert(!empty());
     return m_end[-1];
 }
 
@@ -540,7 +540,7 @@ inline
 typename fixed_vector<T, N>::const_reference
 fixed_vector<T, N>::back() const
 {
-    assert(size());
+    assert(!empty());
     return m_end[-1];
 }
 
@@ -761,7 +761,7 @@ inline
 void
 fixed_vector<T, N>::clear() noexcept
 {
-    while (size())
+    while (!empty())
         pop_back();
 }
 
