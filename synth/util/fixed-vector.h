@@ -621,7 +621,7 @@ inline
 void
 fixed_vector<T, N>::pop_back()
 {
-    assert(size() > 0);
+    assert(!empty());
     (--m_end)->~T();
 }
 
