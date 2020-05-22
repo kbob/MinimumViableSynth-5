@@ -16,6 +16,17 @@ public:
     static const size_t POLY = 3;
     static const size_t TIMB = 3;
 
+    class FooAlloc : public VoiceAllocator {
+    public:
+        FooAlloc(Synth& s)
+        : m_synth{s}
+        {}
+
+        Voice *allocate_voice() override { return &m_synth.voices()[0]; }
+
+        Synth& m_synth;
+    };
+
     static std::ostringstream& log()
     {
         static std::ostringstream ss;
@@ -155,7 +166,7 @@ public:
         TS_ASSERT_EQUALS(log().str(), "tm1.3 ");
     }
 
-    void test_attach_voice()
+    void test_attach_detach_voice()
     {
         Synth s{"Foo", POLY, TIMB};
         s.add_timbre_module(tm0)
@@ -180,7 +191,7 @@ public:
         TS_ASSERT_EQUALS(v.timbre(), nullptr);
     }
 
-    void test_attach_two_voices()
+    void test_attach_detach_two_voices()
     {
         Synth s{"Foo", POLY, TIMB};
         s.add_timbre_module(tm0)
@@ -205,6 +216,19 @@ public:
         TS_ASSERT_EQUALS(v0.timbre(), nullptr);
         TS_ASSERT_EQUALS(v2.timbre(), nullptr);
         TS_ASSERT_EQUALS(t.attached_voices(), 0b000);
+    }
+
+    void test_allocate_voice()
+    {
+        Synth s{"Foo", POLY, TIMB};
+        s.add_timbre_module(tm0)
+         .add_timbre_module(tm1, true)
+         .add_voice_module(vm0)
+         .finalize(ac);
+        FooAlloc a(s);
+        s.allocator(&a);
+        Voice *v = s.allocate_voice(s.timbres().front());
+        TS_ASSERT(v);
     }
 
     std::string

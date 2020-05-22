@@ -11,6 +11,7 @@
 #include "synth/core/summer.h"
 #include "synth/core/timbre.h"
 #include "synth/core/voice.h"
+#include "synth/core/voice-alloc.h"
 #include "synth/util/fixed-vector.h"
 
 class Control;
@@ -31,9 +32,10 @@ class Module;
 //     a set of voices
 //
 // A Synth can:
-//     allocate a voice
 //     apply a patch to a timbre
-//     apply a patch to a voice
+//     allocate a voice
+//     attach a voice to a timbre
+//     detach a voice from a timbre
 
 class Synth {
 
@@ -50,9 +52,11 @@ public:
     : name{name},
       polyphony{polyphony},
       timbrality{timbrality},
-      m_finalized{false}
+      m_finalized{false},
+      m_alloc{nullptr}
     {
-        assert(polyphony && timbrality);
+        assert(0 < polyphony && polyphony <= MAX_POLYPHONY);
+        assert(0 < timbrality && timbrality <= MAX_TIMBRALITY);
         m_timbres.emplace_back(false);
         m_voices.emplace_back(false);
     }
@@ -62,6 +66,9 @@ public:
 
     const voice_vector& voices() const { return m_voices; }
     voice_vector& voices() { return m_voices; }
+
+    const VoiceAllocator *allocator() const { return m_alloc; }
+    void allocator(VoiceAllocator *a) { m_alloc = a; }
 
     Synth& add_timbre_control(Control& ctl)
     {
@@ -119,6 +126,22 @@ public:
 
         for (auto& v: m_voices)
             v.configure(ac);
+    }
+
+    Voice *allocate_voice(Timbre& timbre)
+    {
+        assert(m_finalized);
+        assert(m_alloc);
+        Voice *v = m_alloc->allocate_voice();
+        if (!v)
+            return nullptr;
+        Timbre *prev_timbre = v->timbre();
+        if (&timbre != prev_timbre) {
+            if (prev_timbre)
+                detach_voice_from_timbre(*prev_timbre, *v);
+            attach_voice_to_timbre(timbre, *v);
+        }
+        return v;
     }
 
     void apply_patch(Patch& patch, Timbre& timbre)
@@ -203,6 +226,7 @@ private:
     fixed_vector<Module *, MAX_OUTPUT_MODULES> m_output_modules;
     timbre_vector m_timbres;
     voice_vector m_voices;
+    VoiceAllocator *m_alloc;
 
     friend class synth_unit_test;
 

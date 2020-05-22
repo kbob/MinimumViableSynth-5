@@ -34,7 +34,7 @@ public:
 
     enum class State {
         IDLE,
-        ON,
+        SOUNDING,
         RELEASING,
         STOPPING,
     };
@@ -120,7 +120,7 @@ public:
     void start_note()
     {
         assert(m_state == State::IDLE);
-        m_state = State::ON;
+        m_state = State::SOUNDING;
         for (auto *c: m_controls)
             c->start_note();
         for (auto *m: m_modules)
@@ -129,7 +129,7 @@ public:
 
     void release_note()
     {
-        assert(m_state == State::ON);
+        assert(m_state == State::SOUNDING);
         m_state = State::RELEASING;
         for (auto *c: m_controls)
             c->release_note();
@@ -139,7 +139,7 @@ public:
 
     void kill_note()
     {
-        assert(m_state == State::ON || m_state == State::RELEASING);
+        assert(m_state == State::SOUNDING || m_state == State::RELEASING);
         m_shutdown_remaining = m_shutdown_frames;
         m_state = State::STOPPING;
         for (auto *c: m_controls)

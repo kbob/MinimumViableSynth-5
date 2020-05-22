@@ -111,7 +111,7 @@ public:
         Voice v;
         TS_ASSERT_EQUALS(v.state(), Voice::State::IDLE);
         v.start_note();
-        TS_ASSERT_EQUALS(v.state(), Voice::State::ON);
+        TS_ASSERT_EQUALS(v.state(), Voice::State::SOUNDING);
         v.release_note();
         TS_ASSERT_EQUALS(v.state(), Voice::State::RELEASING);
         v.render(1);
@@ -125,7 +125,7 @@ public:
         v.configure(ac);
         TS_ASSERT_EQUALS(v.state(), Voice::State::IDLE);
         v.start_note();
-        TS_ASSERT_EQUALS(v.state(), Voice::State::ON);
+        TS_ASSERT_EQUALS(v.state(), Voice::State::SOUNDING);
         v.kill_note();
         TS_ASSERT_EQUALS(v.state(), Voice::State::STOPPING);
         int shutdown_frames = ac.sample_rate * NOTE_SHUTDOWN_TIME;
@@ -143,7 +143,7 @@ public:
         v.configure(ac);
         TS_ASSERT_EQUALS(v.state(), Voice::State::IDLE);
         v.start_note();
-        TS_ASSERT_EQUALS(v.state(), Voice::State::ON);
+        TS_ASSERT_EQUALS(v.state(), Voice::State::SOUNDING);
         v.release_note();
         TS_ASSERT_EQUALS(v.state(), Voice::State::RELEASING);
         v.kill_note();
@@ -170,7 +170,7 @@ public:
         v.actions(seq);
         v.start_note();
         TS_ASSERT_EQUALS(v.actions().size(), 2);
-        TS_ASSERT_EQUALS(v.state(), Voice::State::ON);
+        TS_ASSERT_EQUALS(v.state(), Voice::State::SOUNDING);
         v.render(4);
         TS_ASSERT_EQUALS(log.str(), "a4 b4 ");
     }
