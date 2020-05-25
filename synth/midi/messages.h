@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdint>
 
+#include "synth/midi/config.h"
 #include "synth/midi/defs.h"
 
 namespace midi {
@@ -13,26 +14,33 @@ namespace midi {
         std::uint8_t data_byte_1;
         std::uint8_t data_byte_2;
 
+        static const std::uint8_t NO_STATUS = 0x00;
+        static const std::uint8_t NO_DATA = 0xFF;
+
         SmallMessage()
-        : status_byte{0},
-          data_byte_1{0xFF},
-          data_byte_2{0xFF}
+        : status_byte{NO_STATUS},
+          data_byte_1{NO_DATA},
+          data_byte_2{NO_DATA}
         {}
 
         SmallMessage(std::uint8_t s)
         : status_byte{s},
-          data_byte_1{0xFF},
-          data_byte_2{0xFF}
+          data_byte_1{NO_DATA},
+          data_byte_2{NO_DATA}
         {
-            assert(s & 0x80);
+            assert(is_system_real_time_message() ||
+                   status() == StatusByte::TUNE_REQUEST);
         }
 
         SmallMessage(std::uint8_t s, std::uint8_t d1)
         : status_byte{s},
           data_byte_1{d1},
-          data_byte_2{0xFF}
+          data_byte_2{NO_DATA}
         {
-            assert(s & 0x80);
+            assert(status() == StatusByte::PROGRAM_CHANGE ||
+                   status() == StatusByte::CHANNEL_PRESSURE ||
+                   status() == StatusByte::MTC_QUARTER_FRAME ||
+                   status() == StatusByte::SONG_SELECT);
             assert(!(d1 & 0x80));
         }
 
@@ -41,18 +49,108 @@ namespace midi {
           data_byte_1{d1},
           data_byte_2{d2}
         {
-            assert(s & 0x80);
+            assert(status() == StatusByte::NOTE_OFF ||
+                   status() == StatusByte::NOTE_ON ||
+                   status() == StatusByte::POLY_KEY_PRESSURE ||
+                   status() == StatusByte::CONTROL_CHANGE ||
+                   status() == StatusByte::PITCH_BEND ||
+                   status() == StatusByte::SELECT_CHANNEL_MODE ||
+                   status() == StatusByte::SONG_POSITION);
             assert(!(d1 & 0x80));
             assert(!(d2 & 0x80));
         }
 
+        void clear()
+        {
+            status_byte = NO_STATUS;
+            data_byte_1 = NO_DATA;
+            data_byte_2 = NO_DATA;
+        }
+
+        void clear_data()
+        {
+            data_byte_1 = NO_DATA;
+            data_byte_2 = NO_DATA;
+        }
+
+        // The MIDI message hierarchy [detail p. 42]
+        //
+        // Message
+        //   Channel Message
+        //     Channel Voice Message
+        //       Note Off, Note On, Poly Key Pressure, Control Change,
+        //       Program Change, Channel Pressure, Pitch Bend
+        //     Channel Mode Message
+        //       All Sound Off, Reset All Controllers, Local Control,
+        //       All Notes Off, Omni Off, Omni On, Mono On, Poly On
+        //   System Message
+        //     System Common Message
+        //       MIDI Time Code Quarter Frame, Song Position Pointer,
+        //       Song Select, Tune Request, EOX
+        //     System Real Time Message
+        //       Timing Clock, Start, Continue, Stop, Active Sensing,
+        //       System Reset
+        //     System Exclusive Message
+        //        Universal System Exclusive Message Non Real Time
+        //          Sample Dump Header, Sample Dump Packet, Sample Dump
+        //          Request, MIDI Time Code, Sample Dump Extensions,
+        //          General Information, File Dump, MIDI Tuning
+        //          Standard, General MIDI, End of File, Wait, Cancel,
+        //          NAK, ACK
+        //        Universal System Exclusive Message Real Time
+        //          MIDI Time Code, MIDI Show Control, Notation
+        //          Information, Device Control, Real Time MTC Coding,
+        //          MIDI Machine Control Commands, MIDI Machine Control
+        //          Responses, MIDI Tuning Standard
+
+        bool is_channel_message() const
+        {
+            return (status_byte & 0x80) && (status_byte & 0xF0) != 0xF0;
+        }
+
+        bool is_channel_voice_message() const
+        {
+            if (!is_channel_message())
+                return false;
+            if (status() != StatusByte::SELECT_CHANNEL_MODE)
+                return true;
+            return control_number() < 120;
+        }
+
+        bool is_channel_mode_message() const
+        {
+            return is_channel_message() &&
+                   status() == StatusByte::SELECT_CHANNEL_MODE &&
+                   control_number() >= 120;
+        }
+
+        bool is_system_message() const
+        {
+            return status_byte >= 0xF0;
+        }
+
+        bool is_system_exclusive_message() const
+        {
+            return false;       // sysex messages have their own class.
+        }
+
+        bool is_system_common_message() const
+        {
+            return (status_byte & 0xF8) == 0xF0;
+        }
+
+        bool is_system_real_time_message() const
+        {
+            return status_byte >= 0xF8;
+        }
+
         // return high nybble of channel messages, whole status byte of
-        // of system messages.
+        // system messages.
         StatusByte status() const
         {
             std::uint8_t s = status_byte;
             assert(s & 0x80);
-            if ((s & 0xF0) != 0xF0)
+            if (is_channel_message())
                 s &= 0xF0;
             return static_cast<StatusByte>(s);
         }
@@ -63,16 +161,7 @@ namespace midi {
             return status_byte & 0x0F;
         }
 
-        // It might be nice to implement these.
-        bool is_channel_message() const;
-        bool is_channel_voice_message() const;
-        bool is_channel_mode_message() const;
-        bool is_system_message() const;
-        bool is_system_exclusive_message() const;
-        bool is_system_common_message() const;
-        bool is_system_real_time_message() const;
-
-        std::uint8_t note() const
+        std::uint8_t note_number() const
         {
             assert(status() == StatusByte::NOTE_OFF ||
                    status() == StatusByte::NOTE_ON ||
@@ -120,27 +209,104 @@ namespace midi {
         std::int16_t bend() const
         {
             assert(status() == StatusByte::PITCH_BEND);
-            return std::int16_t(data_byte_1 << 7 | data_byte_2) - 8192;
-        }
-
-        std::uint8_t local_control() const
-        {
-            return control_value();
+            return std::int16_t(data_byte_2 << 7 | data_byte_1) - 8192;
         }
 
         std::uint16_t song_position() const
         {
+            assert(status() == StatusByte::SONG_POSITION);
             return data_byte_2 << 7 | data_byte_1;
         }
 
         std::uint8_t song_number() const
         {
+            assert(status() == StatusByte::SONG_SELECT);
             return data_byte_1;
         }
 
     };
 
-    struct SysexMessage;        // TBD
+    struct SysexID {
+        std::uint8_t data[3];
+
+        static const std::uint8_t NO_VALUE = 0xFF;
+
+        SysexID()
+        : data{NO_VALUE, NO_VALUE, NO_VALUE}
+        {}
+
+        SysexID(std::uint8_t d0)
+        : data{d0, NO_VALUE, NO_VALUE}
+        {
+            assert(d0 != 0 && !(d0 & 0x80));
+        }
+
+        SysexID(std::uint8_t d0, std::uint8_t d1, std::uint8_t d2)
+        : data{d0, d1, d2}
+        {
+            assert(d0 == 0);
+            assert(!(d1 & 0x80));
+            assert(!(d2 & 0x80));
+            assert(d1 || d2);
+        }
+
+        static const SysexID NonCommercial;
+        static const SysexID Universal;
+        static const SysexID UniversalRealTime;
+
+    };
+
+    const SysexID SysexID::NonCommercial(0x7D);
+    const SysexID SysexID::Universal(0x7E);
+    const SysexID SysexID::UniversalRealTime(0x7F);
+
+    enum class SysexDeviceID {
+        ALL_CALL = 0x7F,
+    };
+
+    struct SysexMessage {
+        size_t size;
+        std::uint8_t data[MAX_SYSEX_SIZE];
+
+        static const std::uint8_t NO_DATA = 0xFF;
+
+        SysexMessage()
+        {
+            clear();
+        }
+
+        SysexID id()
+        {
+            if (size >= 3 && data[1] != 0x00)
+                return SysexID(data[1]);
+            if (size >= 5 && data[1] == 0x00)
+                return SysexID(data[1], data[2], data[3]);
+            return SysexID();
+        }
+
+        SysexDeviceID device_id()
+        {
+            if (size >= 4 && data[1] != 0x00)
+                return static_cast<SysexDeviceID>(data[2]);
+            if (size >= 6 && data[1] == 0x00)
+                return static_cast<SysexDeviceID>(data[4]);
+            return static_cast<SysexDeviceID>(NO_DATA);
+        }
+
+        void clear()
+        {
+            for (size_t i = 0; i < MAX_SYSEX_SIZE; i++)
+                data[i] = NO_DATA;
+            size = 0;
+        }
+
+        void append(std::uint8_t byte)
+        {
+            assert(size < MAX_SYSEX_SIZE);
+            data[size++] = byte;
+        }
+
+    };
 
 }
 

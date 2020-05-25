@@ -24,7 +24,7 @@ namespace midi {
         SYSTEM_EXCLUSIVE                = 0xF0,
 
         //   System Common
-        MTC_QTR_FRAME                   = 0xF1,
+        MTC_QUARTER_FRAME               = 0xF1,
         SONG_POSITION                   = 0xF2,
         SONG_SELECT                     = 0xF3,
         TUNE_REQUEST                    = 0xF6,
@@ -137,6 +137,8 @@ namespace midi {
         TUNING_BANK_SELECT              = 0x0004,
     };
 
+    enum class NRPN : std::uint16_t;
+
     enum class SysexSubId : std::uint8_t {
         NON_COMMERCIAL                  = 0x7D,
         NON_REAL_TIME                   = 0x7E,
@@ -166,7 +168,7 @@ namespace midi {
         NOTATION_INFORMATION            = 0x03,
         DEVICE_CONTROL                  = 0x04,
         REAL_TIME_MTC_CODING            = 0x05,
-        MIDI_MACHINE_CONTROL_COMMANFS   = 0x06,
+        MIDI_MACHINE_CONTROL_COMMANDS   = 0x06,
         MIDI_MACHINE_CONTROL_RESPONSES  = 0x07,
         MIDI_TUNING_STANDARD            = 0x08,
     };
