@@ -5,6 +5,8 @@
 using midi::StatusByte;
 using midi::SmallMessage;
 using midi::SysexMessage;
+using midi::SysexID;
+using midi::SysexDeviceID;
 
 class messages_unit_test : public CxxTest::TestSuite {
 
@@ -241,6 +243,83 @@ public:
     {
         SmallMessage m(U(StatusByte::SONG_SELECT), 26);
         TS_ASSERT_EQUALS(m.song_number(), 26);
+    }
+
+    void test_sysex()
+    {
+        SysexMessage m;
+        TS_ASSERT_EQUALS(m.size, 0);
+    }
+
+    void test_sysex_append()
+    {
+        SysexMessage m;
+        m.append(0xF0);
+        m.append(0x7D);
+        m.append(0x7F);
+        m.append(0x2a);
+        m.append(0xF7);
+        TS_ASSERT_EQUALS(m.size, 5);
+        TS_ASSERT_EQUALS(m.data[0], 0xF0);
+        TS_ASSERT_EQUALS(m.data[1], 0x7D);
+        TS_ASSERT_EQUALS(m.data[2], 0x7F);
+        TS_ASSERT_EQUALS(m.data[3], 0x2a);
+        TS_ASSERT_EQUALS(m.data[4], 0xF7);
+
+        m.clear();
+        TS_ASSERT_EQUALS(m.size, 0);
+        for (size_t i = 0; i < 10; i++)
+            TS_ASSERT_EQUALS(m.data[i], SysexMessage::NO_DATA);
+        m.append(StatusByte::SYSTEM_EXCLUSIVE);
+        m.append(SysexID::NON_COMMERCIAL);
+        m.append(SysexDeviceID::ALL_CALL);
+        m.append(42);
+        m.append(StatusByte::EOX);
+        TS_ASSERT_EQUALS(m.size, 5);
+        TS_ASSERT_EQUALS(m.data[0], 0xF0);
+        TS_ASSERT_EQUALS(m.data[1], 0x7D);
+        TS_ASSERT_EQUALS(m.data[2], 0x7F);
+        TS_ASSERT_EQUALS(m.data[3], 0x2a);
+        TS_ASSERT_EQUALS(m.data[4], 0xF7);
+    }
+
+    void test_sysex_accessors()
+    {
+        SysexMessage m;
+        m.append(StatusByte::SYSTEM_EXCLUSIVE);
+        m.append(SysexID::NON_COMMERCIAL);  // one byte ID
+        m.append(SysexDeviceID::ALL_CALL);
+        m.append(42);
+        m.append(StatusByte::EOX);
+        TS_ASSERT_EQUALS(m.size, 5);
+        auto expected_id = SysexID::NON_COMMERCIAL;
+        auto actual_id = m.id();
+        TS_ASSERT_EQUALS(expected_id.data[0], actual_id.data[0]);
+        TS_ASSERT_EQUALS(expected_id.data[1], actual_id.data[1]);
+        TS_ASSERT_EQUALS(expected_id.data[2], actual_id.data[2]);
+        TS_ASSERT_EQUALS(m.device_id(), SysexDeviceID::ALL_CALL);
+        auto payload = m.payload();
+        auto p_size = m.payload_size();
+        TS_ASSERT_EQUALS(p_size, 1);
+        TS_ASSERT_EQUALS(payload[0], 42);
+
+        expected_id = SysexID(0x00, 0x12, 0x34);
+        m.clear();
+        m.append(StatusByte::SYSTEM_EXCLUSIVE);
+        m.append(expected_id);              // three byte ID
+        m.append(66);                       // device ID
+        m.append(42);
+        m.append(StatusByte::EOX);
+        TS_ASSERT_EQUALS(m.size, 7);
+        actual_id = m.id();
+        TS_ASSERT_EQUALS(expected_id.data[0], actual_id.data[0]);
+        TS_ASSERT_EQUALS(expected_id.data[1], actual_id.data[1]);
+        TS_ASSERT_EQUALS(expected_id.data[2], actual_id.data[2]);
+        TS_ASSERT_EQUALS(m.device_id(), static_cast<SysexDeviceID>(66));
+        payload = m.payload();
+        p_size = m.payload_size();
+        TS_ASSERT_EQUALS(p_size, 1);
+        TS_ASSERT_EQUALS(payload[0], 42);
     }
 
 };

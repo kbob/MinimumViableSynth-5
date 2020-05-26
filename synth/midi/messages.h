@@ -250,15 +250,21 @@ namespace midi {
             assert(d1 || d2);
         }
 
-        static const SysexID NonCommercial;
-        static const SysexID Universal;
-        static const SysexID UniversalRealTime;
+        size_t size() const
+        {
+            assert(data[0] != NO_VALUE);
+            return (data[0] == 0x00) ? 3 : 1;
+        }
+
+        static const SysexID NON_COMMERCIAL;
+        static const SysexID UNIVERSAL;
+        static const SysexID UNIVERSAL_REAL_TIME;
 
     };
 
-    const SysexID SysexID::NonCommercial(0x7D);
-    const SysexID SysexID::Universal(0x7E);
-    const SysexID SysexID::UniversalRealTime(0x7F);
+    const SysexID SysexID::NON_COMMERCIAL(0x7D);
+    const SysexID SysexID::UNIVERSAL(0x7E);
+    const SysexID SysexID::UNIVERSAL_REAL_TIME(0x7F);
 
     enum class SysexDeviceID {
         ALL_CALL = 0x7F,
@@ -275,7 +281,7 @@ namespace midi {
             clear();
         }
 
-        SysexID id()
+        SysexID id() const
         {
             if (size >= 3 && data[1] != 0x00)
                 return SysexID(data[1]);
@@ -284,13 +290,30 @@ namespace midi {
             return SysexID();
         }
 
-        SysexDeviceID device_id()
+        SysexDeviceID device_id() const
         {
             if (size >= 4 && data[1] != 0x00)
                 return static_cast<SysexDeviceID>(data[2]);
             if (size >= 6 && data[1] == 0x00)
                 return static_cast<SysexDeviceID>(data[4]);
             return static_cast<SysexDeviceID>(NO_DATA);
+        }
+
+        const std::uint8_t *payload() const
+        {
+            size_t offset = 2 + id().size();
+            assert(offset < size - 1);
+                return data + offset;
+        }
+
+        size_t payload_size() const
+        {
+            size_t offset = 2 + id().size();
+            // std::cout << "offset = " << offset << std::endl;
+            // std::cout << "size = " << size << std::endl;
+            if (offset < size - 1)
+                return size - offset - 1;
+            return 0;
         }
 
         void clear()
@@ -304,6 +327,31 @@ namespace midi {
         {
             assert(size < MAX_SYSEX_SIZE);
             data[size++] = byte;
+        }
+
+        void append(StatusByte s)
+        {
+            assert((s == StatusByte::SYSTEM_EXCLUSIVE && size == 0) ||
+                   (s == StatusByte::EOX && size > 0));
+            if (size < MAX_SYSEX_SIZE)
+                data[size++] = static_cast<std::uint8_t>(s);
+        }
+
+        void append(const SysexID& s)
+        {
+            assert(size == 1);
+            size_t id_size = s.size();
+            if (size + id_size <= MAX_SYSEX_SIZE) {
+                for (size_t i = 0; i < id_size; i++)
+                    data[size++] = s.data[i];
+            }
+        }
+
+        void append(SysexDeviceID d)
+        {
+            assert(size == 2 || size == 4);
+            if (size < MAX_SYSEX_SIZE)
+                data[size++] = static_cast<std::uint8_t>(d);
         }
 
     };
