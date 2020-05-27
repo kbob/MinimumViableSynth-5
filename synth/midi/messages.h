@@ -266,6 +266,20 @@ namespace midi {
     const SysexID SysexID::UNIVERSAL(0x7E);
     const SysexID SysexID::UNIVERSAL_REAL_TIME(0x7F);
 
+    bool operator == (const SysexID& a, const SysexID& b)
+    {
+        if (a.data[0] != b.data[0])
+            return false;
+        if (a.data[0] != 0x00)
+            return true;
+        return a.data[1] == b.data[1] && a.data[2] == b.data[2];
+    }
+
+    bool operator != (const SysexID& a, const SysexID& b)
+    {
+        return !(a == b);
+    }
+
     enum class SysexDeviceID {
         ALL_CALL = 0x7F,
     };

@@ -245,6 +245,53 @@ public:
         TS_ASSERT_EQUALS(m.song_number(), 26);
     }
 
+    void test_sysex_id_equality()
+    {
+        SysexID id(0x7E);
+        TS_ASSERT(id == SysexID::UNIVERSAL);
+        SysexID id0(0, 1, 2);
+        SysexID id1(0, 1, 3);
+        SysexID id2(0, 2, 2);
+        SysexID id3(0, 2, 3); id3.data[0] = 1;
+        SysexID id4(0, 3, 3); id4.data[0] = 1;
+
+        TS_ASSERT( (id0 == id0));
+        TS_ASSERT(!(id0 == id1));
+        TS_ASSERT(!(id0 == id2));
+        TS_ASSERT(!(id0 == id3));
+        TS_ASSERT(!(id0 == id4));
+
+        TS_ASSERT(!(id0 != id0));
+        TS_ASSERT( (id0 != id1));
+        TS_ASSERT( (id0 != id2));
+        TS_ASSERT( (id0 != id3));
+        TS_ASSERT( (id0 != id4));
+
+        TS_ASSERT(!(id1 == id0));
+        TS_ASSERT( (id1 == id1));
+        TS_ASSERT(!(id1 == id2));
+        TS_ASSERT(!(id1 == id3));
+        TS_ASSERT(!(id1 == id4));
+
+        TS_ASSERT(!(id2 == id0));
+        TS_ASSERT(!(id2 == id1));
+        TS_ASSERT( (id2 == id2));
+        TS_ASSERT(!(id2 == id3));
+        TS_ASSERT(!(id2 == id4));
+
+        TS_ASSERT(!(id3 == id0));
+        TS_ASSERT(!(id3 == id1));
+        TS_ASSERT(!(id3 == id2));
+        TS_ASSERT( (id3 == id3));
+        TS_ASSERT( (id3 == id4));
+
+        TS_ASSERT(!(id4 == id0));
+        TS_ASSERT(!(id4 == id1));
+        TS_ASSERT(!(id4 == id2));
+        TS_ASSERT( (id4 == id3));
+        TS_ASSERT( (id4 == id4));
+    }
+
     void test_sysex()
     {
         SysexMessage m;
@@ -288,33 +335,26 @@ public:
         SysexMessage m;
         m.append(StatusByte::SYSTEM_EXCLUSIVE);
         m.append(SysexID::NON_COMMERCIAL);  // one byte ID
-        m.append(SysexDeviceID::ALL_CALL);
-        m.append(42);
+        m.append(SysexDeviceID::ALL_CALL);  // device ID
+        m.append(42);                       // payload
         m.append(StatusByte::EOX);
         TS_ASSERT_EQUALS(m.size, 5);
-        auto expected_id = SysexID::NON_COMMERCIAL;
-        auto actual_id = m.id();
-        TS_ASSERT_EQUALS(expected_id.data[0], actual_id.data[0]);
-        TS_ASSERT_EQUALS(expected_id.data[1], actual_id.data[1]);
-        TS_ASSERT_EQUALS(expected_id.data[2], actual_id.data[2]);
+        TS_ASSERT_EQUALS(m.id(), SysexID::NON_COMMERCIAL)
         TS_ASSERT_EQUALS(m.device_id(), SysexDeviceID::ALL_CALL);
         auto payload = m.payload();
         auto p_size = m.payload_size();
         TS_ASSERT_EQUALS(p_size, 1);
         TS_ASSERT_EQUALS(payload[0], 42);
 
-        expected_id = SysexID(0x00, 0x12, 0x34);
+        auto expected_id = SysexID(0x00, 0x12, 0x34);
         m.clear();
         m.append(StatusByte::SYSTEM_EXCLUSIVE);
         m.append(expected_id);              // three byte ID
         m.append(66);                       // device ID
-        m.append(42);
+        m.append(42);                       // payload
         m.append(StatusByte::EOX);
         TS_ASSERT_EQUALS(m.size, 7);
-        actual_id = m.id();
-        TS_ASSERT_EQUALS(expected_id.data[0], actual_id.data[0]);
-        TS_ASSERT_EQUALS(expected_id.data[1], actual_id.data[1]);
-        TS_ASSERT_EQUALS(expected_id.data[2], actual_id.data[2]);
+        TS_ASSERT_EQUALS(m.id(), expected_id);
         TS_ASSERT_EQUALS(m.device_id(), static_cast<SysexDeviceID>(66));
         payload = m.payload();
         p_size = m.payload_size();

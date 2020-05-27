@@ -22,13 +22,13 @@ namespace midi {
         // System Messages
         //   System Exclusive
         SYSTEM_EXCLUSIVE                = 0xF0,
+        EOX                             = 0xF7,
 
         //   System Common
         MTC_QUARTER_FRAME               = 0xF1,
         SONG_POSITION                   = 0xF2,
         SONG_SELECT                     = 0xF3,
         TUNE_REQUEST                    = 0xF6,
-        EOX                             = 0xF7,
 
         //   System Real Time
         TIMING_CLOCK                    = 0xF8,
