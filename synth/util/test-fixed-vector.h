@@ -46,6 +46,7 @@ public:
         : m(that.m)
         {
             log() << "c5(" << m << ") ";
+            that.m = 0;
         }
 
         logger& operator = (const logger& that)
@@ -220,6 +221,7 @@ public:
         TS_ASSERT_EQUALS(v[0], 7);
         TS_ASSERT_EQUALS(v[1], 8);
         TS_ASSERT_EQUALS(v[2], 9);
+        TS_ASSERT_EQUALS(v0.size(), 0);
 
         fixed_vector<logger, 4> lv0{logger(7), logger(8), logger(9)};
         fixed_vector<logger, 4> lv(2, logger(3));
@@ -707,8 +709,9 @@ public:
         lv1.swap(lv2);
         // TS_TRACE(log().str());
         // I don't think I can guarantee this exact sequence, though.
-        TS_ASSERT_EQUALS(log().str(),
-                         "c5(1) c5(2) c5(99) ~(99) c5(1) c5(2) ~(2) ~(1) ");
+        // TS_ASSERT_EQUALS(log().str(),
+        //                  "c5(1) c5(2) c5(99) ~(99) c5(1) c5(2) ~(2) ~(1) ");
+        TS_ASSERT_EQUALS(log().str(), "c5(1) c5(2) c5(99) c5(1) c5(2) ");
     }
 
     void test_clear()

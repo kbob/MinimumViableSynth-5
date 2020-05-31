@@ -104,6 +104,7 @@ private:
 
 };
 
+// Relational Operators
 template <class T, size_t N>
 bool
 operator != (const fixed_queue<T, N>&, const fixed_queue<T, N>&);

@@ -271,6 +271,7 @@ fixed_vector<T, N>::operator = (fixed_vector&& that)
         clear();
         for (auto& item: that)
             (void)new (m_end++) T(std::move(item));
+        that.m_end = that.data();
     }
     return *this;
 }
