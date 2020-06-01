@@ -20,6 +20,7 @@ namespace midi {
         static const number_type NO_BYTE =
             std::numeric_limits<byte>::max();
 
+        // Constructors
         ParameterNumber()
         : m_key{NO_VALUE}
         {}
@@ -44,11 +45,13 @@ namespace midi {
             assert(is_valid());
         }
 
+        // Predicates
         bool is_valid() const
         {
             return !(m_key & ~0x7F7F);
         }
 
+        // Accessors
         number_type number() const
         {
             assert(is_valid());
@@ -65,6 +68,7 @@ namespace midi {
             return m_key;
         }
 
+        // Relational Operators
         friend bool
         operator == (const ParameterNumber& a, const ParameterNumber& b)
         {
@@ -99,17 +103,24 @@ namespace midi {
         static const value_type NO_VALUE = 0xFF80;
         static const value_type NO_BYTE = std::numeric_limits<byte>::max();
 
+        // Constructors
         ParameterValue() : m_value{NO_VALUE} {}
         ParameterValue(value_type val) : m_value(val) { assert(val <= MAX); }
         ParameterValue(byte msb, byte lsb)
         : m_value{static_cast<value_type>(msb << 7 | lsb)}
         {}
 
+        // Predicates
         bool is_valid() const
         {
-            return !(m_value & 0xC00);
+            return !(m_value & 0xC000);
+        }
+        bool is_valid_centesimal() const
+        {
+            return is_valid() && lsb() < 100;
         }
 
+        // Accessors
         value_type value() const
         {
             assert(is_valid());
@@ -124,6 +135,7 @@ namespace midi {
             return m_value & 0x7F;
         }
 
+        // Operations
         void increment_value()
         {
             if (is_valid() && m_value < MAX)
@@ -154,22 +166,22 @@ namespace midi {
         }
         void increment_centesimally()
         {
-            if (is_valid()) {
+            if (is_valid_centesimal()) {
                 if (lsb() == 99) {
-                    increment_msb();
-                    set_lsb(0);
+                    if (msb() < 127)
+                        m_value += 128 - 99;    // inc msb, reset lsb
                 } else
-                    increment_value();
+                    m_value++;
             }
         }
         void decrement_centesimally()
         {
-            if (is_valid()) {
+            if (is_valid_centesimal()) {
                 if (lsb() == 0) {
-                    decrement_msb();
-                    set_lsb(99);
+                    if (msb() != 0)
+                        m_value -= 128 - 99;    // dec msb, set lsb = 99
                 } else
-                    decrement_value();
+                    --m_value;
             }
         }
         void set_msb(byte msb)
