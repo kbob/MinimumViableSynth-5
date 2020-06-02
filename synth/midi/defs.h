@@ -5,6 +5,9 @@
 
 namespace midi {
 
+    // MIDI has sixteen channels.
+    static const size_t CHANNEL_COUNT   = 16;
+
     enum class StatusByte : std::uint8_t {
 
         // Channel Voice Messages
@@ -99,10 +102,13 @@ namespace midi {
         GENERAL_PURPOSE_7               = 82,
         GENERAL_PURPOSE_8               = 83,
         PORTAMENTO_CONTROL              = 84,
+        HIGH_RESOLUTION_VELOCITY_PREFIX = 88,   // per MIDI CA-031
+        REVERB_SEND_LEVEL               = 91,   // per MIDI RP-023
         EFFECTS_1_DEPTH                 = 91,
         EXTERNAL_EFFECTS_DEPTH          = 91,
         EFFECTS_2_DEPTH                 = 92,
         TREMOLO_DEPTH                   = 92,
+        CHORUS_SEND_LEVEL               = 93,   // per MIDI RP-023
         EFFECTS_3_DEPTH                 = 93,
         CHORUS_DEPTH                    = 93,
         EFFECTS_4_DEPTH                 = 94,
@@ -135,6 +141,8 @@ namespace midi {
         COARSE_TUNING                   = 0x0002,
         TUNING_PROGRAM_SELECT           = 0x0003,
         TUNING_BANK_SELECT              = 0x0004,
+        MODULATION_DEPTH_RANGE          = 0x0005,       // per MIDI CC-026
+        NULL_RPN                        = 0x7F7F,
     };
 
     enum class NRPN : std::uint16_t;

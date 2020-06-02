@@ -1,4 +1,5 @@
 test-midi-controls
+test-dispatcher
 test-messages
 test-param
 test-parser
