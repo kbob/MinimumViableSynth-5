@@ -3,9 +3,9 @@
 
 #include <iterator>
 
-#include "synth/core/config.h"
 #include "synth/core/plan.h"
 #include "synth/core/resolver.h"
+#include "synth/core/sizes.h"
 #include "synth/util/deferred.h"
 #include "synth/util/fixed-vector.h"
 #include "synth/util/relation.h"

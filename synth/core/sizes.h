@@ -1,16 +1,16 @@
-#ifndef CONFIG_included
-#define CONFIG_included
+#ifndef CORE_SIZES_included
+#define CORE_SIZES_included
 
-#ifdef PLATFORM_CONFIG_H
-#include PLATFORM_CONFIG_H      /* get platform limits and defaults */
+#ifdef PLATFORM_SIZES_H
+#include PLATFORM_SIZES_H       /* get platform limits and defaults */
 #endif
 
-#ifdef TARGET_CONFIG_H
-#include TARGET_CONFIG_H        /* target config overrides platform */
+#ifdef TARGET_SIZES_H
+#include TARGET_SIZES_H         /* target sizes override platform */
 #endif
 
-#ifdef PRODUCT_CONFIG_H
-#include PRODUCT_CONFIG_H       /* product config overrides both */
+#ifdef PRODUCT_SIZES_H
+#include PRODUCT_SIZES_H        /* product sizes override both */
 #endif
 
 
@@ -89,23 +89,4 @@
 #define MAX_RENDER_ACTIONS MAX_RENDER_STEPS
 #endif
 
-
-// -- Other -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
-
-#ifndef DEFAULT_SAMPLE_TYPE
-#define DEFAULT_SAMPLE_TYPE float
-#endif
-
-#ifndef SCALE_TYPE
-#define SCALE_TYPE float
-#endif
-
-#ifndef DEFAULT_SCALE
-#define DEFAULT_SCALE 1.0f
-#endif
-
-#ifndef NOTE_SHUTDOWN_TIME
-#define NOTE_SHUTDOWN_TIME 0.010 // seconds
-#endif
-
-#endif /* CONFIG_included */
+#endif /* CORE_SIZES_included */

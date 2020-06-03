@@ -4,8 +4,8 @@
 #include <cassert>
 
 #include "synth/core/audio-config.h"
-#include "synth/core/config.h"
 #include "synth/core/modules.h"
+#include "synth/core/sizes.h"
 
 class NaiveSquare : public ModuleType<NaiveSquare> {
 

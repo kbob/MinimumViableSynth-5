@@ -3,7 +3,7 @@
 
 #include <functional>
 
-#include "synth/core/config.h"
+#include "synth/core/sizes.h"
 #include "synth/util/fixed-vector.h"
 
 typedef std::function<void(size_t)> render_action;

@@ -4,10 +4,11 @@
 #include <cassert>
 
 #include "synth/core/action.h"
-#include "synth/core/config.h"
+#include "synth/core/sizes.h"
 #include "synth/core/patch.h"
 #include "synth/core/planner.h"
 #include "synth/core/resolver.h"
+#include "synth/core/sizes.h"
 #include "synth/core/summer.h"
 #include "synth/core/timbre.h"
 #include "synth/core/voice.h"

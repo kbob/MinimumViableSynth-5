@@ -4,7 +4,7 @@
 #include <functional>
 #include <limits>
 
-#include "synth/core/config.h"
+#include "synth/core/sizes.h"
 #include "synth/core/synth.h"
 #include "synth/core/voice.h"
 #include "synth/core/voice-alloc.h"

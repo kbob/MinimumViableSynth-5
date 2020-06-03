@@ -8,11 +8,12 @@
 #include <limits>
 
 #include "synth/core/action.h"
-#include "synth/core/config.h"
+#include "synth/core/defs.h"
 #include "synth/core/controls.h"
 #include "synth/core/link.h"
 #include "synth/core/modules.h"
 #include "synth/core/ports.h"
+#include "synth/core/sizes.h"
 #include "synth/core/resolver.h"
 
 namespace step_util {

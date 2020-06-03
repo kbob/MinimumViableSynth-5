@@ -2,11 +2,12 @@
 
 #include <cxxtest/TestSuite.h>
 
+
 class patch_unit_test : public CxxTest::TestSuite {
 
 public:
 
-    typedef DEFAULT_SAMPLE_TYPE D, S, CE;
+    typedef float D, S, CE;
     class CT : public ControlType<CT, CE> {
     public:
         void render(size_t) {}

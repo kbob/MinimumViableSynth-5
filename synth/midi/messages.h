@@ -4,7 +4,7 @@
 #include <cassert>
 #include <cstdint>
 
-#include "synth/midi/config.h"
+#include "synth/midi/sizes.h"
 #include "synth/midi/defs.h"
 
 namespace midi {

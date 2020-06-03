@@ -6,11 +6,11 @@
 #include <cassert>
 
 #include "synth/core/action.h"
-#include "synth/core/config.h"
 #include "synth/core/controls.h"
 #include "synth/core/modules.h"
 #include "synth/core/patch.h"
 #include "synth/core/plan.h"
+#include "synth/core/sizes.h"
 #include "synth/util/fixed-vector.h"
 
 class Patch;

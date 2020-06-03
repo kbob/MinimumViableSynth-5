@@ -5,9 +5,9 @@
 #include <functional>
 #include <stdexcept>
 
-#include "synth/midi/config.h"
 #include "synth/midi/defs.h"
 #include "synth/midi/messages.h"
+#include "synth/midi/sizes.h"
 
 namespace midi {
 

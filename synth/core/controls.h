@@ -4,9 +4,10 @@
 #include <cassert>
 
 #include "synth/core/action.h"
-#include "synth/core/config.h"
+#include "synth/core/defs.h"
 #include "synth/core/ported.h"
 #include "synth/core/ports.h"
+#include "synth/core/sizes.h"
 
 class AudioConfig;
 

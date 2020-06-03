@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "synth/core/config.h"
+#include "synth/core/sizes.h"
 #include "synth/core/steps.h"
 #include "synth/util/fixed-vector.h"
 

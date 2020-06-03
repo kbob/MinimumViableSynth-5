@@ -6,7 +6,7 @@
 #include <functional>
 
 #include "synth/core/action.h"
-#include "synth/core/config.h"
+#include "synth/core/defs.h"
 #include "synth/core/controls.h"
 #include "synth/core/ports.h"
 

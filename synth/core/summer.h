@@ -3,8 +3,9 @@
 
 #include <array>
 
-#include "synth/core/config.h"
+#include "synth/core/defs.h"
 #include "synth/core/modules.h"
+#include "synth/core/sizes.h"
 #include "synth/core/timbre.h"
 #include "synth/util/fixed-vector.h"
 

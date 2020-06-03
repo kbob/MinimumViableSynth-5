@@ -1,8 +1,8 @@
 #ifndef PORTED_included
 #define PORTED_included
 
-#include "synth/core/config.h"
 #include "synth/core/ports.h"
+#include "synth/core/sizes.h"
 #include "synth/util/fixed-vector.h"
 
 // Ported is a mixin class for objects that have ports.

@@ -5,7 +5,8 @@
 #include <string>
 #include <typeindex>
 
-#include "synth/core/config.h"
+#include "synth/core/defs.h"
+#include "synth/core/sizes.h"
 
 class Ported;
 

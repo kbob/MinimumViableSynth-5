@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 
-#include "synth/core/config.h"
 #include "synth/core/modules.h"
+#include "synth/core/sizes.h"
 
 class Soundscope : public ModuleType<Soundscope> {
 

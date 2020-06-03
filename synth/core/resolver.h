@@ -3,9 +3,9 @@
 
 #include <cassert>
 
-#include "synth/core/config.h"
 #include "synth/core/controls.h"
 #include "synth/core/modules.h"
+#include "synth/core/sizes.h"
 #include "synth/util/deferred.h"
 #include "synth/util/fixed-vector.h"
 #include "synth/util/universe.h"

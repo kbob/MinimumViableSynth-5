@@ -1,11 +1,11 @@
-#ifndef MIDI_CONFIG_included
-#define MIDI_CONFIG_included
+#ifndef MIDI_SIZES_included
+#define MIDI_SIZES_included
 
-#include "synth/core/config.h"
+#include "synth/core/sizes.h"
 
 namespace midi {
 
-    // As in synth/core/config.h, platforms, targets, and configs
+    // As in `synth/core/sizes.h`, platforms, targets, and configs
     // will need to override many of these values.
     //
     // The difference is that the MIDI constants are also defined
@@ -42,4 +42,4 @@ namespace midi {
 
 }
 
-#endif /* !MIDI_CONFIG_included */
+#endif /* !MIDI_SIZES_included */
