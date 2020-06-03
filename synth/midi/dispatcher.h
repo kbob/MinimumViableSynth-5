@@ -434,10 +434,12 @@ namespace midi {
             handler(msg);
     }
 
-    // inline void
-    // Dispatcher::
-    // dispatch_message(const SysexMessage& msg)
-    // {}
+    inline void
+    Dispatcher::
+    dispatch_message(const SysexMessage&)
+    {
+        assert(!"write me!");
+    }
 
     inline void
     Dispatcher::
