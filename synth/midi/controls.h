@@ -154,93 +154,93 @@
 
 namespace midi {
 
-template <class Sample = DEFAULT_SAMPLE_TYPE>
-Sample note_to_freq(uint8_t note);
-template <>
-float note_to_freq<float>(uint8_t note)
-{
-    return 440.0f * powf(2.0f, (note - 69) * (1.0f / 12.0f));
-}
+    template <class Sample = DEFAULT_SAMPLE_TYPE>
+    Sample note_to_freq(uint8_t note);
+    template <>
+    float note_to_freq<float>(uint8_t note)
+    {
+        return 440.0f * powf(2.0f, (note - 69) * (1.0f / 12.0f));
+    }
 
-class NoteFreqControl : public ControlType<NoteFreqControl> {
-    // Combine note number, pitch bend, and portamento.
-public:
-    void render(size_t) { assert(false && "write me!"); }
-};
+    class NoteFreqControl : public ControlType<NoteFreqControl> {
+        // Combine note number, pitch bend, and portamento.
+    public:
+        void render(size_t) { assert(false && "write me!"); }
+    };
 
-class AttackVelocityControl : public ControlType<AttackVelocityControl> {
+    class AttackVelocityControl : public ControlType<AttackVelocityControl> {
 
-};
+    };
 
-class ReleaseVelocityControl : public ControlType<ReleaseVelocityControl> {
+    class ReleaseVelocityControl : public ControlType<ReleaseVelocityControl> {
 
-};
+    };
 
-class PolyPressureControl : public ControlType<PolyPressureControl> {
+    class PolyPressureControl : public ControlType<PolyPressureControl> {
 
-};
+    };
 
-class ChannelPressureControl : public ControlType<ChannelPressureControl> {
+    class ChannelPressureControl : public ControlType<ChannelPressureControl> {
 
-};
+    };
 
-class PitchBendControl : public ControlType<PitchBendControl> {
+    class PitchBendControl : public ControlType<PitchBendControl> {
 
-};
+    };
 
-template <uint8_t N>
-class CCControl : public ControlType<CCControl<N>> {
-};
+    template <uint8_t N>
+    class CCControl : public ControlType<CCControl<N>> {
+    };
 
-template <std::uint8_t MSB, std::uint8_t LSB>
-class RPNControl : public ControlType<RPNControl<MSB, LSB>> {
-    static_assert(MSB < 128 && LSB < 128, "illegal RPN");
-};
+    template <std::uint8_t MSB, std::uint8_t LSB>
+    class RPNControl : public ControlType<RPNControl<MSB, LSB>> {
+        static_assert(MSB < 128 && LSB < 128, "illegal RPN");
+    };
 
-template <std::uint8_t MSB, std::uint8_t LSB>
-class NRPNControl : public ControlType<NRPNControl<MSB, LSB>> {
-    static_assert(MSB < 128 && LSB < 128, "illegal NRPN");
-};
+    template <std::uint8_t MSB, std::uint8_t LSB>
+    class NRPNControl : public ControlType<NRPNControl<MSB, LSB>> {
+        static_assert(MSB < 128 && LSB < 128, "illegal NRPN");
+    };
 
-typedef CCControl<1> MIDIModulation;
-typedef CCControl<2> MIDIBreath;
-typedef CCControl<4> MIDIFootController;
-typedef CCControl<7> MIDIChannelVolume;
-typedef CCControl<8> MIDIBalance;
+    typedef CCControl<1> Modulation;
+    typedef CCControl<2> Breath;
+    typedef CCControl<4> FootController;
+    typedef CCControl<7> ChannelVolume;
+    typedef CCControl<8> Balance;
 
-//   modulation         CC     1/33
-//   breath             CC     2/34
-//   foot controller    CC     4/36
-//   channel volume     CC     7/39
-//   balance            CC     8/40
-//   pan                CC    10/42
-//   expression         CC    11/43
-//   effect 1           CC    12/44
-//   effect 2           CC    13/45
-//   general purpose 1  CC    16/48
-//   general purpose 2  CC    17/49
-//   general purpose 3  CC    18/50
-//   general purpose 4  CC    19/51
-//   soft pedal         CC    67
-//   hold 2             CC    69
-//   timbre             CC    71
-//   release time       CC    72
-//   attack time        CC    73
-//   brightness         CC    74
-//   sound ctlr 6       CC    75
-//   sound ctlr 7       CC    76
-//   sound ctlr 8       CC    77
-//   sound ctlr 9       CC    78
-//   sound ctlr 10      CC    79
-//   general purpose 5  CC    80
-//   general purpose 6  CC    81
-//   general purpose 7  CC    82
-//   general purpose 8  CC    83
-//   effects 1 (reverb) CC    91
-//   effects 2 (tremolo) CC   92
-//   effects 3 (chorus) CC    93
-//   effects 4 (detune) CC    94
-//   effects 5 (phaser) CC    95
+    //   modulation         CC     1/33
+    //   breath             CC     2/34
+    //   foot controller    CC     4/36
+    //   channel volume     CC     7/39
+    //   balance            CC     8/40
+    //   pan                CC    10/42
+    //   expression         CC    11/43
+    //   effect 1           CC    12/44
+    //   effect 2           CC    13/45
+    //   general purpose 1  CC    16/48
+    //   general purpose 2  CC    17/49
+    //   general purpose 3  CC    18/50
+    //   general purpose 4  CC    19/51
+    //   soft pedal         CC    67
+    //   hold 2             CC    69
+    //   timbre             CC    71
+    //   release time       CC    72
+    //   attack time        CC    73
+    //   brightness         CC    74
+    //   sound ctlr 6       CC    75
+    //   sound ctlr 7       CC    76
+    //   sound ctlr 8       CC    77
+    //   sound ctlr 9       CC    78
+    //   sound ctlr 10      CC    79
+    //   general purpose 5  CC    80
+    //   general purpose 6  CC    81
+    //   general purpose 7  CC    82
+    //   general purpose 8  CC    83
+    //   effects 1 (reverb) CC    91
+    //   effects 2 (tremolo) CC   92
+    //   effects 3 (chorus) CC    93
+    //   effects 4 (detune) CC    94
+    //   effects 5 (phaser) CC    95
 
 }
 

@@ -1,4 +1,4 @@
-#include "midi-controls.h"
+#include "controls.h"
 
 #include <cxxtest/TestSuite.h>
 
