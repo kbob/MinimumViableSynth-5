@@ -2,6 +2,7 @@
 #define MIDI_PARSER_included
 
 #include <cstdint>
+#include <functional>
 #include <stdexcept>
 
 #include "synth/midi/config.h"
@@ -14,8 +15,8 @@ namespace midi {
 
     public:
 
-        typedef void small_handler(const SmallMessage&);
-        typedef void sysex_handler(const SysexMessage&);
+        typedef std::function<void(const SmallMessage&)> small_handler;
+        typedef std::function<void(const SysexMessage&)> sysex_handler;
 
         Parser()
         : m_small_handler{nullptr},
@@ -104,8 +105,8 @@ namespace midi {
             URT,                // undefined real time msg
         };
 
-        small_handler *m_small_handler;
-        sysex_handler *m_sysex_handler;
+        small_handler m_small_handler;
+        sysex_handler m_sysex_handler;
         State m_state;
         SmallMessage m_msg;
         SysexMessage m_sysex_msg;
@@ -225,13 +226,13 @@ namespace midi {
         void emit_msg(const SmallMessage& msg)
         {
             if (m_small_handler)
-                (*m_small_handler)(msg);
+                m_small_handler(msg);
         }
 
         void emit_sysex_msg(const SysexMessage& msg)
         {
             if (m_sysex_handler)
-                (*m_sysex_handler)(msg);
+                m_sysex_handler(msg);
         }
 
     };
