@@ -4,6 +4,7 @@
 #include <cassert>
 
 #include "synth/core/action.h"
+#include "synth/core/assigners.h"
 #include "synth/core/sizes.h"
 #include "synth/core/patch.h"
 #include "synth/core/planner.h"
@@ -12,7 +13,6 @@
 #include "synth/core/summer.h"
 #include "synth/core/timbre.h"
 #include "synth/core/voice.h"
-#include "synth/core/voice-alloc.h"
 #include "synth/util/fixed-vector.h"
 
 class Control;
@@ -68,8 +68,8 @@ public:
     const voice_vector& voices() const { return m_voices; }
     voice_vector& voices() { return m_voices; }
 
-    const VoiceAllocator *allocator() const { return m_alloc; }
-    void allocator(VoiceAllocator *a) { m_alloc = a; }
+    const Assigner *allocator() const { return m_alloc; }
+    void allocator(Assigner *a) { m_alloc = a; }
 
     Synth& add_timbre_control(Control& ctl)
     {
@@ -227,7 +227,7 @@ private:
     fixed_vector<Module *, MAX_OUTPUT_MODULES> m_output_modules;
     timbre_vector m_timbres;
     voice_vector m_voices;
-    VoiceAllocator *m_alloc;
+    Assigner *m_alloc;
 
     friend class synth_unit_test;
 

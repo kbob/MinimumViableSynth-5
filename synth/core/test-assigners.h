@@ -1,19 +1,19 @@
-#include "voice-alloc.h"
+#include "assigners.h"
 
 #include <cxxtest/TestSuite.h>
 
-class voice_alloc_unit_test : public CxxTest::TestSuite {
+class assigner_unit_test : public CxxTest::TestSuite {
 
 public:
 
-    class FooAlloc : public VoiceAllocator {
+    class FooAssign : public Assigner {
     public:
         Voice *allocate_voice() override { return nullptr; }
     };
 
     void test_instantiate()
     {
-        (void)FooAlloc();
+        (void)FooAssign();
     }
 
     // allocate too many voices.

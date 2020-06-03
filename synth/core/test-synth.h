@@ -16,9 +16,9 @@ public:
     static const size_t POLY = 3;
     static const size_t TIMB = 3;
 
-    class FooAlloc : public VoiceAllocator {
+    class FooAssign : public Assigner {
     public:
-        FooAlloc(Synth& s)
+        FooAssign(Synth& s)
         : m_synth{s}
         {}
 
@@ -225,7 +225,7 @@ public:
          .add_timbre_module(tm1, true)
          .add_voice_module(vm0)
          .finalize(ac);
-        FooAlloc a(s);
+        FooAssign a(s);
         s.allocator(&a);
         Voice *v = s.allocate_voice(s.timbres().front());
         TS_ASSERT(v);

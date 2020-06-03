@@ -1,8 +1,8 @@
-       TESTS := test-action test-audio-config test-controls test-link   \
+       TESTS := test-action test-asgn-prio test-assigners               \
+                test-audio-config test-controls test-link               \
                 test-modules test-patch test-plan test-planner          \
                 test-ported test-ports test-resolver test-steps         \
-                test-summer test-synth test-timbre test-voice           \
-                test-voice-alloc test-voice-prio
+                test-summer test-synth test-timbre test-voice
 
  TARGET_ARCH := -march=native
 

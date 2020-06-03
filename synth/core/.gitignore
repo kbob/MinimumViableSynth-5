@@ -1,4 +1,6 @@
 test-action
+test-asgn-prio
+test-assigners
 test-audio-config
 test-controls
 test-link
@@ -14,5 +16,3 @@ test-summer
 test-synth
 test-timbre
 test-voice
-test-voice-alloc
-test-voice-prio

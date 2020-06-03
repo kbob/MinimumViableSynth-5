@@ -1,19 +1,19 @@
-#include "voice-prio.h"
+#include "asgn-prio.h"
 
 #include <cxxtest/TestSuite.h>
 
-class voice_alloc_unit_test : public CxxTest::TestSuite {
+class priority_assigner_unit_test : public CxxTest::TestSuite {
 
 public:
 
     void test_instantiate()
     {
         Synth s("TestSynth", 1, 1);
-        PriorityAllocator::prioritizer f = [] (const Voice&) -> int
+        PriorityAssigner::prioritizer f = [] (const Voice&) -> int
         {
             return 0;
         };
-        (void)PriorityAllocator(s, f);
+        (void)PriorityAssigner(s, f);
     }
 
     // allocate too many voices.
@@ -22,31 +22,31 @@ public:
         Synth s("TestSynth", 2, 1);
         AudioConfig ac;
         s.finalize(ac);
-        PriorityAllocator::prioritizer f = [&] (const Voice& v) -> int
+        PriorityAssigner::prioritizer f = [&] (const Voice& v) -> int
         {
             return &v - s.voices().data();
         };
-        PriorityAllocator alloc(s, f);
+        PriorityAssigner assign(s, f);
 
-        Voice *v0 = alloc.allocate_voice();
+        Voice *v0 = assign.allocate_voice();
         TS_ASSERT_EQUALS(v0, &s.voices()[0]);
         v0->start_note();
 
-        Voice *v1 = alloc.allocate_voice();
+        Voice *v1 = assign.allocate_voice();
         TS_ASSERT_EQUALS(v1, &s.voices()[1]);
         v1->start_note();
 
-        Voice *v2 = alloc.allocate_voice();
+        Voice *v2 = assign.allocate_voice();
         TS_ASSERT_EQUALS(v2, nullptr);
         TS_ASSERT_EQUALS(v0->state(), Voice::State::STOPPING);
         TS_ASSERT_EQUALS(v1->state(), Voice::State::SOUNDING);
 
-        Voice *v3 = alloc.allocate_voice();
+        Voice *v3 = assign.allocate_voice();
         TS_ASSERT_EQUALS(v3, nullptr);
         TS_ASSERT_EQUALS(v0->state(), Voice::State::STOPPING);
         TS_ASSERT_EQUALS(v1->state(), Voice::State::STOPPING);
 
-        Voice *v4 = alloc.allocate_voice();
+        Voice *v4 = assign.allocate_voice();
         TS_ASSERT_EQUALS(v4, nullptr);
         TS_ASSERT_EQUALS(v0->state(), Voice::State::STOPPING);
         TS_ASSERT_EQUALS(v1->state(), Voice::State::STOPPING);

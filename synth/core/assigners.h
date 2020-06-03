@@ -1,5 +1,5 @@
-#ifndef VOICE_ALLOC_included
-#define VOICE_ALLOC_included
+#ifndef ASSIGNERS_included
+#define ASSIGNERS_included
 
 // #include <functional>
 // #include <limits>
@@ -12,11 +12,11 @@
 
 class Voice;
 
-class VoiceAllocator {
+class Assigner {
 
 public:
 
-    virtual ~VoiceAllocator() = default;
+    virtual ~Assigner() = default;
 
     // returns nullptr if no voice is immediately available.
     virtual Voice *allocate_voice() = 0;
@@ -46,7 +46,7 @@ public:
 //                 return avail;
 //         }
 //
-//         // neither idle nore pending voice available -- steal a voice.
+//         // neither idle nor pending voice available -- steal a voice.
 //         steal_voice();
 //         return nullptr;
 //     }
@@ -121,4 +121,4 @@ public:
 //
 // };
 
-#endif /* !VOICE_ALLOC_included */
+#endif /* !ASSIGNERS_included */

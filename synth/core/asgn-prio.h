@@ -1,23 +1,23 @@
-#ifndef VOICE_PRIO_included
-#define VOICE_PRIO_included
+#ifndef ASGN_PRIO_included
+#define ASGN_PRIO_included
 
 #include <functional>
 #include <limits>
 
+#include "synth/core/assigners.h"
 #include "synth/core/sizes.h"
 #include "synth/core/synth.h"
 #include "synth/core/voice.h"
-#include "synth/core/voice-alloc.h"
 #include "synth/util/fixed-queue.h"
 #include "synth/util/universe.h"
 
-class PriorityAllocator : public VoiceAllocator {
+class PriorityAssigner : public Assigner {
 
 public:
 
     typedef std::function<int(const Voice&)> prioritizer;
 
-    PriorityAllocator(Synth& synth, prioritizer& f)
+    PriorityAssigner(Synth& synth, prioritizer& f)
     : m_synth{synth},
       m_prio{f},
       m_all_voices{synth.voices()},
@@ -108,4 +108,4 @@ private:
 
 };
 
-#endif /* !VOICE_PRIO_included */
+#endif /* !ASGN_PRIO_included */
