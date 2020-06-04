@@ -2,6 +2,7 @@ test-action
 test-asgn-prio
 test-assigners
 test-audio-config
+test-config
 test-controls
 test-link
 test-modules

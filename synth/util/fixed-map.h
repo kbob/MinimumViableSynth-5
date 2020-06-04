@@ -534,14 +534,13 @@ inline
 typename fixed_map<K, V, N, C>::iterator
 fixed_map<K, V, N, C>::insert(const_iterator pos, P&& val)
 {
-    value_type value(std::move(val));
-    if ((pos != end() && m_comp(pos->first, value.first)) ||
-        (pos != begin() && m_comp(value.first, (pos - 1)->first)))
+    if ((pos != cend() && m_comp(pos->first, val.first)) ||
+        (pos != cbegin() && m_comp(val.first, (pos - 1)->first)))
     {
-        pos = equal_range(value.first).first;
+        pos = equal_range(val.first).first;
     }
-    if (pos->first != value.first)
-        m_data.emplace(pos, std::move(value));
+    if (pos == cend() || pos->first != val.first)
+        m_data.emplace(pos, std::move(val));
     return const_cast<iterator>(pos);
 }
 

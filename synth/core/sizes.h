@@ -31,6 +31,10 @@
 #define MAX_FRAMES 4
 #endif
 
+#ifndef MAX_SUBSYSTEMS
+#define MAX_SUBSYSTEMS 4
+#endif
+
 #ifndef MAX_TIMBRE_CONTROLS
 #define MAX_TIMBRE_CONTROLS 4
 #endif
