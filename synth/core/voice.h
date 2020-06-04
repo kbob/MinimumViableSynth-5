@@ -5,7 +5,7 @@
 #include <cassert>
 
 #include "synth/core/action.h"
-#include "synth/core/audio-config.h"
+#include "synth/core/config.h"
 #include "synth/core/defs.h"
 #include "synth/core/controls.h"
 #include "synth/core/modules.h"
@@ -109,13 +109,14 @@ public:
     const render_action_sequence actions() const { return m_actions; }
     void actions(const render_action_sequence& a) { m_actions = a; }
 
-    void configure(const AudioConfig& ac)
+    void configure(const Config& cfg)
     {
-        m_shutdown_frames = ac.sample_rate * NOTE_SHUTDOWN_TIME;
+        m_shutdown_frames = cfg.sample_rate() * NOTE_SHUTDOWN_TIME;
+
         for (auto *c: m_controls)
-            c->configure(ac);
+            c->configure(cfg);
         for (auto *m: m_modules)
-            m->configure(ac);
+            m->configure(cfg);
     }
 
     void start_note()

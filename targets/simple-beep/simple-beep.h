@@ -1,7 +1,7 @@
 #ifndef SIMPLE_BEEP_included
 #define SIMPLE_BEEP_included
 
-#include "synth/core/audio-config.h"
+#include "synth/core/config.h"
 #include "synth/core/synth.h"
 #include "synth/osc/naive-square.h"
 
@@ -10,12 +10,12 @@ class SimpleBeep {
 public:
 
     template <class OutputModule>
-    SimpleBeep(const AudioConfig& ac, OutputModule& out)
+    SimpleBeep(const Config& cfg, OutputModule& out)
     : m_synth{"SimpleBeep", 1, 1}
     {
         m_synth.add_timbre_module(m_osc)
                .add_timbre_module(out, true)
-               .finalize(ac);
+               .finalize(cfg);
         Patch p;
         p.connect(out.in, m_osc.out)
          .connect(m_osc.freq, 440.)

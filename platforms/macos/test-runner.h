@@ -10,10 +10,10 @@ public:
 
     class FooTarget {
     public:
-        FooTarget(const AudioConfig& ac, Module& out)
+        FooTarget(const Config& cfg, Module& out)
         : m_synth("FooSynth", 1, 1)
         {
-            m_synth.add_timbre_module(out, true).finalize(ac);
+            m_synth.add_timbre_module(out, true).finalize(cfg);
             m_synth.apply_patch(m_patch, m_synth.timbres().front());
         }
         Synth& synth() { return m_synth; }

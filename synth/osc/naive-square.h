@@ -3,7 +3,7 @@
 
 #include <cassert>
 
-#include "synth/core/audio-config.h"
+#include "synth/core/config.h"
 #include "synth/core/modules.h"
 #include "synth/core/sizes.h"
 
@@ -35,9 +35,9 @@ public:
         }
     }
 
-    void configure(const AudioConfig& ac)
+    void configure(const Config& cfg) override
     {
-        m_inv_Fs = 1.0 / ac.sample_rate;
+        m_inv_Fs = 1.0 / cfg.sample_rate();
     }
 
 private:

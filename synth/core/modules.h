@@ -8,7 +8,7 @@
 #include "synth/core/ported.h"
 #include "synth/core/ports.h"
 
-class AudioConfig;
+class Config;
 class Timbre;
 
 
@@ -60,7 +60,7 @@ public:
 
 
     virtual Module *clone() const = 0;
-    virtual void configure(const AudioConfig&) {}
+    virtual void configure(const Config&) {}
     virtual render_action make_render_action() = 0;
 
     // `twin` is a wart for Summers to associate their voice sides

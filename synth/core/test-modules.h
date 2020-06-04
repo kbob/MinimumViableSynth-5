@@ -2,7 +2,7 @@
 
 #include <cxxtest/TestSuite.h>
 
-#include "synth/core/audio-config.h"
+#include "synth/core/config.h"
 #include "synth/core/timbre.h"
 
 class modules_unit_test : public CxxTest::TestSuite {
@@ -72,9 +72,9 @@ public:
 
     void test_configure()
     {
-        AudioConfig ac;
+        Config cfg;
         FooModule foo;
-        foo.configure(ac);
+        foo.configure(cfg);
     }
 
     void test_render()

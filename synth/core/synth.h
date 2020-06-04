@@ -15,6 +15,7 @@
 #include "synth/core/voice.h"
 #include "synth/util/fixed-vector.h"
 
+class Config;
 class Control;
 class Module;
 
@@ -110,7 +111,7 @@ public:
         return *this;
     }
 
-    void finalize(const AudioConfig& ac)
+    void finalize(const Config& cfg)
     {
         assert(!m_finalized);
         // N.B., the first timbre and voice are already allocated.
@@ -123,10 +124,10 @@ public:
         m_finalized = true;
 
         for (auto& t: m_timbres)
-            t.configure(ac);
+            t.configure(cfg);
 
         for (auto& v: m_voices)
-            v.configure(ac);
+            v.configure(cfg);
     }
 
     Voice *allocate_voice(Timbre& timbre)

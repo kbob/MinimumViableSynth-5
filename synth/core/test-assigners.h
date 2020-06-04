@@ -20,8 +20,9 @@ public:
     // void test_allocate_all()
     // {
     //     Synth s("TestSynth", 2, 1);
-    //     AudioConfig ac;
-    //     s.finalize(ac);
+    //     Config cfg;
+    //     cfg.set_sample_rate(44100);
+    //     s.finalize(cfg);
     //     PriorityAllocator::prioritizer f = [&] (const Voice& v) -> int
     //     {
     //         return &v - s.voices().data();

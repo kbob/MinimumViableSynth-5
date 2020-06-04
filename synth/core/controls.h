@@ -9,7 +9,7 @@
 #include "synth/core/ports.h"
 #include "synth/core/sizes.h"
 
-class AudioConfig;
+class Config;
 
 // Abstract base class for controls.
 //
@@ -26,7 +26,7 @@ public:
     virtual Control *clone() const = 0;
     virtual ~Control() = default;
 
-    virtual void configure(const AudioConfig&) {}
+    virtual void configure(const Config&) {}
     virtual render_action make_render_action() = 0;
 
     // Voice controls may override these to participate in voice

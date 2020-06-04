@@ -15,9 +15,10 @@ public:
 
     void test_instantiate()
     {
-        AudioConfig ac(SR_44100, sample_format::F32, channel_config::MONO);
+        Config cfg;
+        cfg.set_sample_rate(44100);
         OutModule out;
-        (void)SimpleBeep(ac, out);
+        (void)SimpleBeep(cfg, out);
     }
 
 };

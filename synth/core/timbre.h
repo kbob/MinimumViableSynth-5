@@ -13,6 +13,7 @@
 #include "synth/core/sizes.h"
 #include "synth/util/fixed-vector.h"
 
+class Config;
 class Patch;
 
 // A Timbre has:
@@ -123,12 +124,12 @@ public:
     void add_voice(size_t index) { m_attached_voices.set(index); }
     void remove_voice(size_t index) { m_attached_voices.reset(index); }
 
-    void configure(const AudioConfig& ac)
+    void configure(const Config& cfg)
     {
         for (auto *c: m_controls)
-            c->configure(ac);
+            c->configure(cfg);
         for (auto *m: m_modules)
-            m->configure(ac);
+            m->configure(cfg);
     }
 
     void pre_render(size_t frame_count) const

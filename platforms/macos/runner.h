@@ -5,7 +5,8 @@
 #include <sys/sysctl.h>
 
 #include "platforms/macos/soundscope.h"
-#include "synth/core/audio-config.h"
+#include "synth/core/config.h"
+#include "synth/core/cfg-output.h"
 
 template <class Target>
 class Runner {
@@ -15,7 +16,10 @@ public:
     Runner()
     : m_parallel{false},
       m_duration{1.0}
-    {}
+    {
+        m_config.set_sample_rate(m_output_config.sample_rate);
+        m_config.register_subsystem(&m_output_config);
+    }
     Runner(const Runner&) = delete;
     Runner& operator = (const Runner&) = delete;
 
@@ -52,7 +56,8 @@ private:
 
     bool m_parallel;
     float m_duration;
-    AudioConfig m_config;
+    Config m_config;
+    OutputConfig m_output_config;
 
 };
 
@@ -63,7 +68,7 @@ Runner<Target>::run_serial()
     Soundscope out;
     Target target(m_config, out);
 
-    int nframes = int(m_duration * m_config.sample_rate);
+    int nframes = int(m_duration * m_config.sample_rate());
     for (int chunk_size, i = 0; i < nframes; i += chunk_size) {
         chunk_size = MAX_FRAMES;
         if (chunk_size > nframes - i)

@@ -120,15 +120,16 @@ public:
 
     void test_kill_note()
     {
-        AudioConfig ac;
+        Config cfg;
+        cfg.set_sample_rate(44100);
         Voice v;
-        v.configure(ac);
+        v.configure(cfg);
         TS_ASSERT_EQUALS(v.state(), Voice::State::IDLE);
         v.start_note();
         TS_ASSERT_EQUALS(v.state(), Voice::State::SOUNDING);
         v.kill_note();
         TS_ASSERT_EQUALS(v.state(), Voice::State::STOPPING);
-        int shutdown_frames = ac.sample_rate * NOTE_SHUTDOWN_TIME;
+        int shutdown_frames = cfg.sample_rate() * NOTE_SHUTDOWN_TIME;
         for (int frame = 0; frame < shutdown_frames; frame += MAX_FRAMES) {
             TS_ASSERT_EQUALS(v.state(), Voice::State::STOPPING);
             v.render(MAX_FRAMES);
@@ -138,9 +139,10 @@ public:
 
     void test_kill_released_note()
     {
-        AudioConfig ac;
+        Config cfg;
+        cfg.set_sample_rate(44100);
         Voice v;
-        v.configure(ac);
+        v.configure(cfg);
         TS_ASSERT_EQUALS(v.state(), Voice::State::IDLE);
         v.start_note();
         TS_ASSERT_EQUALS(v.state(), Voice::State::SOUNDING);
@@ -148,7 +150,7 @@ public:
         TS_ASSERT_EQUALS(v.state(), Voice::State::RELEASING);
         v.kill_note();
         TS_ASSERT_EQUALS(v.state(), Voice::State::STOPPING);
-        int shutdown_frames = ac.sample_rate * NOTE_SHUTDOWN_TIME;
+        int shutdown_frames = cfg.sample_rate() * NOTE_SHUTDOWN_TIME;
         for (int frame = 0; frame < shutdown_frames; frame += MAX_FRAMES) {
             TS_ASSERT_EQUALS(v.state(), Voice::State::STOPPING);
             v.render(MAX_FRAMES);
