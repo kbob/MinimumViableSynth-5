@@ -102,6 +102,7 @@ namespace midi {
         //          Information, Device Control, Real Time MTC Coding,
         //          MIDI Machine Control Commands, MIDI Machine Control
         //          Responses, MIDI Tuning Standard
+        //        Manufacturer's System Exclusive Message
 
         bool is_channel_message() const
         {
@@ -192,6 +193,13 @@ namespace midi {
         {
             assert(status() == StatusByte::CONTROL_CHANGE);
             return data_byte_2;
+        }
+
+        bool switch_value() const
+        {
+            assert(status() == StatusByte::CONTROL_CHANGE);
+            assert(control_number() >= 64 && control_number() <= 69);
+            return control_value() >= 64;
         }
 
         std::uint8_t program_number() const
