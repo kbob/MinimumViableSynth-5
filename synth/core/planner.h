@@ -92,6 +92,7 @@ private:
 
     // How can I ever stop giggling when I have types called
     // prep_steps and render_appender?
+    // (see also: prep_step_rep in test-planner.h)
 
     struct mod_partition {
         module_subset pre;

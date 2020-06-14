@@ -280,12 +280,7 @@ bool
 Planner::link_is_aliasable(const Link& link)
 {
     // Is this link either simple or ctl_simple?
-    OutputPort *src_or_ctl;
-    if (link.is_simple())
-        src_or_ctl = link.src();
-    else if (link.is_ctl_simple())
-        src_or_ctl = link.ctl();
-    else
+    if (!link.is_simple() && !link.is_ctl_simple())
         return false;
 
     // Is this the only link to the dest?
