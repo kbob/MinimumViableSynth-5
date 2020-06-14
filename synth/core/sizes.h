@@ -23,9 +23,13 @@
 #define MAX_POLYPHONY 4
 #endif
 
+#define MAX_VOICES MAX_POLYPHONY
+
 #ifndef MAX_TIMBRALITY
 #define MAX_TIMBRALITY 4
 #endif
+
+#define MAX_TIMBRES MAX_TIMBRALITY
 
 #ifndef MAX_FRAMES
 #define MAX_FRAMES 4
@@ -49,6 +53,10 @@
 
 #ifndef MAX_VOICE_MODULES
 #define MAX_VOICE_MODULES 4
+#endif
+
+#ifndef MAX_VOICE_LIFE_CONTROLS
+#define MAX_VOICE_LIFE_CONTROLS 4
 #endif
 
 #ifndef MAX_VOICE_LIFE_MODULES

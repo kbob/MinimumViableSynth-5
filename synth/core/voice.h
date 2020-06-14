@@ -42,8 +42,8 @@ public:
 
     typedef fixed_vector<Control *, MAX_VOICE_CONTROLS> control_vector;
     typedef fixed_vector<Module *, MAX_VOICE_MODULES> module_vector;
-    typedef fixed_vector<size_t, MAX_VOICE_LIFE_MODULES> life_vector;
-    // XXX rename life_vector to shutdown_vector?
+    typedef fixed_vector<size_t, MAX_VOICE_LIFE_CONTROLS> life_ctl_vector;
+    typedef fixed_vector<size_t, MAX_VOICE_LIFE_MODULES> life_mod_vector;
 
     Voice(bool delete_components = true)
     : m_delete_components{delete_components},
@@ -87,11 +87,13 @@ public:
     void timbre(Timbre *t) { m_timbre = t; }
 
     const control_vector& controls() const { return m_controls; }
-    void add_control(Control *c)
+    void add_control(Control *c, bool is_lifetime_monitor = false)
     {
         control_vector& ctls{m_controls};
         // Verify it isn't already added.
         assert(std::find(ctls.begin(), ctls.end(), c) == ctls.end());
+        if (is_lifetime_monitor)
+            m_life_modules.push_back(ctls.size());
         ctls.push_back(c);
     }
 
@@ -113,10 +115,16 @@ public:
     {
         m_shutdown_frames = cfg.sample_rate() * NOTE_SHUTDOWN_TIME;
 
-        for (auto *c: m_controls)
+        for (auto *c: m_controls) {
+            cfg.pre_configure(*c);
             c->configure(cfg);
-        for (auto *m: m_modules)
+            cfg.post_configure(*c);
+        }
+        for (auto *m: m_modules) {
+            cfg.pre_configure(*m);
             m->configure(cfg);
+            cfg.post_configure(*m);
+        }
     }
 
     void start_note()
@@ -160,13 +168,17 @@ public:
 
         if (m_state == State::RELEASING) {
             bool done = true;
-            // XXX do we need life controls?
-            // for (auto ci: m_life_controls)
-            //     done &= m_controls[ci]->note_is_done();
+            for (auto ci: m_life_controls)
+                done &= m_controls[ci]->note_is_done();
             for (auto mi: m_life_modules)
                 done &= m_modules[mi]->note_is_done();
-            if (done)
+            if (done) {
                 m_state = State::IDLE;
+                for (auto& c: m_controls)
+                    c->idle();
+                for (auto& m: m_modules)
+                    m->idle();
+            }
         } else if (m_state == State::STOPPING) {
             m_shutdown_remaining -= frame_count;
             if (m_shutdown_remaining < 0)
@@ -183,7 +195,8 @@ private:
     int m_shutdown_remaining;
     control_vector m_controls;
     module_vector m_modules;
-    life_vector m_life_modules;
+    life_ctl_vector m_life_controls;
+    life_mod_vector m_life_modules;
     render_action_sequence m_actions;
 
     friend class voice_unit_test;

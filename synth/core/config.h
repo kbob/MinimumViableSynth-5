@@ -8,6 +8,12 @@
 #include "synth/core/sizes.h"
 #include "synth/util/fixed-map.h"
 
+class Control;
+class Module;
+class Synth;
+class Timbre;
+class Voice;
+
 
 // -- Config - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- //
 //
@@ -23,9 +29,25 @@ public:
 
     typedef std::type_index key_type;
     typedef std::uint32_t sample_rate_type;
+
     class Subsystem {
     public:
         virtual ~Subsystem() = default;
+
+        virtual void pre_configure(Synth&) const {}
+        virtual void post_configure(Synth&) const {}
+
+        virtual void pre_configure(Timbre&) const {}
+        virtual void post_configure(Timbre&) const {}
+
+        virtual void pre_configure(Voice&) const {}
+        virtual void post_configure(Voice&) const {}
+
+        virtual void pre_configure(Control&) const {}
+        virtual void post_configure(Control&) const {}
+
+        virtual void pre_configure(Module&) const {}
+        virtual void post_configure(Module&) const {}
     };
 
     Config()
@@ -61,6 +83,20 @@ public:
     set_sample_rate(sample_rate_type rate)
     {
         m_sample_rate = rate;
+    }
+
+    template <class Obj>
+    void pre_configure(Obj& obj) const
+    {
+        for (auto& sub: m_subs)
+            sub.second->pre_configure(obj);
+    }
+
+    template <class Obj>
+    void post_configure(Obj& obj) const
+    {
+        for (auto& sub: m_subs)
+            sub.second->post_configure(obj);
     }
 
 private:

@@ -6,6 +6,7 @@
 #include <cassert>
 
 #include "synth/core/action.h"
+#include "synth/core/config.h"
 #include "synth/core/controls.h"
 #include "synth/core/modules.h"
 #include "synth/core/patch.h"
@@ -126,10 +127,16 @@ public:
 
     void configure(const Config& cfg)
     {
-        for (auto *c: m_controls)
+        for (auto *c: m_controls) {
+            cfg.pre_configure(*c);
             c->configure(cfg);
-        for (auto *m: m_modules)
+            cfg.post_configure(*c);
+        }
+        for (auto *m: m_modules) {
+            cfg.pre_configure(*m);
             m->configure(cfg);
+            cfg.post_configure(*m);
+        }
     }
 
     void pre_render(size_t frame_count) const
