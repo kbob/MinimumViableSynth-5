@@ -97,7 +97,7 @@ public:
         log.clear();
         d.dispatch_message(SmallMessage(0xC1, 0x23));
         d.dispatch_message(SmallMessage(0xCF, 0x76));
-        TS_ASSERT_EQUALS(log(), "[C1 23][CF 76]");
+        TS_ASSERT_EQUALS(log(), "[C1 23]");
     }
 
     void dispatch_cc(Dispatcher& d,

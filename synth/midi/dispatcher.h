@@ -7,6 +7,7 @@
 #include <functional>
 #include <limits>
 
+#include "synth/core/config.h"
 #include "synth/midi/defs.h"
 #include "synth/midi/messages.h"
 #include "synth/midi/param.h"
@@ -15,9 +16,12 @@
 
 namespace midi {
 
-    class Dispatcher {
+    class Dispatcher : public ::Config::Subsystem {
 
     public:
+
+        typedef std::uint8_t timbre_index;
+        static const timbre_index NO_TIMBRE = 0xFF;
 
         typedef std::function<void(const SmallMessage&)>  small_handler;
         typedef std::function<void(const ParameterValue&)> xRPN_handler;
@@ -35,11 +39,13 @@ namespace midi {
 
             void reset();
 
+            void register_handler(StatusByte,        small_handler);
             void register_handler(ControllerNumber,  small_handler);
             void register_handler(RPN,                xRPN_handler);
             void register_handler(NRPN,               xRPN_handler);
             void register_handler(ChannelModeNumber, small_handler);
 
+            void handle_channel_message(const SmallMessage&);
             void handle_cc(const SmallMessage&);
             void handle_data_entry_msb(const SmallMessage&);
             void handle_data_entry_lsb(const SmallMessage&);
@@ -71,6 +77,7 @@ namespace midi {
             ParameterNumber::byte m_nrpn_msb;
             ParameterNumber::byte m_nrpn_lsb;
 
+            std::array<small_handler, 7> m_status_byte_handlers;
             std::array<small_handler, 128> m_cc_handlers;
             std::array<xRPN_bundle, MAX_RPNS> m_rpns;
             fixed_map<ParameterNumber, xRPN_bundle, MAX_NRPNS> m_nrpns;
@@ -104,9 +111,9 @@ namespace midi {
         void register_handler(UniversalSysexNonRealTime,       sysex_handler);
         void register_handler(UniversalSysexRealTime,          sysex_handler);
 
-    private:
+        timbre_index channel_to_timbre(std::uint8_t channel);
 
-        static const std::uint8_t NO_TIMBRE = 0xFF;
+    private:
 
         small_handler m_status_byte_handlers[128];
         std::array<std::uint8_t, CHANNEL_COUNT> m_channel_to_timbre;
@@ -182,6 +189,16 @@ namespace midi {
 
     inline void
     Dispatcher::TimbreDispatcher::
+    register_handler(StatusByte s, small_handler h)
+    {
+        assert((static_cast<std::uint8_t>(s) & 0x8F) == 0x80);
+        assert((static_cast<std::uint8_t>(s) & 0xF0) != 0xF0);
+        size_t index = static_cast<size_t>(s) >> 4 & 0x7;
+        m_status_byte_handlers[index] = h;
+    }
+
+    inline void
+    Dispatcher::TimbreDispatcher::
     register_handler(ControllerNumber cc, small_handler h)
     {
         m_cc_handlers[static_cast<size_t>(cc)] = h;
@@ -214,11 +231,22 @@ namespace midi {
 
     inline void
     Dispatcher::TimbreDispatcher::
+    handle_channel_message(const SmallMessage& msg)
+    {
+        assert(msg.is_channel_message());
+        auto s = msg.status_byte;
+        auto& handler = m_status_byte_handlers[s >> 4 & 0x07];
+        if (handler)
+            handler(msg);
+    }
+
+    inline void
+    Dispatcher::TimbreDispatcher::
     handle_cc(const SmallMessage& msg)
     {
         assert(msg.status() == StatusByte::CONTROL_CHANGE);
         auto cc = msg.control_number();
-        auto handler = m_cc_handlers[cc];
+        auto& handler = m_cc_handlers[cc];
         if (handler)
             handler(msg);
     }
@@ -402,7 +430,24 @@ namespace midi {
             if (index != NO_TIMBRE)
                 m_timbre_dispatch[index].handle_cc(msg);
         };
+#if 0
         register_handler(StatusByte::CONTROL_CHANGE, ALL_CHANNELS, dispatch_cc);
+#else
+        // forward all other channel messages to timbre's handler.
+        auto dispatch_channel_msg = [this] (const SmallMessage& msg)
+        {
+            assert(msg.is_channel_message());
+            uint8_t index = m_channel_to_timbre[msg.channel()];
+            if (index != NO_TIMBRE)
+                m_timbre_dispatch[index].handle_channel_message(msg);
+        };
+        for (std::uint8_t s = 0x80 & 0x7F; s < (0xF0 & 0x7F); s++) {
+            if(s >= (0xB0 & 0x7F) && s < (0xC0 & 0x7F))
+                m_status_byte_handlers[s] = dispatch_cc;
+            else
+                m_status_byte_handlers[s] = dispatch_channel_msg;
+        }
+#endif
     }
 
     // inline void
@@ -447,10 +492,16 @@ namespace midi {
     {
         for (size_t chan = 0; chan < CHANNEL_COUNT; chan++) {
             if (m & (1 << chan)) {
+#if 0
                 size_t index = (static_cast<size_t>(s) + chan) & 0x7F;
                 auto& pos = m_status_byte_handlers[index];
                 assert(!pos);
                 pos = h;
+#else
+                auto timbre = m_channel_to_timbre[chan];
+                if (timbre != NO_TIMBRE)
+                    m_timbre_dispatch[timbre].register_handler(s, h);
+#endif
             }
         }
     }
@@ -532,6 +583,15 @@ namespace midi {
     // Dispatcher::
     // register_handler(UniversalSysexRealTime, sysex_handler)
     // {}
+
+    inline
+    Dispatcher::timbre_index
+    Dispatcher::
+    channel_to_timbre(std::uint8_t channel)
+    {
+        assert(channel < CHANNEL_COUNT);
+        return m_channel_to_timbre[channel];
+    }
 
 }
 
