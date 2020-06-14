@@ -5,8 +5,9 @@
 
 namespace midi {
 
-    // MIDI has sixteen channels.
-    static const size_t CHANNEL_COUNT   = 16;
+    // MIDI has 16 channels and 128 notes.
+    static const size_t CHANNEL_COUNT   =  16;
+    static const size_t NOTE_COUNT      = 128;
 
     enum class StatusByte : std::uint8_t {
 
