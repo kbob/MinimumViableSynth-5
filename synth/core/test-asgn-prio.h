@@ -29,26 +29,34 @@ public:
         };
         PriorityAssigner assign(s, f);
 
-        Voice *v0 = assign.allocate_voice();
+        Voice *v0 = assign.assign_idle_voice();
         TS_ASSERT_EQUALS(v0, &s.voices()[0]);
         v0->start_note();
 
-        Voice *v1 = assign.allocate_voice();
+        Voice *v1 = assign.assign_idle_voice();
         TS_ASSERT_EQUALS(v1, &s.voices()[1]);
         v1->start_note();
 
-        Voice *v2 = assign.allocate_voice();
+        Voice *v2 = assign.assign_idle_voice();
         TS_ASSERT_EQUALS(v2, nullptr);
+        Voice *v2s = assign.choose_voice_to_steal();
+        TS_ASSERT_EQUALS(v2s, v0);
+        v2s->kill_note();
         TS_ASSERT_EQUALS(v0->state(), Voice::State::STOPPING);
         TS_ASSERT_EQUALS(v1->state(), Voice::State::SOUNDING);
 
-        Voice *v3 = assign.allocate_voice();
+        Voice *v3 = assign.assign_idle_voice();
         TS_ASSERT_EQUALS(v3, nullptr);
+        Voice *v3s = assign.choose_voice_to_steal();
+        TS_ASSERT_EQUALS(v3s, v1);
+        v3s->kill_note();
         TS_ASSERT_EQUALS(v0->state(), Voice::State::STOPPING);
         TS_ASSERT_EQUALS(v1->state(), Voice::State::STOPPING);
 
-        Voice *v4 = assign.allocate_voice();
+        Voice *v4 = assign.assign_idle_voice();
         TS_ASSERT_EQUALS(v4, nullptr);
+        Voice *v4s = assign.choose_voice_to_steal();
+        TS_ASSERT_EQUALS(v4s, nullptr);
         TS_ASSERT_EQUALS(v0->state(), Voice::State::STOPPING);
         TS_ASSERT_EQUALS(v1->state(), Voice::State::STOPPING);
     }

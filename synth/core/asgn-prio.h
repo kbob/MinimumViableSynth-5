@@ -24,60 +24,13 @@ public:
       m_free_voices{m_all_voices.none}
     {}
 
-    Voice *allocate_voice() override
-    {
-        if (!m_pending.empty()) {
-            if (Voice *avail = allocate_stolen_voice())
-                return avail;
-        } else {
-            if (Voice *avail = allocate_idle_voice())
-                return avail;
-        }
-
-        // neither idle nore pending voice available -- steal a voice.
-        steal_voice();
-        return nullptr;
-    }
-
-private:
-
-    typedef Universe<Synth::voice_vector, MAX_POLYPHONY> voice_verse;
-    typedef voice_verse::subset_type voice_set;
-    typedef fixed_queue<Voice *, MAX_POLYPHONY> voice_queue;
-
-    Synth& m_synth;
-    prioritizer& m_prio;
-
-    voice_verse m_all_voices;
-    voice_set m_free_voices;
-
-    // XXX `Subset<C, N>::index_iterator` should be public.
-    //     (It should also be `index_iterator`, not `index_iter`.)
-    typedef decltype(m_free_voices.indices().begin()) vi_iterator;
-    vi_iterator m_free_voice_rotor;
-
-    voice_queue m_pending;
-
-    Voice *allocate_stolen_voice()
-    {
-        if (m_pending.empty())
-            return nullptr;
-        Voice *avail = m_pending.front();
-        if (avail->state() != Voice::State::IDLE)
-            return nullptr;
-        m_pending.pop();
-        return avail;
-    }
-
-    Voice *allocate_idle_voice()
+    Voice *assign_idle_voice() override
     {
         if (!m_free_voices.any()) {
             for (size_t i = 0; i < m_synth.polyphony; i++)
                 if (m_synth.voices()[i].state() == Voice::State::IDLE)
                     m_free_voices.set(i);
             m_free_voice_rotor = m_free_voices.indices().begin();
-            // XXX Should have a rotor to speed up finding next idle
-            //     voice.  But Subset<T>::index_iter is private.
         }
         if (m_free_voices.any()) {
             size_t i = *m_free_voice_rotor++;
@@ -87,24 +40,34 @@ private:
         return nullptr;
     }
 
-    void steal_voice()
+    Voice *choose_voice_to_steal() override
     {
         int min_pri = std::numeric_limits<int>::max();
-        Voice *stolen = nullptr;
+        Voice *target = nullptr;
         for (auto& v: m_synth.voices()) {
             if (v.state() != Voice::State::STOPPING) {
                 int pri = m_prio(v);
                 if (min_pri > pri) {
                     min_pri = pri;
-                    stolen = &v;
+                    target = &v;
                 }
             }
         }
-        if (stolen) {
-            stolen->kill_note();
-            m_pending.push(stolen);
-        }
+        return target;
     }
+
+private:
+
+    typedef Universe<Synth::voice_vector, MAX_POLYPHONY> voice_verse;
+    typedef voice_verse::subset_type voice_set;
+
+    Synth& m_synth;
+    prioritizer& m_prio;
+
+    voice_verse m_all_voices;
+    voice_set m_free_voices;
+
+    voice_set::index_iterator m_free_voice_rotor;
 
 };
 
