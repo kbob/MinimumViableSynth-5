@@ -4,8 +4,12 @@
 #include <cassert>
 #include <cstdint>
 
+#include "synth/core/config.h"
 #include "synth/core/controls.h"
 #include "synth/core/defs.h"
+#include "synth/midi/defs.h"
+#include "synth/midi/dispatcher.h"
+#include "synth/midi/messages.h"
 
 // MIDI CCs that are not controllers
 //   bank select        CC     0/32
@@ -181,6 +185,29 @@ namespace midi {
     };
 
     class ChannelPressureControl : public ControlType<ChannelPressureControl> {
+
+    public:
+
+        void configure(const ::Config& cfg) override
+        {
+            auto handler = [&] (const SmallMessage& msg){
+                m_pressure = msg.channel_pressure() / 127.0;
+            };
+
+            Dispatcher *disp = cfg.get<Dispatcher>();
+            disp->register_handler(StatusByte::CHANNEL_PRESSURE,
+                                   Dispatcher::ALL_CHANNELS,
+                                   handler);
+        }
+
+        void render(size_t frame_count) {
+            for (size_t i = 0; i < frame_count; i++)
+                out[i] = m_pressure;
+        }
+
+    private:
+
+        DEFAULT_SAMPLE_TYPE m_pressure;
 
     };
 
