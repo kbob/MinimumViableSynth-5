@@ -72,11 +72,12 @@ public:
     virtual void start_note() {}
     virtual void release_note() {}
     virtual void kill_note() {}
+    virtual void idle() {}
     virtual bool note_is_done() const
     {
         // This will never be called for most module subclasses,
         // but the default implementation is useless, so subclasses
-        // that do use it (e.g. envelope generators) should override.
+        // that do use it (e.g. VCAs) should override.
         assert(!"subclass should override");
         return true;
     }

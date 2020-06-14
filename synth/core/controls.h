@@ -34,6 +34,7 @@ public:
     virtual void start_note() {}
     virtual void release_note() {}
     virtual void kill_note() {}
+    virtual void idle() {}
     virtual bool note_is_done() const
     {
         // This will never be called for most control subclasses,
