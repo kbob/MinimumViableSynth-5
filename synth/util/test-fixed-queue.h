@@ -107,6 +107,20 @@ public:
         TS_ASSERT(q.empty());
     }
 
+    void test_full()
+    {
+        fixed_queue<int, 3> q;
+        TS_ASSERT(!q.full());
+        q.push(7);
+        TS_ASSERT(!q.full());
+        q.push(8);
+        TS_ASSERT(!q.full());
+        q.push(9);
+        TS_ASSERT(q.full());
+        q.pop();
+        TS_ASSERT(!q.full());
+    }
+
     void test_size()
     {
         fixed_queue<int, 3> q;

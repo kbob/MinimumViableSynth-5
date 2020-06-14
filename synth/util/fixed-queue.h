@@ -40,6 +40,7 @@ public:
 
     // Capacity
     bool empty() const;
+    bool full() const;
     size_type size() const;
     size_type max_size() const;
 
@@ -151,6 +152,14 @@ bool
 fixed_queue<T, N>::empty() const
 {
     return m_begin == nullptr;
+}
+
+template <class T, size_t N>
+inline
+bool
+fixed_queue<T, N>::full() const
+{
+    return m_begin && m_begin == m_end;
 }
 
 template <class T, size_t N>
