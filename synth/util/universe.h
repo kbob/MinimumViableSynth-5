@@ -163,9 +163,11 @@ class Subset : public std::bitset<N> {
     typedef std::bitset<N> super;
 
 public:
+
     typedef typename C::value_type member_type;
 
 private:
+
     Subset(const Universe<C, N>& u)
     : m_universe{&u} {}
 
@@ -185,23 +187,25 @@ private:
         }
     }
 
-    class index_iter
+public:
+
+    class index_iterator
     : public std::iterator<std::forward_iterator_tag, size_t>
     {
     public:
-        index_iter() : m_sub{nullptr}, m_index{0} {}
-        index_iter(const index_iter& that) = default;
-        index_iter(const Subset *s, size_t index)
+        index_iterator() : m_sub{nullptr}, m_index{0} {}
+        index_iterator(const index_iterator& that) = default;
+        index_iterator(const Subset *s, size_t index)
         : m_sub{s}, m_index{advance(index)} {}
-        index_iter& operator = (const index_iter&) = default;
+        index_iterator& operator = (const index_iterator&) = default;
 
-        bool operator == (const index_iter& that) const
+        bool operator == (const index_iterator& that) const
         {
             assert(m_sub == that.m_sub);
             return m_index == that.m_index;
         }
 
-        bool operator != (const index_iter& that) const
+        bool operator != (const index_iterator& that) const
         {
             assert(m_sub == that.m_sub);
             return m_index != that.m_index;
@@ -221,15 +225,15 @@ private:
             return &m_index;
         }
 
-        index_iter& operator ++ ()
+        index_iterator& operator ++ ()
         {
             m_index = advance(m_index + 1);
             return *this;
         }
 
-        index_iter operator ++ (int)
+        index_iterator operator ++ (int)
         {
-            index_iter i = *this;
+            index_iterator i = *this;
             ++*this;
             return i;
         }
@@ -244,22 +248,25 @@ private:
 
         const Subset *m_sub;
         size_t m_index;
-        friend class Subset::member_iter;
+        friend class Subset::member_iterator;
     };
 
-    class member_iter {
+    class member_iterator
+    : public std::iterator<std::forward_iterator_tag, size_t>
+    {
     public:
-        member_iter() = default;
-        member_iter(const member_iter&) = default;
-        member_iter(const Subset *sub, size_t index) : m_iter(sub, index) {}
-        member_iter& operator = (const member_iter&) = default;
+        member_iterator() = default;
+        member_iterator(const member_iterator&) = default;
+        member_iterator(const Subset *sub, size_t index)
+        : m_iter{sub, index} {}
+        member_iterator& operator = (const member_iterator&) = default;
 
-        bool operator == (const member_iter& that) const
+        bool operator == (const member_iterator& that) const
         {
             return m_iter == that.m_iter;
         }
 
-        bool operator != (const member_iter& that) const
+        bool operator != (const member_iterator& that) const
         {
             return m_iter != that.m_iter;
         }
@@ -276,28 +283,33 @@ private:
             return &**this;
         }
 
-        member_iter& operator ++ ()
+        member_iterator& operator ++ ()
         {
             ++m_iter;
             return *this;
         }
 
-        member_iter operator ++ (int)
+        member_iterator operator ++ (int)
         {
-            member_iter i = *this;
+            member_iterator i = *this;
             ++*this;
             return i;
         }
 
     private:
-        index_iter m_iter;
+        index_iterator m_iter;
     };
+
+private:
 
     class index_iterable {
     public:
         index_iterable(const Subset *sub) : m_sub{sub} {}
-        index_iter begin() const { return index_iter(m_sub, 0); }
-        index_iter end() const { return index_iter(m_sub, m_sub->size()); }
+        index_iterator begin() const { return index_iterator(m_sub, 0); }
+        index_iterator end() const
+        {
+            return index_iterator(m_sub, m_sub->size());
+        }
     private:
         const Subset *m_sub;
     };
@@ -305,8 +317,11 @@ private:
     class member_iterable {
     public:
         member_iterable(const Subset *sub) : m_sub{sub} {}
-        member_iter begin() const { return member_iter(m_sub, 0); }
-        member_iter end() const { return member_iter(m_sub, m_sub->size()); }
+        member_iterator begin() const { return member_iterator(m_sub, 0); }
+        member_iterator end() const
+        {
+            return member_iterator(m_sub, m_sub->size());
+        }
     private:
         const Subset *m_sub;
     };

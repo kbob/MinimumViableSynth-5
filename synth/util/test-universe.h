@@ -461,7 +461,7 @@ public:
         TS_ASSERT(e == e);
         TS_ASSERT(b != e);
 
-        S::index_iter i;        // use default constructor
+        S::index_iterator i;    // use default constructor
         i = b;                  // use assignment
         TS_ASSERT(*i == 0);
         TS_ASSERT(*i.operator -> () == 0);
@@ -492,7 +492,7 @@ public:
         TS_ASSERT(e == e);
         TS_ASSERT(b != e);
 
-        S::member_iter i;        // use default constructor
+        S::member_iterator i;   // use default constructor
         i = b;                  // use assignment
         TS_ASSERT(*i == Turtle::Leo);
         TS_ASSERT(*i.operator -> () == Turtle::Leo);
