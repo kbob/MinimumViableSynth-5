@@ -5,7 +5,6 @@
 
 #include <cxxtest/TestSuite.h>
 
-#include "synth/core/config.h"
 #include "synth/core/plan.h"
 #include "synth/core/ports.h"
 
@@ -16,29 +15,41 @@ public:
     static const size_t POLY = 3;
     static const size_t TIMB = 3;
 
-    class FooAssign : public Assigner {
+    static class Logger {
     public:
-        FooAssign(Synth& s)
-        : m_synth{s}
-        {}
+        std::ostringstream ss;
+        void clear() { ss.str(""); }
+        std::string operator () () { return ss.str(); }
+    } log;
 
-        Voice *allocate_voice() override { return &m_synth.voices()[0]; }
+    class FooSubsys : public Config::Subsystem {
+    public:
+        void pre_configure(Synth&) const override { log.ss << "<S "; }
+        void post_configure(Synth&) const override { log.ss << "S> "; }
 
-        Synth& m_synth;
+        void pre_configure(Timbre&) const override { log.ss << "<T "; }
+        void post_configure(Timbre&) const override { log.ss << "T> "; }
+
+        void pre_configure(Voice&) const override { log.ss << "<V "; }
+        void post_configure(Voice&) const override { log.ss << "V> "; }
+
+        void pre_configure(Control&) const override { log.ss << "<C "; }
+        void post_configure(Control&) const override { log.ss << "C> "; }
+
+        void pre_configure(Module&) const override { log.ss << "<M "; }
+        void post_configure(Module&) const override { log.ss << "M> "; }
     };
-
-    static std::ostringstream& log()
-    {
-        static std::ostringstream ss;
-        return ss;
-    }
 
     class FooControl : public ControlType<FooControl> {
     public:
         const char *sig = "nosig";
+        void configure(const Config&) override
+        {
+            log.ss << "cfg-" << sig << ' ';
+        }
         void render(size_t frame_count)
         {
-            log() << sig << '.' << frame_count << ' ';
+            log.ss << sig << '.' << frame_count << ' ';
         }
     };
 
@@ -55,7 +66,11 @@ public:
         Output<> out;
         void render(size_t frame_count)
         {
-            log() << name() << '.' << frame_count << ' ';
+            log.ss << name() << '.' << frame_count << ' ';
+        }
+        void configure(const Config&) override
+        {
+            log.ss << "cfg-" << name() << ' ';
         }
         Module *twin() const override { return m_twin; }
         Module *m_twin;
@@ -69,6 +84,7 @@ public:
 
     FooControl tc0, tc1, vc0, vc1;
     FooModule tm0, tm1, vm0, vm1;
+    FooSubsys fsub;
     Config cfg;
 
     synth_unit_test()
@@ -83,6 +99,7 @@ public:
         vm1.name("vm1");
         tm1.m_twin = &vm0;
         cfg.set_sample_rate(44100);
+        cfg.register_subsystem(&fsub);
     }
 
     void test_properties()
@@ -119,6 +136,42 @@ public:
         TS_ASSERT_EQUALS(v.controls().at(1), &vc1);
         TS_ASSERT_EQUALS(v.modules().at(0), &vm0);
         TS_ASSERT_EQUALS(v.modules().at(1), &vm1);
+    }
+
+    void test_config()
+    {
+        log.clear();
+        Synth s("Foo", 3, 2);
+        s.add_timbre_control(tc0)
+         .add_timbre_module(tm0, true)
+         .add_voice_control(vc0)
+         .add_voice_module(vm0)
+         .finalize(cfg);
+
+        std::string expected =
+            "<S "
+                "<T "
+                    "<C cfg-tc0 C> "
+                    "<M cfg-tm0 M> "
+                "T> "
+                "<T "
+                    "<C cfg-tc0 C> "
+                    "<M cfg-tm0 M> "
+                "T> "
+                "<V "
+                    "<C cfg-vc0 C> "
+                    "<M cfg-vm0 M> "
+                "V> "
+                "<V "
+                    "<C cfg-vc0 C> "
+                    "<M cfg-vm0 M> "
+                "V> "
+                "<V "
+                    "<C cfg-vc0 C> "
+                    "<M cfg-vm0 M> "
+                "V> "
+            "S> ";
+        TS_ASSERT_EQUALS(log(), expected);
     }
 
     void test_add_summer()
@@ -158,13 +211,13 @@ public:
         TS_ASSERT_EQUALS(render_step_rep(plan.post_render()),
                          "[mrend(1)]");
 
-        log().str("");
+        log.clear();
         t.pre_render(2);
-        TS_ASSERT_EQUALS(log().str(), "tm0.2 ");
+        TS_ASSERT_EQUALS(log(), "tm0.2 ");
 
-        log().str("");
+        log.clear();
         t.post_render(3);
-        TS_ASSERT_EQUALS(log().str(), "tm1.3 ");
+        TS_ASSERT_EQUALS(log(), "tm1.3 ");
     }
 
     void test_attach_detach_voice()
@@ -184,9 +237,9 @@ public:
 
         TS_ASSERT_EQUALS(v.timbre(), &t);
 
-        log().str("");
+        log.clear();
         v.render(4);
-        TS_ASSERT_EQUALS(log().str(), "vm0.4 ");
+        TS_ASSERT_EQUALS(log(), "vm0.4 ");
 
         s.detach_voice_from_timbre(t, v);
         TS_ASSERT_EQUALS(v.timbre(), nullptr);
@@ -219,19 +272,6 @@ public:
         TS_ASSERT_EQUALS(t.attached_voices(), 0b000);
     }
 
-    void test_allocate_voice()
-    {
-        Synth s{"Foo", POLY, TIMB};
-        s.add_timbre_module(tm0)
-         .add_timbre_module(tm1, true)
-         .add_voice_module(vm0)
-         .finalize(cfg);
-        FooAssign a(s);
-        s.allocator(&a);
-        Voice *v = s.allocate_voice(s.timbres().front());
-        TS_ASSERT(v);
-    }
-
     std::string
     prep_step_rep(const Plan::prep_step_sequence& seq)
     {
@@ -249,3 +289,5 @@ public:
     }
 
 };
+
+synth_unit_test::Logger synth_unit_test::log;

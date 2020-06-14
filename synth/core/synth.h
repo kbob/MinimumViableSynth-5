@@ -55,7 +55,7 @@ public:
       polyphony{polyphony},
       timbrality{timbrality},
       m_finalized{false},
-      m_alloc{nullptr}
+      m_assigner{nullptr}
     {
         assert(0 < polyphony && polyphony <= MAX_POLYPHONY);
         assert(0 < timbrality && timbrality <= MAX_TIMBRALITY);
@@ -69,8 +69,8 @@ public:
     const voice_vector& voices() const { return m_voices; }
     voice_vector& voices() { return m_voices; }
 
-    const Assigner *allocator() const { return m_alloc; }
-    void allocator(Assigner *a) { m_alloc = a; }
+    const Assigner *assigner() const { return m_assigner; }
+    void assigner(Assigner *a) { m_assigner = a; }
 
     Synth& add_timbre_control(Control& ctl)
     {
@@ -123,27 +123,19 @@ public:
             m_voices.emplace_back(m_voices.front());
         m_finalized = true;
 
-        for (auto& t: m_timbres)
-            t.configure(cfg);
-
-        for (auto& v: m_voices)
-            v.configure(cfg);
-    }
-
-    Voice *allocate_voice(Timbre& timbre)
-    {
-        assert(m_finalized);
-        assert(m_alloc);
-        Voice *v = m_alloc->allocate_voice();
-        if (!v)
-            return nullptr;
-        Timbre *prev_timbre = v->timbre();
-        if (&timbre != prev_timbre) {
-            if (prev_timbre)
-                detach_voice_from_timbre(*prev_timbre, *v);
-            attach_voice_to_timbre(timbre, *v);
+        // Walk the configurer through the subobjects.
+        cfg.pre_configure(*this);
+        for (auto& timbre: m_timbres) {
+            cfg.pre_configure(timbre);
+            timbre.configure(cfg);
+            cfg.post_configure(timbre);
         }
-        return v;
+        for (auto& voice: m_voices) {
+            cfg.pre_configure(voice);
+            voice.configure(cfg);
+            cfg.post_configure(voice);
+        }
+        cfg.post_configure(*this);
     }
 
     void apply_patch(Patch& patch, Timbre& timbre)
@@ -228,7 +220,7 @@ private:
     fixed_vector<Module *, MAX_OUTPUT_MODULES> m_output_modules;
     timbre_vector m_timbres;
     voice_vector m_voices;
-    Assigner *m_alloc;
+    Assigner *m_assigner;
 
     friend class synth_unit_test;
 
