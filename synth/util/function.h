@@ -49,7 +49,7 @@ public:
     class binding;
 
     result_type
-    operator () (Args...);
+    operator () (Args...) const;
 
     operator bool () const;
 
@@ -128,7 +128,7 @@ function(function_type f, void *p)
 template <class R, class ...Args>
 inline R
 function<R(Args...)>::
-operator () (Args... args)
+operator () (Args... args) const
 {
     assert(m_fun);
     return (*m_fun)(m_data, args...);
