@@ -4,14 +4,12 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
-#include <functional>
 #include <limits>
 
 #include "synth/midi/defs.h"
 #include "synth/midi/messages.h"
 #include "synth/midi/param.h"
 #include "synth/util/fixed-map.h"
-#include "synth/util/fixed-vector.h"
 #include "synth/util/function.h"
 
 namespace midi {

@@ -13,8 +13,6 @@ using midi::RPN;
 using midi::NRPN;
 using midi::SmallMessage;
 using midi::SysexMessage;
-using midi::SysexID;
-using midi::SysexDeviceID;
 using midi::ParameterNumber;
 using midi::ParameterValue;
 
