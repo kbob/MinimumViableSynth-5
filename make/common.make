@@ -75,6 +75,7 @@ r := $(r:/=)
       TESTGEN := $(CXXTEST)/bin/cxxtestgen
  TESTGENFLAGS := --have-eh --error-printer
      TEST_INC := $(CXXTEST)
+         JOBS := -j
 
 ifneq ($(SOURCES),)
  # Hack for SOURCES -> a.out
@@ -107,9 +108,9 @@ clean:      $(SUBDIRS:%=%/clean)
 
 pre-commit-check:
 	    make clean-world
-	    make -j world BUILD=debug
+	    make $(JOBS) world BUILD=debug
 	    make clean-world
-	    make -j world BUILD=release
+	    make $(JOBS) world BUILD=release
 
 cloc:
 	    @cloc --vcs=git --force-lang=make,make --exclude-dir=experiments
