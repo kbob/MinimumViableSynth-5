@@ -22,17 +22,17 @@ class dispatcher_unit_test : public CxxTest::TestSuite {
 
 public:
 
-    static SmallMessage last;
-    static SysexMessage last_sysex;
+    SmallMessage last;
+    SysexMessage last_sysex;
 
-    static class Logger {
+    class Logger {
     public:
         std::ostringstream ss;
         void clear() { ss.str(""); }
         std::string operator () () { return ss.str(); }
     } log;
 
-    static void log_small(const SmallMessage& msg)
+    void log_small(const SmallMessage& msg)
     {
         last = msg;
         auto f = log.ss.flags();
@@ -50,7 +50,7 @@ public:
         log.ss.flags(f);
     }
 
-    static void log_sysex(const SysexMessage& msg)
+    void log_sysex(const SysexMessage& msg)
     {
         last_sysex = msg;
         auto f = log.ss.flags();
@@ -65,20 +65,51 @@ public:
         log.ss.flags(f);
     }
 
-    static void log_xRPN(const ParameterValue& val)
+    void log_xRPN(std::uint8_t channel,
+                  const ParameterNumber& num,
+                  const ParameterValue& val)
     {
-        log.ss << '{' << val.value() << '}';
+        log.ss << '{'
+               << unsigned(channel)
+               << '/'
+               << num.number()
+               << ": "
+               << val.value()
+               << '}';
     }
+
+    using small_handler = Dispatcher::small_handler;
+    using sysex_handler = Dispatcher::sysex_handler;
+    using  xRPN_handler = Dispatcher::xRPN_handler;
+    using log_small_binding =
+        small_handler::binding<dispatcher_unit_test,
+                               &dispatcher_unit_test::log_small>;
+    using log_sysex_binding =
+        sysex_handler::binding<dispatcher_unit_test,
+                               &dispatcher_unit_test::log_sysex>;
+    using log_xRPN_binding =
+        xRPN_handler::binding<dispatcher_unit_test,
+                              &dispatcher_unit_test::log_xRPN>;
+    small_handler small_logger;
+    sysex_handler sysex_logger;
+    xRPN_handler   xRPN_logger;
+
+    dispatcher_unit_test()
+    : small_logger{log_small_binding(this)},
+      sysex_logger{log_sysex_binding(this)},
+      xRPN_logger{log_xRPN_binding(this)}
+    {}
 
     void test_instantiate()
     {
         (void)midi::Dispatcher();
+        TS_TRACE("sizeof Dispatcher = " + std::to_string(sizeof (Dispatcher)));
     }
 
     void test_dispatch_channel_voice_message()
     {
         Dispatcher d;
-        d.register_handler(StatusByte::NOTE_ON, 0x0001, log_small);
+        d.register_handler(StatusByte::NOTE_ON, 0x0001, small_logger);
         log.clear();
         d.dispatch_message(SmallMessage(0x90, 0x12, 0x34));
         TS_ASSERT_EQUALS(log(), "[90 12 34]");
@@ -93,11 +124,17 @@ public:
         Dispatcher d;
         d.register_handler(StatusByte::PROGRAM_CHANGE,
                            Dispatcher::ALL_CHANNELS,
-                           log_small);
+                           small_logger);
         log.clear();
         d.dispatch_message(SmallMessage(0xC1, 0x23));
         d.dispatch_message(SmallMessage(0xCF, 0x76));
         TS_ASSERT_EQUALS(log(), "[C1 23][CF 76]");
+    }
+
+    void not_omni(Dispatcher& d)
+    {
+        for (size_t ti = 0; ti < MAX_TIMBRES && ti < CHANNEL_COUNT; ti++)
+            d.set_timbre_channels(ti, 1 << ti);
     }
 
     void dispatch_cc(Dispatcher& d,
@@ -114,9 +151,10 @@ public:
     void test_dispatch_cc_message()
     {
         Dispatcher d;
+        not_omni(d);
         d.register_handler(ControllerNumber::GENERAL_PURPOSE_5,
-                           Dispatcher::ALL_CHANNELS,
-                           log_small);
+                           Dispatcher::ALL_TIMBRES,
+                           small_logger);
         for (size_t chan = 0; chan < CHANNEL_COUNT; chan++) {
             std::uint8_t s = std::uint8_t(StatusByte::CONTROL_CHANGE) | chan;
             std::uint8_t cn = std::uint8_t(ControllerNumber::GENERAL_PURPOSE_5);
@@ -154,9 +192,10 @@ public:
         ParameterNumber pn(RPN::FINE_TUNING);
         ParameterValue pv(1234);
         Dispatcher d;
+        not_omni(d);
         d.register_handler(RPN::FINE_TUNING,
-                           Dispatcher::ALL_CHANNELS,
-                           log_xRPN);
+                           Dispatcher::ALL_TIMBRES,
+                           xRPN_logger);
         for (size_t chan = 0; chan < CHANNEL_COUNT; chan++) {
             log.clear();
 
@@ -177,21 +216,27 @@ public:
             // 6.  Decrement data.
             dispatch_cc(d, chan, ControllerNumber::DATA_DECREMENT, 0);
 
-            std::string expected;
+            std::ostringstream expected;
             if (chan < MAX_TIMBRALITY)
-                expected = "{1234}{1235}{1234}";
-            TS_ASSERT_EQUALS(log(), expected);
+                expected << "{" << chan << "/1: 1234}"
+                         << "{" << chan << "/1: 1235}"
+                         << "{" << chan << "/1: 1234}";
+                // expected = "{0/1: 1234}{0/1: 1235}{0/1: 1234}";
+            TS_ASSERT_EQUALS(log(), expected.str());
         }
     }
 
     void test_RPN_inc_dec_modes()
     {
         Dispatcher d;
+        not_omni(d);
 
         // FINE_TUNING tested above, increments whole value.
 
         // COARSE_TUNING increments MSB only.
-        d.register_handler(RPN::COARSE_TUNING, 1, log_xRPN);
+        d.register_handler(RPN::COARSE_TUNING,
+                           0x0001,
+                           xRPN_logger);
         log.clear();
         select_RPN(d, 0, RPN::COARSE_TUNING);
         ParameterValue pv(0x12, 0x34);
@@ -199,10 +244,12 @@ public:
         dispatch_cc(d, 0, ControllerNumber::DATA_ENTRY_MSB, pv.msb());
         dispatch_cc(d, 0, ControllerNumber::DATA_INCREMENT, 0);
         dispatch_cc(d, 0, ControllerNumber::DATA_DECREMENT, 0);
-        TS_ASSERT_EQUALS(log(), "{2356}{2484}{2356}");
+        TS_ASSERT_EQUALS(log(), "{0/2: 2356}{0/2: 2484}{0/2: 2356}");
 
         // PITCH_BEND_SENSITIVITY increments centesimally.
-        d.register_handler(RPN::PITCH_BEND_SENSITIVITY, 1, log_xRPN);
+        d.register_handler(RPN::PITCH_BEND_SENSITIVITY,
+                           0x0001,
+                           xRPN_logger);
         log.clear();
         select_RPN(d, 0, RPN::PITCH_BEND_SENSITIVITY);
         pv = ParameterValue(3, 99);
@@ -212,7 +259,8 @@ public:
         dispatch_cc(d, 0, ControllerNumber::DATA_INCREMENT, 0);
         dispatch_cc(d, 0, ControllerNumber::DATA_DECREMENT, 0);
         dispatch_cc(d, 0, ControllerNumber::DATA_DECREMENT, 0);
-        TS_ASSERT_EQUALS(log(), "{483}{512}{513}{512}{483}");
+        TS_ASSERT_EQUALS(log(),
+                         "{0/0: 483}{0/0: 512}{0/0: 513}{0/0: 512}{0/0: 483}");
     }
 
     void test_dispatch_NRPN_message()
@@ -220,9 +268,10 @@ public:
         ParameterNumber pn(0x1234);
         ParameterValue pv(4321);
         Dispatcher d;
+        not_omni(d);
         d.register_handler(NRPN(0x1234),
-                           Dispatcher::ALL_CHANNELS,
-                           log_xRPN);
+                           Dispatcher::ALL_TIMBRES,
+                           xRPN_logger);
         for (size_t chan = 0; chan < CHANNEL_COUNT; chan++) {
             log.clear();
 
@@ -245,19 +294,23 @@ public:
             // 6.  Decrement data.
             dispatch_cc(d, chan, ControllerNumber::DATA_DECREMENT, 0);
 
-            std::string expected;
-            if (chan < MAX_TIMBRALITY)
-                expected = "{4321}{4322}{4321}";
-            TS_ASSERT_EQUALS(log(), expected);
+            std::ostringstream expected;
+            if (chan < MAX_TIMBRALITY) {
+                expected << "{" << unsigned(chan) << "/4660: 4321}";
+                expected << "{" << unsigned(chan) << "/4660: 4322}";
+                expected << "{" << unsigned(chan) << "/4660: 4321}";
+            }
+            TS_ASSERT_EQUALS(log(), expected.str());
         }
     }
 
     void test_dispatch_channel_mode_message()
     {
         Dispatcher d;
+        not_omni(d);
         d.register_handler(ChannelModeNumber::ALL_SOUND_OFF,
-                           Dispatcher::ALL_CHANNELS,
-                           log_small);
+                           Dispatcher::ALL_TIMBRES,
+                           small_logger);
         for (size_t chan = 0; chan < CHANNEL_COUNT; chan++) {
             std::uint8_t s =
                 std::uint8_t(StatusByte::SELECT_CHANNEL_MODE) | chan;
@@ -283,7 +336,7 @@ public:
     void test_dispatch_system_common_message()
     {
         Dispatcher d;
-        d.register_handler(StatusByte::SONG_SELECT, log_small);
+        d.register_handler(StatusByte::SONG_SELECT, small_logger);
         std::uint8_t s = std::uint8_t(StatusByte::SONG_SELECT);
         std::uint8_t d1 = 0x12;
 
@@ -295,7 +348,7 @@ public:
     void test_dispatch_system_real_time_message()
     {
         Dispatcher d;
-        d.register_handler(StatusByte::STOP, log_small);
+        d.register_handler(StatusByte::STOP, small_logger);
 
         log.clear();
         d.dispatch_message(SmallMessage(std::uint8_t(StatusByte::STOP)));
@@ -320,7 +373,3 @@ public:
     // }
 
 };
-
-dispatcher_unit_test::Logger dispatcher_unit_test::log;
-SmallMessage dispatcher_unit_test::last;
-SysexMessage dispatcher_unit_test::last_sysex;

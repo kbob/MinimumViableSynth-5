@@ -60,6 +60,8 @@ namespace midi {
             assert(!(d2 & 0x80));
         }
 
+        operator bool () const { return status_byte != NO_STATUS; }
+
         void clear()
         {
             status_byte = NO_STATUS;
@@ -115,14 +117,14 @@ namespace midi {
                 return false;
             if (status() != StatusByte::SELECT_CHANNEL_MODE)
                 return true;
-            return control_number() < 120;
+            return control_number() < CC_COUNT;
         }
 
         bool is_channel_mode_message() const
         {
             return is_channel_message() &&
                    status() == StatusByte::SELECT_CHANNEL_MODE &&
-                   control_number() >= 120;
+                   control_number() >= CC_COUNT;
         }
 
         bool is_system_message() const

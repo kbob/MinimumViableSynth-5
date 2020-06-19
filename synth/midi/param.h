@@ -15,14 +15,14 @@ namespace midi {
         typedef std::uint8_t byte;
 
         static const number_type MAX = 128 * 256 - 1;
-        static const number_type NO_VALUE =
+        static const number_type NO_NUMBER =
             std::numeric_limits<number_type>::max();
         static const number_type NO_BYTE =
             std::numeric_limits<byte>::max();
 
         // Constructors
         ParameterNumber()
-        : m_key{NO_VALUE}
+        : m_key{NO_NUMBER}
         {}
         ParameterNumber(number_type key)
         : m_key{key}
