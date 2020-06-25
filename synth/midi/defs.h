@@ -206,7 +206,7 @@ namespace midi {
     //   MIDI Machine Control commands
     //   MIDI Machine Control responses
     //   MIDI tuning standard sub-IDs
-    //   Everything MIDI 2.0
+    //   All of MIDI 2.0
 
 }
 

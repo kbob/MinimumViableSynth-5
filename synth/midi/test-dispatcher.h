@@ -9,6 +9,7 @@ using midi::CHANNEL_COUNT;
 using midi::StatusByte;
 using midi::ControllerNumber;
 using midi::ChannelModeNumber;
+using midi::Layering;
 using midi::RPN;
 using midi::NRPN;
 using midi::SmallMessage;
@@ -106,7 +107,10 @@ public:
 
     void test_dispatch_channel_voice_message()
     {
+        const size_t TIMB = MAX_TIMBRES - 1;
+        Layering l(TIMB);
         Dispatcher d;
+        d.attach_layering(l);
         d.register_handler(StatusByte::NOTE_ON, 0x0001, small_logger);
         log.clear();
         d.dispatch_message(SmallMessage(0x90, 0x12, 0x34));
@@ -121,18 +125,12 @@ public:
     {
         Dispatcher d;
         d.register_handler(StatusByte::PROGRAM_CHANGE,
-                           Dispatcher::ALL_CHANNELS,
+                           Layering::ALL_CHANNELS,
                            small_logger);
         log.clear();
         d.dispatch_message(SmallMessage(0xC1, 0x23));
         d.dispatch_message(SmallMessage(0xCF, 0x76));
         TS_ASSERT_EQUALS(log(), "[C1 23][CF 76]");
-    }
-
-    void not_omni(Dispatcher& d)
-    {
-        for (size_t ti = 0; ti < MAX_TIMBRES && ti < CHANNEL_COUNT; ti++)
-            d.set_timbre_channels(ti, 1 << ti);
     }
 
     void dispatch_cc(Dispatcher& d,
@@ -148,17 +146,20 @@ public:
 
     void test_dispatch_cc_message()
     {
+        const size_t TIMB = MAX_TIMBRES - 1;
+        Layering l(TIMB);
+        l.multi_mode();
         Dispatcher d;
-        not_omni(d);
+        d.attach_layering(l);
         d.register_handler(ControllerNumber::GENERAL_PURPOSE_5,
-                           Dispatcher::ALL_TIMBRES,
+                           l.all_timbres,
                            small_logger);
         for (size_t chan = 0; chan < CHANNEL_COUNT; chan++) {
             std::uint8_t s = std::uint8_t(StatusByte::CONTROL_CHANGE) | chan;
             std::uint8_t cn = std::uint8_t(ControllerNumber::GENERAL_PURPOSE_5);
             std::uint8_t cv = 0x10 + chan;
             std::ostringstream expected;
-            if (chan < MAX_TIMBRALITY)
+            if (chan < TIMB)
                 expected << std::hex
                          << std::uppercase
                          << '['
@@ -189,10 +190,13 @@ public:
     {
         ParameterNumber pn(RPN::FINE_TUNING);
         ParameterValue pv(1234);
+        const size_t TIMB = MAX_TIMBRES - 1;
+        Layering l(TIMB);
+        l.multi_mode();
         Dispatcher d;
-        not_omni(d);
+            d.attach_layering(l);
         d.register_handler(RPN::FINE_TUNING,
-                           Dispatcher::ALL_TIMBRES,
+                           l.all_timbres,
                            xRPN_logger);
         for (size_t chan = 0; chan < CHANNEL_COUNT; chan++) {
             log.clear();
@@ -215,7 +219,7 @@ public:
             dispatch_cc(d, chan, ControllerNumber::DATA_DECREMENT, 0);
 
             std::ostringstream expected;
-            if (chan < MAX_TIMBRALITY)
+            if (chan < TIMB)
                 expected << "{" << chan << "/1: 1234}"
                          << "{" << chan << "/1: 1235}"
                          << "{" << chan << "/1: 1234}";
@@ -226,8 +230,11 @@ public:
 
     void test_RPN_inc_dec_modes()
     {
+        const size_t TIMB = MAX_TIMBRES - 1;
+        Layering l(TIMB);
+        l.multi_mode();
         Dispatcher d;
-        not_omni(d);
+        d.attach_layering(l);
 
         // FINE_TUNING tested above, increments whole value.
 
@@ -265,10 +272,13 @@ public:
     {
         ParameterNumber pn(0x1234);
         ParameterValue pv(4321);
+        const size_t TIMB = MAX_TIMBRES - 1;
+        Layering l(TIMB);
+        l.multi_mode();
         Dispatcher d;
-        not_omni(d);
+        d.attach_layering(l);
         d.register_handler(NRPN(0x1234),
-                           Dispatcher::ALL_TIMBRES,
+                           l.all_timbres,
                            xRPN_logger);
         for (size_t chan = 0; chan < CHANNEL_COUNT; chan++) {
             log.clear();
@@ -293,7 +303,7 @@ public:
             dispatch_cc(d, chan, ControllerNumber::DATA_DECREMENT, 0);
 
             std::ostringstream expected;
-            if (chan < MAX_TIMBRALITY) {
+            if (chan < TIMB) {
                 expected << "{" << unsigned(chan) << "/4660: 4321}";
                 expected << "{" << unsigned(chan) << "/4660: 4322}";
                 expected << "{" << unsigned(chan) << "/4660: 4321}";
@@ -304,10 +314,13 @@ public:
 
     void test_dispatch_channel_mode_message()
     {
+        const size_t TIMB = MAX_TIMBRES - 1;
+        Layering l(TIMB);
+        l.multi_mode();
         Dispatcher d;
-        not_omni(d);
+        d.attach_layering(l);
         d.register_handler(ChannelModeNumber::ALL_SOUND_OFF,
-                           Dispatcher::ALL_TIMBRES,
+                           l.all_timbres,
                            small_logger);
         for (size_t chan = 0; chan < CHANNEL_COUNT; chan++) {
             std::uint8_t s =
@@ -315,7 +328,7 @@ public:
             std::uint8_t cn = std::uint8_t(ChannelModeNumber::ALL_SOUND_OFF);
             std::uint8_t cv = 0;
             std::ostringstream expected;
-            if (chan < MAX_TIMBRALITY)
+            if (chan < TIMB)
                 expected << std::hex
                          << std::uppercase
                          << '['

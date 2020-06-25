@@ -7,6 +7,7 @@
 #include <limits>
 
 #include "synth/midi/defs.h"
+#include "synth/midi/layering.h"
 #include "synth/midi/messages.h"
 #include "synth/midi/param.h"
 #include "synth/util/fixed-map.h"
@@ -16,10 +17,12 @@ namespace midi {
 
     class Dispatcher {
 
-        typedef std::uint16_t c_mask;
-        typedef std::uint16_t t_mask;
-        static_assert(MAX_TIMBRES <= std::numeric_limits<t_mask>::digits,
-                      "timbre mask too small");
+        typedef Layering::channel_index c_index;
+        typedef Layering::timbre_index  t_index;
+        typedef Layering::channel_mask  c_mask;
+        typedef Layering::timbre_mask   t_mask;
+
+        static const t_mask ALL_TIMBRES = (1 << MAX_TIMBRES) - 1;
 
     public:
 
@@ -28,13 +31,11 @@ namespace midi {
                               const ParameterNumber&,
                               const ParameterValue&)> xRPN_handler;
         typedef function<void(const SysexMessage&)>  sysex_handler;
-        typedef c_mask channel_mask;
-        typedef t_mask timbre_mask;
-
-        static const channel_mask ALL_CHANNELS = 0xFFFF;
-        static const timbre_mask  ALL_TIMBRES = (1 << MAX_TIMBRES) - 1;
 
         Dispatcher();
+
+        const Layering *layering() const;
+        void attach_layering(const Layering&);
 
         // Reset the xRPN state machines.
         void reset();
@@ -61,11 +62,6 @@ namespace midi {
         void register_handler(UniversalSysexNonRealTime, const sysex_handler&);
         void register_handler(UniversalSysexRealTime,    const sysex_handler&);
 
-        // Channels and timbres are mapped many-to-many.  Use either
-        // of these to set one row or column of the mapping.
-        void set_channel_timbres(std::uint8_t channel, timbre_mask);
-        void set_timbre_channels(std::uint8_t timbre, channel_mask);
-
     private:
 
         enum class xRPN_state : std::uint8_t {
@@ -78,11 +74,10 @@ namespace midi {
             std::array<ParameterValue, CHANNEL_COUNT> values;
             std::array<xRPN_handler, MAX_TIMBRES> handlers;
 
-            void broadcast(timbre_mask, std::uint8_t channel, ParameterNumber);
+            void broadcast(t_mask, c_index channel, ParameterNumber);
         };
 
         struct channel {
-            timbre_mask           timbres;
             xRPN_state            state;
             ParameterNumber::byte rpn_msb;
             ParameterNumber::byte rpn_lsb;
@@ -90,8 +85,7 @@ namespace midi {
             ParameterNumber::byte nrpn_lsb;
 
             channel()
-            : timbres{ALL_TIMBRES},
-              state{xRPN_state::INACTIVE},
+            : state{xRPN_state::INACTIVE},
               rpn_msb{ParameterNumber::NO_BYTE},
               rpn_lsb{ParameterNumber::NO_BYTE},
               nrpn_msb{ParameterNumber::NO_BYTE},
@@ -102,12 +96,7 @@ namespace midi {
         };
 
         struct timbre {
-            channel_mask channels;
             std::array<small_handler, 128> cc_handlers;
-
-            timbre()
-            : channels{ALL_CHANNELS}    // start in omni mode.
-            {}
         };
 
         void handle_cc(const SmallMessage&);
@@ -146,8 +135,7 @@ namespace midi {
         using nrpn_lsb_binding =
             small_binding<&Dispatcher::handle_nrpn_lsb>;
 
-        static const std::uint8_t NO_TIMBRE = 0xFF;
-
+        const Layering *m_layering;
         std::array<small_handler, 128> m_status_byte_handlers;
         std::array<xRPN_bundle, MAX_RPNS> m_rpns;
         fixed_map<ParameterNumber, xRPN_bundle, MAX_NRPNS> m_nrpns;
@@ -164,9 +152,7 @@ namespace midi {
 
     inline void
     Dispatcher::xRPN_bundle::
-    broadcast(timbre_mask timbres,
-              std::uint8_t channel,
-              ParameterNumber number)
+    broadcast(t_mask timbres, c_index channel, ParameterNumber number)
     {
         auto value = values[channel];
         if (value.is_valid()) {
@@ -186,9 +172,10 @@ namespace midi {
     inline
     Dispatcher::
     Dispatcher()
+    : m_layering{nullptr}
     {
         register_handler(StatusByte::CONTROL_CHANGE,
-                         ALL_CHANNELS,
+                         Layering::ALL_CHANNELS,
                          cc_binding(this));
         register_handler(ControllerNumber::DATA_ENTRY_MSB,
                          ALL_TIMBRES,
@@ -217,6 +204,21 @@ namespace midi {
         register_handler(ControllerNumber::NRPN_LSB,
                          ALL_TIMBRES,
                          nrpn_lsb_binding(this));
+    }
+
+    inline auto
+    Dispatcher::
+    layering() const
+    -> const Layering *
+    {
+        return m_layering;
+    }
+
+    inline void
+    Dispatcher::
+    attach_layering(const Layering& l)
+    {
+        m_layering = &l;
     }
 
     // inline void
@@ -257,7 +259,7 @@ namespace midi {
 
     inline void
     Dispatcher::
-    register_handler(StatusByte s, channel_mask m, const small_handler& h)
+    register_handler(StatusByte s, c_mask m, const small_handler& h)
     {
         for (size_t chan = 0; chan < CHANNEL_COUNT; chan++) {
             if (m & (1 << chan)) {
@@ -271,7 +273,7 @@ namespace midi {
 
     inline void
     Dispatcher::
-    register_handler(ControllerNumber cc, timbre_mask m, const small_handler& h)
+    register_handler(ControllerNumber cc, t_mask m, const small_handler& h)
     {
         auto index = static_cast<size_t>(cc);
         assert(index < CC_COUNT);
@@ -282,7 +284,7 @@ namespace midi {
 
     inline void
     Dispatcher::
-    register_handler(RPN rpn, timbre_mask m, const xRPN_handler& h)
+    register_handler(RPN rpn, t_mask m, const xRPN_handler& h)
     {
         auto index = static_cast<size_t>(rpn);
         auto& handlers = m_rpns[index].handlers;
@@ -293,7 +295,7 @@ namespace midi {
 
     inline void
     Dispatcher::
-    register_handler(NRPN nrpn, timbre_mask m, const xRPN_handler& h)
+    register_handler(NRPN nrpn, t_mask m, const xRPN_handler& h)
     {
         auto index = static_cast<size_t>(nrpn);
         auto& handlers = m_nrpns[index].handlers;
@@ -305,7 +307,7 @@ namespace midi {
     inline void
     Dispatcher::
     register_handler(ChannelModeNumber mode,
-                     timbre_mask m,
+                     t_mask m,
                      const small_handler& h)
     {
         auto index = static_cast<size_t>(mode);
@@ -325,53 +327,14 @@ namespace midi {
         pos = h;
     }
 
-    // inline void
-    // Dispatcher::
-    // register_handler(const SysexID&, sysex_handler)
-    // {}
-    //
-    // inline void
-    // Dispatcher::
-    // register_handler(UniversalSysexNonRealTime, sysex_handler)
-    // {}
-    //
-    // inline void
-    // Dispatcher::
-    // register_handler(UniversalSysexRealTime, sysex_handler)
-    // {}
-
-    inline void
-    Dispatcher::set_channel_timbres(std::uint8_t channel, timbre_mask mask)
-    {
-        m_channels[channel].timbres = mask;
-        for (size_t i = 0, bit = 1; i < m_timbres.size(); i++, bit <<= 1) {
-            if (mask & (1 << i))
-                m_timbres[i].channels |= bit;
-            else
-                m_timbres[i].channels &= ~bit;
-        }
-    }
-
-    inline void
-    Dispatcher::set_timbre_channels(std::uint8_t timbre, channel_mask mask)
-    {
-        m_timbres[timbre].channels = mask;
-        timbre_mask bit = 1 << timbre;
-        for (size_t i = 0; i < m_channels.size(); i++)
-            if (mask & (1 << i))
-                m_channels[i].timbres |= bit;
-            else
-                m_channels[i].timbres &= ~bit;
-    }
-
     inline void
     Dispatcher::
     handle_cc(const SmallMessage& msg)
     {
         assert(msg.status() == StatusByte::CONTROL_CHANGE);
-        auto chan = msg.channel();
+        auto channel = msg.channel();
         auto cc = msg.control_number();
-        auto timbres = m_channels[chan].timbres;
+        auto timbres = m_layering->channel_timbres(channel);
         for (size_t ti = 0; ti < MAX_TIMBRES; ti++) {
             if (timbres & ( 1 << ti)) {
                 auto& handler = m_timbres[ti].cc_handlers[cc];
@@ -390,7 +353,8 @@ namespace midi {
         if (auto *xrpn = get_xRPN(channel, &pn)) {
             auto& value = xrpn->values[channel];
             value.set_msb(msg.control_value());
-            xrpn->broadcast(m_channels[channel].timbres, channel, pn);
+            auto timbres = m_layering->channel_timbres(channel);
+            xrpn->broadcast(timbres, channel, pn);
         }
     }
 
@@ -403,7 +367,8 @@ namespace midi {
         if (auto *xrpn = get_xRPN(channel, &pn)) {
             auto& value = xrpn->values[channel];
             value.set_lsb(msg.control_value());
-            xrpn->broadcast(m_channels[channel].timbres, channel, pn);
+            auto timbres = m_layering->channel_timbres(channel);
+            xrpn->broadcast(timbres, channel, pn);
         }
     }
 
@@ -444,7 +409,8 @@ namespace midi {
                 } else {
                     value.increment_value();    // all NRPNs inc the LSB.
                 }
-                xrpn->broadcast(m_channels[channel].timbres, channel, pn);
+                auto timbres = m_layering->channel_timbres(channel);
+                xrpn->broadcast(timbres, channel, pn);
             }
         }
     }
@@ -479,7 +445,8 @@ namespace midi {
                 } else {
                     value.decrement_value();
                 }
-                xrpn->broadcast(m_channels[channel].timbres, channel, pn);
+                auto timbres = m_layering->channel_timbres(channel);
+                xrpn->broadcast(timbres, channel, pn);
             }
         }
     }
@@ -520,10 +487,10 @@ namespace midi {
         chan.state = xRPN_state::NRPN_ACTIVE;
     }
 
-    inline
-    Dispatcher::xRPN_bundle *
+    inline auto
     Dispatcher::
     get_xRPN(std::uint8_t channel, ParameterNumber *pnp)
+    -> xRPN_bundle *
     {
         auto& chan = m_channels[channel];
         if (chan.state == xRPN_state::RPN_ACTIVE) {
