@@ -44,6 +44,11 @@
 #
 # Advanced Trickery
 #
+#   Starting a new or experimental unit test?  Start running the test
+#   without changing the makefile.
+#
+#     $ make TESTS=test-new-thing
+#
 #   SOURCES is magic.  If you define SOURCES on the command line,
 #   we build a.out from SOURCES and run it.
 #
@@ -126,8 +131,8 @@ general-help:
 	    @echo '    programs         - build all programs'
 	    @echo '    images           - build all firmware images'
 	    @echo '    test             - build and run all tests'
-	    @echo '    run-tests        - build and run all tests'
-	    @echo '    tests            - build all test programss'
+	    @echo '    run-tests        - build and run tests in this directory'
+	    @echo '    tests            - build all test programs'
 	    @echo '    clean            - remove all generated files'
 	    @echo '    clean-world      - clean whole project'
 	    @echo '    pre-commit-check - check world and tests'
@@ -158,10 +163,12 @@ ifneq ($(TESTS),)
 	    @echo 'Tests in this directory'
 	    @echo ''
 	    @echo '  Build:'
-	    @for t in $(TESTS); do echo "    $$t"; done
+	    @echo $(TESTS) | tr \\40 \\12 | \
+	        column -c 72 | expand  | sed 's,^,    ,'
 	    @echo ''
 	    @echo '  Run:'
-	    @for t in $(TESTS); do echo "    run-$$t"; done
+	    @for t in $(TESTS); do echo "run-$$t"; done | \
+	        column -c 72 | expand | sed 's,^,    ,'
 	    @echo ''
 endif
 
