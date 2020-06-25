@@ -32,7 +32,8 @@ Canon = namedtuple('Canon', 'orig kebab snake camel pascal '
 
 def canonicalize(name):
     orig = name
-    separated = re.sub(r'(?<=[a-z])(?=[A-Z])', '-', name)
+    unqual = name.split('::')[-1]
+    separated = re.sub(r'(?<=[a-z])(?=[A-Z])', '-', unqual)
     kebab = re.sub(r'[_ ]', '-', separated).lower()
     snake = kebab.replace('-', '_')
     hot_kebab = kebab.upper()
@@ -64,6 +65,7 @@ test_names = [
     'Foo-Bar',
     'FOO_BAR',
     'FOO-BAR',
+    'ns::Foo-Bar',
 ]
 
 for name in test_names:
@@ -82,6 +84,9 @@ def create_test(name):
     canon = canonicalize(name)
     filename = f'test-{canon.kebab}.h'
     contents = test_template.format(**canon._asdict())
+    # print(f'{filename=}')
+    # print(contents)
+    # exit()
     try:
         with open(filename, 'xt') as f:
             f.write(contents)
