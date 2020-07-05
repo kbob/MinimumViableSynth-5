@@ -1,6 +1,7 @@
 #ifndef MIDI_PARSER_included
 #define MIDI_PARSER_included
 
+#include <cassert>
 #include <cstdint>
 #include <functional>
 #include <stdexcept>

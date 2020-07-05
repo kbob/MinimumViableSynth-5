@@ -1,6 +1,7 @@
 #ifndef MIDI_PARAM_included
 #define MIDI_PARAM_included
 
+#include <cassert>
 #include <cstdint>
 
 #include "synth/midi/defs.h"
