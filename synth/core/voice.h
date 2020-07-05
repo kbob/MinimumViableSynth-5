@@ -93,7 +93,7 @@ public:
         // Verify it isn't already added.
         assert(std::find(ctls.begin(), ctls.end(), c) == ctls.end());
         if (is_lifetime_monitor)
-            m_life_modules.push_back(ctls.size());
+            m_life_controls.push_back(ctls.size());
         ctls.push_back(c);
     }
 

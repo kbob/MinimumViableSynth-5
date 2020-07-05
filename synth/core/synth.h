@@ -88,10 +88,10 @@ public:
         return *this;
     }
 
-    Synth& add_voice_control(Control& ctl)
+    Synth& add_voice_control(Control& ctl, bool is_lifetime_moderator = false)
     {
         assert(!m_finalized);
-        m_voices.front().add_control(&ctl);
+        m_voices.front().add_control(&ctl, is_lifetime_moderator);
         return *this;
     }
 
