@@ -17,7 +17,7 @@ public:
 
     typedef std::function<int(const Voice&)> prioritizer;
 
-    PriorityAssigner(Synth& synth, prioritizer& f)
+    PriorityAssigner(Synth& synth, const prioritizer& f)
     : m_synth{synth},
       m_prio{f},
       m_all_voices{synth.voices()},
@@ -62,7 +62,7 @@ private:
     typedef voice_verse::subset_type voice_set;
 
     Synth& m_synth;
-    prioritizer& m_prio;
+    prioritizer m_prio;
 
     voice_verse m_all_voices;
     voice_set m_free_voices;
