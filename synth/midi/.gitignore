@@ -1,6 +1,7 @@
 test-controls
 test-dispatcher
-test-layeringx
+test-layering
 test-messages
+test-note-mgr
 test-param
 test-parser
