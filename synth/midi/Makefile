@@ -1,4 +1,4 @@
 TESTS := test-controls test-dispatcher test-layering test-messages      \
-         test-note-mgr test-param test-parser
+         test-mode-mgr test-note-mgr test-param test-parser
 
 include ../../make/common.make
