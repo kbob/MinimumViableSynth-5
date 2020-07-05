@@ -126,6 +126,20 @@ easy to distinguish the test from the testee.
 Test suite class names are `that_thing_unit_test`.  The class under
 test is either `that_thing` or `ThatThing`.
 
+Many unit tests start with a vacuous looking test like this.
+
+    void test_instantiate()
+    {
+        (void)namespace::MyClass();
+    }
+
+The point of that is to have something to build and run during initial
+development.  If the unit test is just that much, there is something
+to compile.  I leave this running in a terminal window, and it builds
+and runs every two seconds.
+
+    $ watch make TESTS=test-my-class
+
 
 # Build System
 
