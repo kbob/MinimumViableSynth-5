@@ -1,7 +1,8 @@
-#ifndef LAYERING_included
-#define LAYERING_included
+#ifndef MIDI_LAYERING_included
+#define MIDI_LAYERING_included
 
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <limits>
 
@@ -16,19 +17,18 @@ namespace midi {
 
         // // Maybe I should make some self-sizing integer types?
         //
-        // typedef unsigned_bits_type<CHANNEL_COUNT> channel_index;
-        // typedef unsigned_bits_type<MAX_TIMBRES> timbre_index;
-        // typedef unsigned_value_type<CHANNEL_COUNT> channel_mask;
-        // typedef unsigned_value_type<MAX_TIMBRES> timbre_mask;
+        // typedef size_type<CHANNEL_COUNT> channel_index;
+        // typedef size_type<MAX_TIMBRES> timbre_index;
+        // typedef mask_type<CHANNEL_COUNT> channel_mask;
+        // typedef mask_type<MAX_TIMBRES> timbre_mask;
         typedef std::uint8_t channel_index;
         typedef std::uint8_t timbre_index;
         typedef std::uint16_t channel_mask;
         typedef std::uint8_t timbre_mask;
 
-        static const channel_index NO_CHANNEL = ~0;
-        static const timbre_index  NO_TIMBRE  = ~0;
+        static const channel_index NO_CHANNEL   = ~0;
+        static const timbre_index  NO_TIMBRE    = ~0;
         static const channel_mask  ALL_CHANNELS = (1 << CHANNEL_COUNT) - 1;
-        // static const timbre_index  ALL_TIMBRES = (1 << MAX_TIMBRES) - 1;
 
         const timbre_index timbrality;
         const timbre_mask all_timbres;
@@ -36,6 +36,8 @@ namespace midi {
         Layering(size_t timbrality);
 
         void omni_mode();
+        void poly_mode(channel_index);
+        void mono_mode(channel_mask);
         void multi_mode();
 
         // Getters
@@ -47,9 +49,6 @@ namespace midi {
         void timbre_channels(timbre_index, channel_mask);
 
     private:
-
-        // timbre_index m_timbrality;
-        // timbre_mask m_all_timbres;
 
         std::array<timbre_mask, CHANNEL_COUNT> m_channel_timbres;
         std::array<channel_mask, MAX_TIMBRES>  m_timbre_channels;
@@ -87,9 +86,31 @@ namespace midi {
     omni_mode()
     {
         for (size_t ci = 0; ci < CHANNEL_COUNT; ci++)
-            m_channel_timbres[ci] = all_timbres;
-        for (size_t ti = 0; ti < timbrality; ti++)
-            m_timbre_channels[ti] = ALL_CHANNELS;
+            m_channel_timbres[ci] = 1 << 0;
+        // init all timbres here because the constructor calls us.
+        for (size_t ti = 0; ti < MAX_TIMBRES; ti++)
+            m_timbre_channels[ti] = (ti == 0) ? ALL_CHANNELS : 0;
+    }
+
+    inline void
+    Layering::
+    poly_mode(channel_index chan)
+    {
+        for (size_t ci = 0; ci < CHANNEL_COUNT; ci++)
+            m_channel_timbres[ci] = (ci == chan) ? (1 << 0) : 0;
+        for (size_t ti = 0; ti < MAX_TIMBRES; ti++)
+            m_timbre_channels[ti] = (ti == 0) ? 1 << chan : 0;
+    }
+
+    inline void
+    Layering::
+    mono_mode(channel_mask enabled_channels)
+    {
+        assert(enabled_channels);
+        for (size_t ci = 0; ci < CHANNEL_COUNT; ci++)
+            m_channel_timbres[ci] = (enabled_channels & 1 << ci) ? 1 : 0;
+        for (size_t ti = 0; ti < MAX_TIMBRES; ti++)
+            m_timbre_channels[ti] = ti ? 0 : enabled_channels;
     }
 
     inline void
@@ -99,7 +120,9 @@ namespace midi {
         m_channel_timbres = {0};
         m_timbre_channels = {0};
         for (size_t ci = 0; ci < CHANNEL_COUNT && ci < timbrality; ci++)
-            channel_timbres(ci, 1 << ci);
+            m_channel_timbres[ci] = 1 << ci;
+        for (size_t ti = 0; ti < MAX_TIMBRES; ti++)
+            m_timbre_channels[ti] = (ti < timbrality) ? 1 << ti : 0;
     }
 
     inline auto
@@ -123,12 +146,13 @@ namespace midi {
     Layering::
     channel_timbres(channel_index ci, timbre_mask tm)
     {
+        assert(!(tm & ~all_timbres));
         m_channel_timbres[ci] = tm;
-        for (size_t ti = 0, bit = 1; ti < timbrality; ti++, bit <<= 1) {
+        for (size_t ti = 0; ti < timbrality; ti++) {
             if (tm & (1 << ti))
-                m_timbre_channels[ti] |= bit;
+                m_timbre_channels[ti] |= 1 << ci;
             else
-                m_timbre_channels[ti] &= ~bit;
+                m_timbre_channels[ti] &= ~(1 << ci);
         }
     }
 
@@ -136,15 +160,16 @@ namespace midi {
     Layering::
     timbre_channels(timbre_index ti, channel_mask cm)
     {
+        assert(ti < timbrality || cm == 0x0000);
         m_timbre_channels[ti] = cm;
-        for (size_t ci = 0, bit = 1; ci < CHANNEL_COUNT; ci++, bit <<= 1) {
+        for (size_t ci = 0; ci < CHANNEL_COUNT; ci++) {
             if (cm & (1 << ci))
-                m_channel_timbres[ci] |= bit;
+                m_channel_timbres[ci] |= 1 << ti;
             else
-                m_channel_timbres[ci] &= ~bit;
+                m_channel_timbres[ci] &= ~(1 << ti);
         }
     }
 
 }
 
-#endif /* !LAYERING_included */
+#endif /* !MIDI_LAYERING_included */
