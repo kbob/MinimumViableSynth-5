@@ -188,6 +188,11 @@ namespace midi {
         OMNI_MONO                       = 2,
         POLY                            = 3,
         MONO                            = 4,
+        MULTI                           = 5,    // not an official mode
+        MODE_1                          = 1,
+        MODE_2                          = 2,
+        MODE_3                          = 3,
+        MODE_4                          = 4,
     };
 
     // To be added as needed:
