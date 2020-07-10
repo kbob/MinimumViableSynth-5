@@ -137,7 +137,7 @@ public:
 
     void do_reset_test(Reset reset,
                        NoteManager::Mode mode,
-                       std::string expected)
+                       const std::string& expected)
     {
         size_t POLY = 3, TIMB = 2;
         int CHAN = 1;
@@ -247,6 +247,139 @@ public:
                       "N71 A387 P67 ");
     }
 
+    void test_high_res_velocity()
+    {
+        // note on C4 -
+        //  velocity = xx.xx
+        // high res velocity 100
+        // note on D4 -
+        //  velocity - xx.100
+        // note on E4 -
+        //  velocity - xx.xx
+
+        size_t POLY = 3, TIMB = 1, CHAN = 0;
+        pile_of_stuff pos(POLY, TIMB);
+
+        log.clear();
+        // Note On C4, velocity 1
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 60, 1));
+        // High Resolution Velocity = 100
+        pos.d.dispatch_message(SmallMessage(0xB0 | CHAN, 88, 100));
+        // Note On D4, velocity 2
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 62, 2));
+        // Note On E4, velocity 3
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 64, 3));
+
+        TS_ASSERT_EQUALS(log(), "N60 A129 s N62 A356 s N64 A387 s ");
+    }
+
+    void do_sound_off_test(Reset reset,
+                           NoteManager::Mode mode,
+                           const std::string& expected)
+    {
+        // have a sounding note  - C4
+        // have a releasing note - D4
+        // have a stopping note  - E4
+
+        size_t POLY = 3, TIMB = 1, CHAN = 6;
+        pile_of_stuff pos(POLY, TIMB);
+        pos.m.channel_mode(CHAN, mode);
+
+        log.clear();
+        // Note On C4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 60, 1));
+        // Note On D4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 62, 2));
+        // Note On E4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 64, 3));
+        // Note On F4 - kills E4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 65, 4));
+        // Note Off D4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 62, 31));
+
+        // all sound off
+        log.ss << "| ";
+        switch (reset) {
+
+        case Reset::NONE:
+            break;
+
+        case Reset::OMNI:
+            pos.m.all_sound_off();
+            break;
+
+        case Reset::CHANNEL:
+            pos.m.all_sound_off(CHAN);
+            break;
+        }
+        log.ss << "| ";
+
+        // Note Off C4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 60, 32));
+        // Note Off E4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 64, 30));
+        // Note Off E5
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 65, 29));
+
+        TS_ASSERT_EQUALS(log(), expected);
+        if (reset != Reset::NONE)
+            TS_ASSERT(pos.m.m_pending_notes.empty());
+    }
+
+    void test_no_sound_off_poly()
+    {
+        do_sound_off_test(Reset::NONE,
+                          NoteManager::Mode::POLY,
+                          "N60 A129 s N62 A258 s N64 A387 s k R31 r "
+                          "| | "
+                          "R30 r ");
+    }
+
+    void test_no_sound_off_mono()
+    {
+        do_sound_off_test(Reset::NONE,
+                          NoteManager::Mode::MONO,
+                          "N60 A129 s N62 P60 N64 P62 N65 P64 "
+                          "| | "
+                          "R29 r ");
+    }
+
+    void test_omni_sound_off_poly()
+    {
+        do_sound_off_test(Reset::OMNI,
+                          NoteManager::Mode::POLY,
+                          "N60 A129 s N62 A258 s N64 A387 s k R31 r "
+                          "| k k | "
+                          "");
+    }
+
+    void test_omni_sound_off_mono()
+    {
+        do_sound_off_test(Reset::OMNI,
+                          NoteManager::Mode::MONO,
+                          "N60 A129 s N62 P60 N64 P62 N65 P64 "
+                          "| k | "
+                          "");
+    }
+
+    void test_channel_sound_off_poly()
+    {
+        do_sound_off_test(Reset::CHANNEL,
+                          NoteManager::Mode::POLY,
+                          "N60 A129 s N62 A258 s N64 A387 s k R31 r "
+                          "| k k | "
+                          "");
+    }
+
+    void test_channel_sound_off_mono()
+    {
+        do_sound_off_test(Reset::CHANNEL,
+                          NoteManager::Mode::MONO,
+                          "N60 A129 s N62 P60 N64 P62 N65 P64 "
+                          "| k | "
+                          "");
+    }
+
     // test note on message followed by note off message.
     // have to build a synth, assigner, layering, and dispatcher.
     // poly = 1 , timb = 1.
@@ -293,8 +426,7 @@ public:
 
     void test_layered_note()
     {
-        size_t POLY = 2, TIMB = 2;
-        int CHAN = 5;
+        size_t POLY = 2, TIMB = 2, CHAN = 5;
         pile_of_stuff pos(POLY, TIMB);
         pos.l.multi_mode();
         pos.l.channel_timbres(CHAN, 0b11);
