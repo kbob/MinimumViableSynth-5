@@ -3,6 +3,8 @@
 #include <cxxtest/TestSuite.h>
 
 #include "synth/core/asgn-prio.h"
+
+using midi::ControllerNumber;
 using midi::Dispatcher;
 using midi::Layering;
 using midi::NoteManager;
@@ -124,6 +126,126 @@ public:
         }
 
     };
+
+    // test Reset All Controllers message.
+
+    enum class Reset {
+        NONE,
+        OMNI,
+        CHANNEL,
+    };
+
+    void do_reset_test(Reset reset,
+                       NoteManager::Mode mode,
+                       std::string expected)
+    {
+        size_t POLY = 3, TIMB = 2;
+        int CHAN = 1;
+        pile_of_stuff pos(POLY, TIMB);
+        pos.l.multi_mode();
+        pos.m.channel_mode(CHAN, mode);
+
+        log.clear();
+
+        // We're going to hold C4 with sostenuto, sustain, and polyphonic
+        // key pressure, G4 with sustain, and set up prefixes for
+        // portamento note and high resolution velocity.
+        // Then we reset (or not).
+        // Then we turn B4 on and off, and see what happens.
+
+        // damper pedal on
+        pos.d.dispatch_message(SmallMessage(0xB0 | CHAN, 64, 127));
+        // note on C4 vel. 1
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 60, 1));
+        // poly pressure C4 = 12
+        pos.d.dispatch_message(SmallMessage(0xA0 | CHAN, 60, 12));
+        // sostenuto on
+        pos.d.dispatch_message(SmallMessage(0xB0 | CHAN, 66, 127));
+        // note on G4 vel. 2
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 67, 2));
+        // portamento note = C5
+        pos.d.dispatch_message(SmallMessage(0xB0 | CHAN, 84, 72));
+        // high res velocity = 11
+        pos.d.dispatch_message(SmallMessage(0xB0 | CHAN, 88, 11));
+        // note off C4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 60, 32));
+        // note off G4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 67, 31));
+
+        log.ss << "| ";
+        switch (reset) {
+
+        case Reset::NONE:
+            break;
+
+        case Reset::OMNI:
+            pos.m.reset_all_controllers();
+            break;
+
+        case Reset::CHANNEL:
+            pos.m.reset_all_controllers(CHAN);
+            break;
+        }
+        log.ss << "| ";
+
+        // note on B4 velocity = 3
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 71, 3));
+        // note off B4 velocity = 30
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 71, 30));
+
+
+        TS_ASSERT_EQUALS(log(), expected);
+    }
+
+    void test_no_reset_poly()
+    {
+        do_reset_test(Reset::NONE,
+                      NoteManager::Mode::POLY,
+                      "N60 A129 s K12 N67 A258 s | | N71 A395 P72 s ");
+    }
+
+    void test_no_reset_mono()
+    {
+        do_reset_test(Reset::NONE,
+                      NoteManager::Mode::MONO,
+                      "N60 A129 s K12 N67 P60 | | N71 P72 ");
+    }
+
+    void test_omni_reset_poly()
+    {
+        do_reset_test(Reset::OMNI,
+                      NoteManager::Mode::POLY,
+                      "N60 A129 s K12 N67 A258 s "
+                      "| K0 K0 K0 R0 r R0 r | "
+                      "N71 A387 s R30 r ");
+    }
+
+    void test_omni_reset_mono()
+    {
+        do_reset_test(Reset::OMNI,
+                      NoteManager::Mode::MONO,
+                      "N60 A129 s K12 N67 P60 "
+                      "| K0 K0 K0 R0 r | "
+                      "N71 A387 P67 ");
+    }
+
+    void test_channel_reset_poly()
+    {
+        do_reset_test(Reset::CHANNEL,
+                      NoteManager::Mode::POLY,
+                      "N60 A129 s K12 N67 A258 s "
+                      "| K0 K0 R0 r R0 r | "
+                      "N71 A387 s R30 r ");
+    }
+
+    void test_channel_reset_mono()
+    {
+        do_reset_test(Reset::CHANNEL,
+                      NoteManager::Mode::MONO,
+                      "N60 A129 s K12 N67 P60 "
+                      "| K0 R0 r | "
+                      "N71 A387 P67 ");
+    }
 
     // test note on message followed by note off message.
     // have to build a synth, assigner, layering, and dispatcher.
