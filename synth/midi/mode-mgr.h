@@ -226,6 +226,7 @@ namespace midi {
                 return ChannelMode::MONO;
         }
         assert(!"can't happen");
+        return ChannelMode::OMNI_POLY;
     }
 
     inline auto

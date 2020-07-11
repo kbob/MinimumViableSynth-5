@@ -129,7 +129,7 @@ public:
 
     void start_note()
     {
-        assert(m_state == State::IDLE);
+        assert(m_state == State::IDLE || m_state == State::RELEASING);
         m_state = State::SOUNDING;
         for (auto *c: m_controls)
             c->start_note();

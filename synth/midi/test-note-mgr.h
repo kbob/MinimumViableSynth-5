@@ -226,7 +226,7 @@ public:
                       NoteManager::Mode::MONO,
                       "N60 A129 s K12 N67 P60 "
                       "| K0 K0 K0 R0 r | "
-                      "N71 A387 P67 ");
+                      "N71 A387 P67 s R30 r ");
     }
 
     void test_channel_reset_poly()
@@ -244,7 +244,7 @@ public:
                       NoteManager::Mode::MONO,
                       "N60 A129 s K12 N67 P60 "
                       "| K0 R0 r | "
-                      "N71 A387 P67 ");
+                      "N71 A387 P67 s R30 r ");
     }
 
     void test_high_res_velocity()
@@ -378,6 +378,38 @@ public:
                           "N60 A129 s N62 P60 N64 P62 N65 P64 "
                           "| k | "
                           "");
+    }
+
+    void test_mono_legato()
+    {
+        size_t POLY = 1, TIMB = 1, CHAN = 7;
+        pile_of_stuff pos(POLY, TIMB);
+        pos.m.channel_mode(CHAN, NoteManager::Mode::MONO);
+
+        log.clear();
+        // Note On C4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 60, 1));
+        // Note On D4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 62, 2));
+        // Note Off C4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 60, 32));
+        // Note Off D4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 62, 31));
+
+        TS_ASSERT_EQUALS(log(), "N60 A129 s N62 P60 R31 r ");
+
+        log.clear();
+        pos.m.channel_legato(CHAN, false);
+        // Note On C4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 60, 1));
+        // Note On D4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 62, 2));
+        // Note Off C4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 60, 32));
+        // Note Off D4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 62, 31));
+
+        TS_ASSERT_EQUALS(log(), "N60 A129 P62 s N62 A258 P60 R31 r ");
     }
 
     // test note on message followed by note off message.
