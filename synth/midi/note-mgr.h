@@ -189,7 +189,7 @@ namespace midi {
             bool                        is_sustaining;
             bool                        legato_enabled;
             std::uint8_t                mono_note;
-            voice_index                 mono_voices[MAX_TIMBRES];
+            voice_index                 mono_voice_hints[MAX_TIMBRES];
             std::uint16_t               mono_attack_velocity;
             note_mask                   notes_on;
             note_mask                   notes_sustaining;
@@ -201,9 +201,11 @@ namespace midi {
               portamento_note{NO_NOTE},
               is_sustaining{false},
               legato_enabled{true},
-              mono_note{NO_NOTE},
-              mono_voices{0}
-            {}
+              mono_note{NO_NOTE}
+            {
+                for (size_t ti = 0; ti < MAX_TIMBRES; ti++)
+                    mono_voice_hints[ti] = NO_VOICE;
+            }
 
             // Should this note be sounding, either because it received
             // a Note On without Note Off, or it is being held by the
@@ -213,9 +215,9 @@ namespace midi {
             // timbres or has been assigned any voices.
             bool note_should_sound(note_number ni)
             {
-                return notes_on[ni]
-                    || notes_sustaining[ni]
-                    || notes_sostenuto[ni];
+                return notes_on[ni] ||
+                       notes_sustaining[ni] ||
+                       notes_sostenuto[ni];
             }
 
             note_number find_resumable_note()
@@ -307,23 +309,21 @@ namespace midi {
 
         // Voice control
         void enqueue_note(const note_start_info&);
-        void start_note(::Voice *, timbre_index, const note_start_info&);
-        void change_note(voice_index, const note_start_info&);
-        void release_note(channel_index,
-                          note_number,
-                          std::uint8_t velocity = DEFAULT_RELEASE_VELOCITY);
-        void kill_note(::Voice *);
+        void start_note(::Voice&, timbre_index, const note_start_info&);
+        void change_note(::Voice&, const note_start_info&);
+        void kill_note(::Voice&);
 
         void pre_release(channel_index, note_start_info&);
         void post_release(channel_index,
                           note_start_info&,
-                          std::uint8_t release_velocity = 0);
+                          std::uint8_t velocity = DEFAULT_RELEASE_VELOCITY);
+        void release_voices(channel_index, std::uint8_t release_velocity);
+
         ::Voice& vi_to_voice(voice_index);
         voice_index voice_to_vi(::Voice&);
+        voice_data& voice_to_data(::Voice&);
 
-        voice_index find_existing_voice(channel_index,
-                                        timbre_index,
-                                        note_number);
+        ::Voice *find_existing_voice(channel_index, timbre_index, note_number);
 
         // Member Variables
         ::Synth                                 *m_synth;
@@ -506,7 +506,7 @@ namespace midi {
         for (auto& voice: m_synth->voices())
             if (voice.state() != ::Voice::State::IDLE &&
                 voice.state() != ::Voice::State::STOPPING)
-                kill_note(&voice);
+                kill_note(voice);
         while (!m_pending_notes.empty())
             m_pending_notes.pop();
         all_notes_off();
@@ -516,14 +516,13 @@ namespace midi {
     NoteManager::
     all_sound_off(channel_index ci)
     {
-        for (size_t vi = 0; vi < m_synth->polyphony; vi++) {
-            auto& v_data = m_voices[vi];
+        for (auto& voice: m_synth->voices()) {
+            auto& v_data = voice_to_data(voice);
             if (v_data.channel == ci) {
-                auto& voice = vi_to_voice(vi);
                 auto state = voice.state();
                 if (state != ::Voice::State::IDLE &&
                     state != ::Voice::State::STOPPING)
-                    kill_note(&voice);
+                    kill_note(voice);
             }
         }
         all_notes_off(ci);
@@ -533,8 +532,8 @@ namespace midi {
     NoteManager::
     reset_all_controllers()
     {
-        for (size_t vi = 0; vi < m_synth->polyphony; vi++) {
-            auto& v_data = m_voices[vi];
+        for (auto& voice: m_synth->voices()) {
+            auto& v_data = voice_to_data(voice);
             if (auto& h = v_data.poly_pressure_handler)
                 h(DEFAULT_POLY_PRESSURE);
         }
@@ -559,8 +558,8 @@ namespace midi {
     {
         auto& chan = m_channels[ci];
 
-        for (size_t vi = 0; vi < m_synth->polyphony; vi++) {
-            auto& v_data = m_voices[vi];
+        for (auto& voice: m_synth->voices()) {
+            auto& v_data = voice_to_data(voice);
             if (v_data.channel == ci)
                 if (auto& h = v_data.poly_pressure_handler)
                     h(DEFAULT_POLY_PRESSURE);
@@ -629,7 +628,7 @@ namespace midi {
             auto& note_info = m_pending_notes.front();
             for (size_t ti = 0; ti < MAX_TIMBRES; ti++) {
                 if (note_info.timbres & (1 << ti)) {
-                    start_note(voice, ti, note_info);
+                    start_note(*voice, ti, note_info);
                     note_info.timbres &= ~(1 << ti);
                     if (!note_info.timbres)
                         m_pending_notes.pop();
@@ -789,13 +788,12 @@ namespace midi {
         auto timbrality = m_layering->timbrality;
         for (size_t ti = 0; ti < timbrality; ti++) {
             if (info.timbres & (1 << ti)) {
-                auto existing_vi = find_existing_voice(ci, ti, info.src_note);
-                if (existing_vi != NO_VOICE) {
-                    change_note(existing_vi, info);
+                if (auto *voice = find_existing_voice(ci, ti, info.src_note)) {
+                    change_note(*voice, info);
                 } else if (auto *voice = m_assigner->assign_idle_voice()) {
-                    start_note(voice, ti, info);
+                    start_note(*voice, ti, info);
                 } else if (auto *voice = m_assigner->choose_voice_to_steal()) {
-                    kill_note(voice);
+                    kill_note(*voice);
                     m_pending_notes.push(info);
                 } else {
                     // replace oldest pending notes.
@@ -814,17 +812,19 @@ namespace midi {
 
     inline void
     NoteManager::
-    start_note(::Voice *voice, timbre_index ti, const note_start_info& info)
+    start_note(::Voice& voice, timbre_index ti, const note_start_info& info)
     {
-        voice_index vi = voice_to_vi(*voice);
-        assert(0 <= vi && vi < MAX_VOICES);
-        auto& v_data = m_voices[vi];
+        auto& v_data = voice_to_data(voice);
+        auto& chan = m_channels[info.channel];
         auto& timbre = m_synth->timbres()[ti];
 
-        if (voice->timbre() != &timbre)
-            m_synth->attach_voice_to_timbre(timbre, *voice);
+        if (voice.timbre() != &timbre)
+            m_synth->attach_voice_to_timbre(timbre, voice);
         v_data.channel = info.channel;
         v_data.note = info.note;
+        if (chan.mode == Mode::MONO) {
+            chan.mono_voice_hints[ti] = voice_to_vi(voice);
+        }
         if (auto& h = v_data.note_number_handler)
             h(info.note);
         if (auto& h = v_data.attack_velocity_handler)
@@ -832,16 +832,14 @@ namespace midi {
         if (info.portamento_note != NO_NOTE)
             if (auto& h = v_data.portamento_note_handler)
                 h(info.portamento_note);
-        voice->start_note();
+        voice.start_note();
     }
 
     inline void
     NoteManager::
-    change_note(voice_index vi, const note_start_info& info)
+    change_note(::Voice& voice, const note_start_info& info)
     {
-        assert(vi < m_synth->polyphony);
-        auto& v_data = m_voices[vi];
-        auto& voice = vi_to_voice(vi);
+        auto& v_data = voice_to_data(voice);
         assert(v_data.channel == info.channel);
         v_data.note = info.note;
 
@@ -859,30 +857,11 @@ namespace midi {
 
     inline void
     NoteManager::
-    release_note(channel_index ci, note_number note, std::uint8_t velocity)
+    kill_note(::Voice& voice)
     {
-        for (size_t vi = 0; vi < m_synth->polyphony; vi++) {
-            auto& v_data = m_voices[vi];
-            if (v_data.channel == ci && v_data.note == note) {
-                auto& voice = vi_to_voice(vi);
-                if (voice.state() == ::Voice::State::SOUNDING) {
-                    if (auto& h = v_data.release_velocity_handler)
-                        h(velocity);
-                    voice.release_note();
-                }
-            }
-        }
-    }
-
-    inline void
-    NoteManager::
-    kill_note(::Voice *voice)
-    {
-        // XXX change this to use a vi instead of ::Voice *.
-        auto vi = voice_to_vi(*voice);
-        auto& v_data = m_voices[vi];
-        voice->kill_note();
-        m_killed_voices.push(voice);
+        auto& v_data = voice_to_data(voice);
+        voice.kill_note();
+        m_killed_voices.push(&voice);
         v_data.channel = NO_CHANNEL;
         v_data.note = NO_NOTE;
     }
@@ -915,21 +894,7 @@ namespace midi {
         switch (chan.mode) {
 
         case Mode::POLY:
-            // XXX factor this out.
-            for (size_t vi = 0; vi < m_synth->polyphony; vi++) {
-                auto& v_data = m_voices[vi];
-                if (v_data.channel == ci
-                    && !chan.note_should_sound(v_data.note))
-                {
-                    auto& voice = vi_to_voice(vi);
-
-                    if (voice.state() == ::Voice::State::SOUNDING) {
-                        if (auto& h = v_data.release_velocity_handler)
-                            h(release_velocity);
-                        voice.release_note();
-                    }
-                }
-            }
+            release_voices(ci, release_velocity);
             break;
 
         case Mode::MONO:
@@ -946,22 +911,70 @@ namespace midi {
                     resumed = true;
                 }
             }
-            if (!resumed) {
-                // XXX factor this out.
-                for (size_t vi = 0; vi < m_synth->polyphony; vi++) {
-                    auto& v_data = m_voices[vi];
-                    auto& voice = vi_to_voice(vi);
-                    if (voice.state() == ::Voice::State::SOUNDING
-                        && v_data.channel == ci
-                        && !chan.note_should_sound(v_data.note))
-                    {
-                        if (auto& h = v_data.release_velocity_handler)
-                            h(release_velocity);
-                        voice.release_note();
-                    }
-                }
+            if (!resumed)
+                release_voices(ci, release_velocity);
+        }
+    }
+
+    inline void
+    NoteManager::
+    release_voices(channel_index ci, std::uint8_t release_velocity)
+    {
+        for (auto& voice: m_synth->voices()) {
+            auto& v_data = voice_to_data(voice);
+            if (voice.state() == ::Voice::State::SOUNDING &&
+                v_data.channel == ci &&
+                !m_channels[ci].note_should_sound(v_data.note))
+            {
+                if (auto& h = v_data.release_velocity_handler)
+                    h(release_velocity);
+                voice.release_note();
             }
         }
+    }
+
+    inline auto
+    NoteManager::
+    find_existing_voice(channel_index ci,
+                        timbre_index ti,
+                        note_number note)
+    -> ::Voice *
+    {
+        auto& chan = m_channels[ci];
+        switch (chan.mode) {
+
+        case Mode::MONO:
+            if (chan.mono_note != NO_NOTE) {
+                assert(note == NO_NOTE || note == chan.mono_note);
+                auto vi = chan.mono_voice_hints[ti];
+                if (vi == NO_VOICE)
+                    break;
+                auto& voice = vi_to_voice(vi);
+                if (voice.state() != ::Voice::State::SOUNDING &&
+                    voice.state() != ::Voice::State::RELEASING)
+                {
+                    break;
+                }
+                auto& v_data = m_voices[vi];
+                if (v_data.channel != ci || v_data.note != note)
+                    break;
+                return &voice;
+            }
+            break;
+
+        case Mode::POLY:
+            for (auto& voice: m_synth->voices()) {
+                auto& v_data = voice_to_data(voice);
+                if (v_data.channel == ci && v_data.note == note) {
+                    auto ti2 = voice.timbre() - m_synth->timbres().data();
+                    if (ti2 == ti)
+                        return &voice;
+                }
+                // XXX ensure there is only one voice that matches.
+            }
+            break;
+        }
+        return nullptr;
     }
 
     inline auto
@@ -984,35 +997,10 @@ namespace midi {
 
     inline auto
     NoteManager::
-    find_existing_voice(channel_index ci,
-                        timbre_index ti,
-                        note_number note)
-    -> voice_index
+    voice_to_data(::Voice& voice)
+    -> voice_data&
     {
-        auto& chan = m_channels[ci];
-        switch (chan.mode) {
-
-        case Mode::MONO:
-            if (chan.mono_note != NO_NOTE) {
-                assert(note == NO_NOTE || note == chan.mono_note);
-                return chan.mono_voices[ti];
-            }
-            break;
-
-        case Mode::POLY:
-            for (size_t vi = 0; vi < m_synth->polyphony; vi++) {
-                auto& v_data = m_voices[vi];
-                if (v_data.channel == ci && v_data.note == note) {
-                    auto& voice = vi_to_voice(vi);
-                    auto ti2 = voice.timbre() - m_synth->timbres().data();
-                    if (ti2 == ti)
-                        return vi;
-                }
-                // XXX ensure there is only one voice that matches.
-            }
-            break;
-        }
-        return NO_VOICE;
+        return m_voices[voice_to_vi(voice)];
     }
 
 }
