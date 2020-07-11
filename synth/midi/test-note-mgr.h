@@ -380,6 +380,118 @@ public:
                           "");
     }
 
+    void do_note_off_test(Reset reset,
+                          NoteManager::Mode mode,
+                          const std::string& expected)
+    {
+        // have a sostenuto note  - C4
+        // have a sustaining note - D4
+        // have a note on         - E4
+
+        size_t POLY = 3, TIMB = 1, CHAN = 8;
+        pile_of_stuff pos(POLY, TIMB);
+        pos.m.channel_mode(CHAN, mode);
+
+        log.clear();
+        // Note On C4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 60, 1));
+        // Sostenuto On
+        pos.d.dispatch_message(SmallMessage(0xB0 | CHAN, 66, 127));
+        // Note Off C4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 60, 32));
+        // Note On D4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 62, 2));
+        // Damper Pedal On
+        pos.d.dispatch_message(SmallMessage(0xB0 | CHAN, 64, 127));
+        // Note Off D4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 62, 31));
+        // Note On E4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 64, 3));
+
+        // All Sound off
+        log.ss << "| ";
+        switch (reset) {
+
+        case Reset::NONE:
+            break;
+
+        case Reset::OMNI:
+            pos.m.all_notes_off();
+            break;
+
+        case Reset::CHANNEL:
+            pos.m.all_notes_off(CHAN);
+            break;
+        }
+        log.ss << "| ";
+
+        // Damper Pedal Off
+        pos.d.dispatch_message(SmallMessage(0xB0 | CHAN, 64, 0));
+        // Sostenuto Off
+        pos.d.dispatch_message(SmallMessage(0xB0 | CHAN, 66, 0));
+        // Note Off E4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 64, 30));
+
+        // TS_TRACE(log());
+        TS_ASSERT_EQUALS(log(), expected);
+        if (reset != Reset::NONE)
+            TS_ASSERT(pos.m.m_pending_notes.empty());
+    }
+
+    void test_no_notes_off_poly()
+    {
+        do_note_off_test(Reset::NONE,
+                         NoteManager::Mode::POLY,
+                         "N60 A129 s N62 A258 s N64 A387 s "
+                         "| | "
+                         "R0 r R0 r R30 r ");
+    }
+
+    void test_no_notes_off_mono()
+    {
+        do_note_off_test(Reset::NONE,
+                         NoteManager::Mode::MONO,
+                         "N60 A129 s N62 P60 N64 P62 "
+                         "| | "
+                         "R30 r ");
+    }
+
+    void test_omni_notes_off_poly()
+    {
+        do_note_off_test(Reset::OMNI,
+                         NoteManager::Mode::POLY,
+                         "N60 A129 s N62 A258 s N64 A387 s "
+                         "| | "
+                         "R0 r R0 r R0 r ");
+    }
+
+    void test_omni_notes_off_mono()
+    {
+        do_note_off_test(Reset::OMNI,
+                         NoteManager::Mode::MONO,
+                         "N60 A129 s N62 P60 N64 P62 "
+                         "| | "
+                         "N60 P64 R0 r ");
+    }
+
+    void test_channel_notes_off_poly()
+    {
+        do_note_off_test(Reset::CHANNEL,
+                         NoteManager::Mode::POLY,
+                         "N60 A129 s N62 A258 s N64 A387 s "
+                         "| | "
+                         "R0 r R0 r R0 r ");
+    }
+
+    void test_channel_notes_off_mono()
+    {
+        do_note_off_test(Reset::CHANNEL,
+                         NoteManager::Mode::MONO,
+                         "N60 A129 s N62 P60 N64 P62 "
+                         "| | "
+                         "N60 P64 R0 r ");
+    }
+
     void test_mono_legato()
     {
         size_t POLY = 1, TIMB = 1, CHAN = 7;
@@ -410,6 +522,46 @@ public:
         pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 62, 31));
 
         TS_ASSERT_EQUALS(log(), "N60 A129 P62 s N62 A258 P60 R31 r ");
+    }
+
+    void test_mono_off_on()
+    {
+        size_t POLY = 1, TIMB = 1, CHAN = 7;
+        pile_of_stuff pos(POLY, TIMB);
+        pos.m.channel_mode(CHAN, NoteManager::Mode::MONO);
+
+        log.clear();
+        // Note On C4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 60, 1));
+        // Note Off C4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 60, 32));
+        // Note On D4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 62, 2));
+        // Note Off D4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 62, 31));
+
+        TS_ASSERT_EQUALS(log(), "N60 A129 s R32 r N62 A258 P60 s R31 r ");
+    }
+
+    void test_mono_extra_note_off()
+    {
+        size_t POLY = 1, TIMB = 1, CHAN = 7;
+        pile_of_stuff pos(POLY, TIMB);
+        pos.m.channel_mode(CHAN, NoteManager::Mode::MONO);
+
+        log.clear();
+        // Note On C4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 60, 1));
+        // Note Off C4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 60, 32));
+        // Note On D4
+        pos.d.dispatch_message(SmallMessage(0x90 | CHAN, 62, 2));
+        // Note Off C4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 60, 32));
+        // Note Off D4
+        pos.d.dispatch_message(SmallMessage(0x80 | CHAN, 62, 31));
+
+        TS_ASSERT_EQUALS(log(), "N60 A129 s R32 r N62 A258 P60 s R31 r ");
     }
 
     // test note on message followed by note off message.
