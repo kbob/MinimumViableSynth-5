@@ -170,6 +170,7 @@ namespace midi {
         static const std::uint8_t       NO_PORTAMENTO = 0xFF;
 
         // note_start_info: state needed to start a new note
+        // (or resume an old one)
         struct note_start_info {
             channel_index               channel;
             timbre_mask                 timbres;
@@ -323,7 +324,6 @@ namespace midi {
         voice_index find_existing_voice(channel_index,
                                         timbre_index,
                                         note_number);
-        bool resume_earlier_note(channel_index, note_start_info&);
 
         // Member Variables
         ::Synth                                 *m_synth;
@@ -582,11 +582,6 @@ namespace midi {
     NoteManager::
     all_notes_off()
     {
-#if 0
-        // XXX don't remove pending notes that are sustaining.
-        while (!m_pending_notes.empty())
-            m_pending_notes.pop();
-#endif
         for (channel_index ci = 0; ci < CHANNEL_COUNT; ci++)
             all_notes_off(ci);
     }
@@ -596,19 +591,10 @@ namespace midi {
     all_notes_off(channel_index ci)
     {
         auto& chan = m_channels[ci];
-#if 0
-        auto notes_on = chan.notes_on;
-        chan.notes_on.reset();
-        for (size_t ni = 0; ni < notes_on.size(); ni++)
-            if (notes_on[ni] && !chan.note_should_sound(ni))
-                release_note(ci, ni);
-        // XXX we could resume an earlier mono note now.
-#else
         note_start_info resume_info = {};
         pre_release(ci, resume_info);
         chan.notes_on.reset();
         post_release(ci, resume_info);
-#endif
 
         // Clear this channel's notes from the pending note queue.
         // We do this by popping everything and re-enqueuing notes
@@ -710,92 +696,23 @@ namespace midi {
 
         auto& chan = m_channels[ci];
 
-#if 0
-        switch (chan.mode) {
-
-        case Mode::POLY:
-            chan.notes_on.reset(note);
-            for (auto& v_data: m_voices)
-                if (v_data.channel == ci && v_data.note == note)
-                    release_note(ci, note, vel);
-            break;
-
-        case Mode::MONO:
-// std::cout << "\nNM::handle_note_off\n";
-
-            // Collect info for resuming earlier note.
-            note_start_info resume_info = {};
-            resume_info.src_note = chan.src_note();
-            resume_info.is_legato = chan.is_legato();
-            resume_info.portamento_note = chan.portamento_src();
-
-            chan.notes_on.reset(note);
-
-            if (!chan.note_should_sound(note) &&
-                note == chan.mono_note) {
-                if (!resume_earlier_note(ci, resume_info)) {
-// std::cout << "  releasing note " << int(note) << '\n';
-                // linear search, yuck!
-                    for (auto& v_data: m_voices)
-// {
-//  std::cout << "  v: channel = "
-//            << int(ci)
-//            << ", note = "
-//            << int(v_data.note)
-//            << '\n';
-                        if (v_data.channel == ci && v_data.note == note)
-                            release_note(ci, note, vel);
-// }
-                }
-            }
-
-            break;
-        }
-
-        // // Collect info for resuming earlier note.
-        // note_start_info resume_info = {};
-        // resume_info.src_note = chan.src_note();
-        // resume_info.is_legato = chan.is_legato();
-        // resume_info.portamento_note = chan.portamento_src();
-        //
-        // chan.notes_on.reset(note);
-        //
-        // if (!chan.note_should_sound(note)) {
-        //     if (chan.mote == MONO && )
-        //     // linear search, yuck!
-        //     for (auto& v_data: m_voices)
-        //         if (v_data.channel == ci && v_data.note == note)
-        //             release_note(ci, note, vel);
-        //     resume_earlier_note(ci, resume_info);
-        // }
-#else
-// std::cout << "\nNM::handle_note_off\n";
         note_start_info resume_info = {};
         pre_release(ci, resume_info);
         chan.notes_on.reset(note);
         post_release(ci, resume_info, vel);
-#endif
     }
 
     inline void
     NoteManager::
     handle_poly_pressure_message(const SmallMessage& msg)
     {
-// std::cout << "\nNM::handle_poly\n";
         channel_index ci = msg.channel();
         note_number note = msg.note_number();
         auto pressure = msg.poly_pressure();
         for (auto& v_data: m_voices)
-// {
-// std::cout << "  channel = "
-//           << int(v_data.channel)
-//           << ", note = "
-//           << int(v_data.note)
-//           << '\n';
             if (v_data.channel == ci && v_data.note == note)
                 if (auto& h = v_data.poly_pressure_handler)
                     h(pressure);
-// }
     }
 
     inline void
@@ -812,27 +729,11 @@ namespace midi {
             chan.notes_sustaining = chan.notes_on;
             chan.is_sustaining = true;
         } else if (was_sustaining && !is_sustaining) {
-#if 0
-            chan.notes_sustaining.reset();
-            bool did_release = false;
-            for (auto& v_data: m_voices) {
-                if (v_data.channel == ci) {
-                    auto note = v_data.note;
-                    if (!chan.note_should_sound(note)) {
-                        release_note(ci, note);
-                        did_release = true;
-                    }
-                }
-            }
-            // if (did_release)
-            //     resume_earlier_note(ci);
-#else
             note_start_info resume_info = {};
             pre_release(ci, resume_info);
             chan.is_sustaining = false;
             chan.notes_sustaining.reset();
             post_release(ci, resume_info);
-#endif
         }
     }
 
@@ -848,26 +749,10 @@ namespace midi {
         if (is_sostenuto) {
             chan.notes_sostenuto = chan.notes_on;
         } else {
-#if 0
-            chan.notes_sostenuto.reset();
-            bool did_release = false;
-            for (auto& v_data: m_voices) {
-                if (v_data.channel == ci) {
-                    auto note = v_data.note;
-                    if (!chan.note_should_sound(note)) {
-                        release_note(ci, note);
-                        did_release = true;
-                    }
-                }
-            }
-            // if (did_release)
-            //     resume_earlier_note(ci);
-#else
             note_start_info resume_info = {};
             pre_release(ci, resume_info);
             chan.notes_sostenuto.reset();
             post_release(ci, resume_info);
-#endif
         }
     }
 
@@ -899,13 +784,9 @@ namespace midi {
     NoteManager::
     enqueue_note(const note_start_info& info)
     {
-// std::cout << "\nenqueue_note\n";
-// std::cout << "  info.note = " << int(info.note) << '\n';
         auto ci = info.channel;
         auto& chan = m_channels[ci];
         auto timbrality = m_layering->timbrality;
-        // if (chan.mode == Mode::MONO)
-        //     chan.mono_note = info.note;
         for (size_t ti = 0; ti < timbrality; ti++) {
             if (info.timbres & (1 << ti)) {
                 auto existing_vi = find_existing_voice(ci, ti, info.src_note);
@@ -935,7 +816,6 @@ namespace midi {
     NoteManager::
     start_note(::Voice *voice, timbre_index ti, const note_start_info& info)
     {
-// std::cout << "\nNM::start_note\n";
         voice_index vi = voice_to_vi(*voice);
         assert(0 <= vi && vi < MAX_VOICES);
         auto& v_data = m_voices[vi];
@@ -959,8 +839,6 @@ namespace midi {
     NoteManager::
     change_note(voice_index vi, const note_start_info& info)
     {
-// std::cout << "\nNM::change_note\n";
-// std::cout << "  info.note = " << int(info.note) << '\n';
         assert(vi < m_synth->polyphony);
         auto& v_data = m_voices[vi];
         auto& voice = vi_to_voice(vi);
@@ -1034,36 +912,12 @@ namespace midi {
                  std::uint8_t release_velocity)
     {
         auto& chan = m_channels[ci];
-// std::cout << "\nNM::post_release\n";
         switch (chan.mode) {
 
         case Mode::POLY:
+            // XXX factor this out.
             for (size_t vi = 0; vi < m_synth->polyphony; vi++) {
                 auto& v_data = m_voices[vi];
-// std::cout << "  state = " << int(vi_to_voice(vi).state()) << '\n';
-// std::cout << "  v_channel = " << int(v_data.channel) << '\n';
-// std::cout << "  v_note = " << int(v_data.note) << '\n';
-// if (v_data.note != NO_NOTE) {
-//     std::cout << "  notes_on["
-//               << int(v_data.note)
-//               << "] = "
-//               << chan.notes_on[v_data.note]
-//               << '\n';
-//     std::cout << "  notes_sustaining["
-//               << int(v_data.note)
-//               << "] = "
-//               << chan.notes_sustaining[v_data.note]
-//               << '\n';
-//     std::cout << "  notes_sostenuto["
-//               << int(v_data.note)
-//               << "] = "
-//               << chan.notes_sostenuto[v_data.note]
-//               << '\n';
-//     std::cout << "  should_sound => "
-//               << chan.note_should_sound(v_data.note)
-//               << '\n';
-// }
-// std::cout << '\n';
                 if (v_data.channel == ci
                     && !chan.note_should_sound(v_data.note))
                 {
@@ -1081,11 +935,8 @@ namespace midi {
         case Mode::MONO:
             bool resumed = false;
             auto mono_note = chan.mono_note;
-// std::cout << "  mono_node = " << int(mono_note) << '\n';
-// std::cout << "  should_sound => " << chan.note_should_sound(mono_note) << '\n';
             if (mono_note != NO_NOTE && !chan.note_should_sound(mono_note)) {
                 auto earlier_note = chan.find_resumable_note();
-// std::cout << "  earlier_note = " << int(earlier_note) << '\n';
                 if (earlier_note != NO_NOTE) {
                     resume_info.channel = ci;
                     resume_info.timbres = m_layering->channel_timbres(ci);
@@ -1095,13 +946,11 @@ namespace midi {
                     resumed = true;
                 }
             }
-// std::cout << "  resumed = " << resumed << '\n';
             if (!resumed) {
                 // XXX factor this out.
                 for (size_t vi = 0; vi < m_synth->polyphony; vi++) {
                     auto& v_data = m_voices[vi];
                     auto& voice = vi_to_voice(vi);
-// std::cout << "  voice state = " << int(voice.state()) << '\n';
                     if (voice.state() == ::Voice::State::SOUNDING
                         && v_data.channel == ci
                         && !chan.note_should_sound(v_data.note))
@@ -1144,15 +993,6 @@ namespace midi {
         switch (chan.mode) {
 
         case Mode::MONO:
-// std::cout << "\nNM::find_existing_voice\n";
-// std::cout << "  ci = "
-//           << int(ci)
-//           << '\n';
-// std::cout << "  note = "
-//           << int(note)
-//           << '\n';
-// std::cout << "  mono_note = " << int(chan.mono_note) << '\n';
-// std::cout << std::endl;
             if (chan.mono_note != NO_NOTE) {
                 assert(note == NO_NOTE || note == chan.mono_note);
                 return chan.mono_voices[ti];
@@ -1174,44 +1014,6 @@ namespace midi {
         }
         return NO_VOICE;
     }
-
-#if 0
-    // Deprecated, but there are still calls in ifdef'd out code.
-    inline auto
-    NoteManager::
-    resume_earlier_note(channel_index ci, note_start_info& resume_info)
-    -> bool
-    {
-        auto& chan = m_channels[ci];
-        assert(chan.mode == Mode::MONO);
-
-        if (chan.notes_on.none() &&
-            chan.notes_sustaining.none() &&
-            chan.notes_sostenuto.none())
-        {
-            return false;
-        }
-
-        for (size_t note = NOTE_COUNT; note-- > 0; ) {
-            if (chan.note_should_sound(note)) {
-                resume_info.channel = ci;
-                resume_info.timbres = m_layering->channel_timbres(ci);
-                // src_note, is_legato, and portamento_note
-                /// are already initialized.
-                resume_info.note = note;
-                resume_info.attack_velocity = chan.mono_attack_velocity;
-                enqueue_note(resume_info);
-                return true;
-            }
-        }
-        return false;
-    }
-#endif
-
-    // XXX how do we keep the assigner from stealing the mono voices?
-    //     need some concept of protected voice?
-    //     Answer: it's okay to steal the mono voice.  Just need to
-    //     ensure chan.mono_voice is cleared.
 
 }
 
