@@ -27,7 +27,6 @@ class Config {
 
 public:
 
-    typedef std::type_index key_type;
     typedef std::uint32_t sample_rate_type;
 
     class Subsystem {
@@ -65,18 +64,18 @@ public:
         return static_cast<T *>(p);
     }
 
+    void
+    register_subsystem(Subsystem *sub)
+    {
+        m_subs[typeid(*sub)] = sub;
+    }
+
     // helper because everybody needs the sample rate.
     sample_rate_type
     sample_rate() const
     {
         assert(m_sample_rate != NO_RATE);
         return m_sample_rate;
-    }
-
-    void
-    register_subsystem(Subsystem *sub)
-    {
-        m_subs[typeid(*sub)] = sub;
     }
 
     void
@@ -100,6 +99,8 @@ public:
     }
 
 private:
+
+    typedef std::type_index key_type;
 
     static const sample_rate_type NO_RATE =
     std::numeric_limits<sample_rate_type>::max();
