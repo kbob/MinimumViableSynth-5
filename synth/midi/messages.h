@@ -60,6 +60,21 @@ namespace midi {
             assert(!(d2 & 0x80));
         }
 
+        SmallMessage(StatusByte s, std::uint8_t d1, std::uint8_t d2)
+        {
+            new (this) SmallMessage(static_cast<std::uint8_t>(s), d1, d2);
+        }
+
+        SmallMessage(StatusByte s, std::uint8_t d1)
+        {
+            new (this) SmallMessage(static_cast<std::uint8_t>(s), d1);
+        }
+
+        SmallMessage(StatusByte s)
+        {
+            new (this) SmallMessage(static_cast<std::uint8_t>(s));
+        }
+
         operator bool () const { return status_byte != NO_STATUS; }
 
         void clear()
@@ -219,7 +234,7 @@ namespace midi {
         std::int16_t bend() const
         {
             assert(status() == StatusByte::PITCH_BEND);
-            return std::int16_t(data_byte_2 << 7 | data_byte_1) - 8192;
+            return (std::int16_t(data_byte_2) << 7 | data_byte_1) - 8192;
         }
 
         std::uint16_t song_position() const

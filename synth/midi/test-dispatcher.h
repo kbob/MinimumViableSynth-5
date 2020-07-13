@@ -138,7 +138,7 @@ public:
                      ControllerNumber cc,
                      std::uint8_t value)
     {
-        std::uint8_t s = std::uint8_t(StatusByte::CONTROL_CHANGE) | channel;
+        auto s = make_status_byte(StatusByte::CONTROL_CHANGE, channel);
         std::uint8_t cn = std::uint8_t(cc);
         std::uint8_t cv = value;
         d.dispatch_message(SmallMessage(s, cn, cv));
@@ -155,7 +155,7 @@ public:
                            l.all_timbres,
                            small_logger);
         for (size_t chan = 0; chan < CHANNEL_COUNT; chan++) {
-            std::uint8_t s = std::uint8_t(StatusByte::CONTROL_CHANGE) | chan;
+            auto s = make_status_byte(StatusByte::CONTROL_CHANGE, chan);
             std::uint8_t cn = std::uint8_t(ControllerNumber::GENERAL_PURPOSE_5);
             std::uint8_t cv = 0x10 + chan;
             std::ostringstream expected;
@@ -323,8 +323,7 @@ public:
                            l.all_timbres,
                            small_logger);
         for (size_t chan = 0; chan < CHANNEL_COUNT; chan++) {
-            std::uint8_t s =
-                std::uint8_t(StatusByte::SELECT_CHANNEL_MODE) | chan;
+            auto s = make_status_byte(StatusByte::SELECT_CHANNEL_MODE, chan);
             std::uint8_t cn = std::uint8_t(ChannelModeNumber::ALL_SOUND_OFF);
             std::uint8_t cv = 0;
             std::ostringstream expected;
@@ -362,7 +361,7 @@ public:
         d.register_handler(StatusByte::STOP, small_logger);
 
         log.clear();
-        d.dispatch_message(SmallMessage(std::uint8_t(StatusByte::STOP)));
+        d.dispatch_message(SmallMessage(StatusByte::STOP));
         TS_ASSERT_EQUALS(log(), "[FC]");
     }
 

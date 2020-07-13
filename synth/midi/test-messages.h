@@ -44,6 +44,14 @@ public:
         TS_ASSERT_EQUALS(m.data_byte_2, SmallMessage::NO_DATA);
     }
 
+    void test_one_byte_sb()
+    {
+        SmallMessage m(StatusByte::START);
+        TS_ASSERT_EQUALS(m.status_byte, U(StatusByte::START));
+        TS_ASSERT_EQUALS(m.data_byte_1, SmallMessage::NO_DATA);
+        TS_ASSERT_EQUALS(m.data_byte_2, SmallMessage::NO_DATA);
+    }
+
     void test_two_bytes()
     {
         SmallMessage m(U(StatusByte::PROGRAM_CHANGE), 1);
@@ -52,10 +60,42 @@ public:
         TS_ASSERT_EQUALS(m.data_byte_2, SmallMessage::NO_DATA);
     }
 
+    void test_two_bytes_sb()
+    {
+        SmallMessage m(StatusByte::PROGRAM_CHANGE, 1);
+        TS_ASSERT_EQUALS(m.status_byte, U(StatusByte::PROGRAM_CHANGE));
+        TS_ASSERT_EQUALS(m.data_byte_1, 1);
+        TS_ASSERT_EQUALS(m.data_byte_2, SmallMessage::NO_DATA);
+    }
+
+    void test_two_bytes_msb()
+    {
+        SmallMessage m(make_status_byte(StatusByte::PROGRAM_CHANGE, 3), 1);
+        TS_ASSERT_EQUALS(m.status_byte, U(StatusByte::PROGRAM_CHANGE) | 3);
+        TS_ASSERT_EQUALS(m.data_byte_1, 1);
+        TS_ASSERT_EQUALS(m.data_byte_2, SmallMessage::NO_DATA);
+    }
+
     void test_three_bytes()
     {
         SmallMessage m(U(StatusByte::NOTE_OFF), 2, 3);
         TS_ASSERT_EQUALS(m.status_byte, U(StatusByte::NOTE_OFF));
+        TS_ASSERT_EQUALS(m.data_byte_1, 2);
+        TS_ASSERT_EQUALS(m.data_byte_2, 3);
+    }
+
+    void test_three_bytes_sb()
+    {
+        SmallMessage m(StatusByte::NOTE_OFF, 2, 3);
+        TS_ASSERT_EQUALS(m.status_byte, U(StatusByte::NOTE_OFF));
+        TS_ASSERT_EQUALS(m.data_byte_1, 2);
+        TS_ASSERT_EQUALS(m.data_byte_2, 3);
+    }
+
+    void test_three_bytes_msb()
+    {
+        SmallMessage m(make_status_byte(StatusByte::NOTE_OFF, 4), 2, 3);
+        TS_ASSERT_EQUALS(m.status_byte, U(StatusByte::NOTE_OFF) | 4);
         TS_ASSERT_EQUALS(m.data_byte_1, 2);
         TS_ASSERT_EQUALS(m.data_byte_2, 3);
     }
