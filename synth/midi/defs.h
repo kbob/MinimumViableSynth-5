@@ -1,6 +1,7 @@
 #ifndef MIDI_DEFS_included
 #define MIDI_DEFS_included
 
+#include <cassert>
 #include <cstdint>
 
 namespace midi {
@@ -55,6 +56,22 @@ namespace midi {
         SYSTEM_RESET                    = 0xFF,
 
     };
+    static inline
+    StatusByte
+    make_status_byte(StatusByte status, std::uint8_t channel)
+    {
+        assert(status == StatusByte::NOTE_OFF          ||
+               status == StatusByte::NOTE_ON           ||
+               status == StatusByte::POLY_KEY_PRESSURE ||
+               status == StatusByte::CONTROL_CHANGE    ||
+               status == StatusByte::PROGRAM_CHANGE    ||
+               status == StatusByte::CHANNEL_PRESSURE  ||
+               status == StatusByte::PITCH_BEND);
+        assert(channel < CHANNEL_COUNT);
+
+        std::uint8_t s = static_cast<std::uint8_t>(status);
+        return StatusByte(s | channel);
+    }
 
     enum class ControllerNumber : std::uint8_t {
         BANK_SELECT_MSB                 =   0,
