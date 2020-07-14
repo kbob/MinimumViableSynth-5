@@ -89,7 +89,6 @@ namespace midi {
     //
     // A note may start with legato, portamento, both, or neither.
 
-
     class NoteManager {
 
     public:
@@ -288,24 +287,11 @@ namespace midi {
         void handle_high_res_velocity_message(const SmallMessage&);
         void handle_portamento_control_message(const SmallMessage&);
 
-        // Auxilliary types needed to construct handlers
+        // small_binding is a (not very) convenience type for
+        // defining SmallMessage handler methods.
         template <void (NoteManager::*M)(const SmallMessage&)>
             using small_binding =
                 Dispatcher::small_handler::binding<NoteManager, M>;
-        using note_on_binding =
-            small_binding<&NoteManager::handle_note_on_message>;
-        using note_off_binding =
-            small_binding<&NoteManager::handle_note_off_message>;
-        using poly_pressure_binding =
-            small_binding<&NoteManager::handle_poly_pressure_message>;
-        using damper_pedal_binding =
-            small_binding<&NoteManager::handle_damper_pedal_message>;
-        using sostenuto_binding =
-            small_binding<&NoteManager::handle_sostenuto_message>;
-        using high_res_velocity_binding =
-            small_binding<&NoteManager::handle_high_res_velocity_message>;
-        using portamento_control_binding =
-            small_binding<&NoteManager::handle_portamento_control_message>;
 
         // Voice control
         void enqueue_note(const note_start_info&);
@@ -370,6 +356,22 @@ namespace midi {
         assert(m_layering);
         if (m_synth)
             assert(m_layering->timbrality == m_synth->timbrality);
+
+        using note_on_binding =
+            small_binding<&NoteManager::handle_note_on_message>;
+        using note_off_binding =
+            small_binding<&NoteManager::handle_note_off_message>;
+        using poly_pressure_binding =
+            small_binding<&NoteManager::handle_poly_pressure_message>;
+        using damper_pedal_binding =
+            small_binding<&NoteManager::handle_damper_pedal_message>;
+        using sostenuto_binding =
+            small_binding<&NoteManager::handle_sostenuto_message>;
+        using high_res_velocity_binding =
+            small_binding<&NoteManager::handle_high_res_velocity_message>;
+        using portamento_control_binding =
+            small_binding<&NoteManager::handle_portamento_control_message>;
+
         auto all_timbres = m_layering->all_timbres;
         d.register_handler(StatusByte::NOTE_ON,
                            Layering::ALL_CHANNELS,
