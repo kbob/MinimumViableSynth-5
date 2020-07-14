@@ -70,6 +70,7 @@ r := $(r:/=)
   release_OPT := -O3 -DNDEBUG
         BUILD := debug
           OPT := $($(BUILD)_OPT)
+  TARGET_ARCH := -march=native
      CPPFLAGS += -I../.. -MMD $(EXTRA_CPPFLAGS)
        CFLAGS := -std=c99 -Wall -Wextra -Werror $(OPT)
      CXXFLAGS := -std=c++11 -Wall -Wextra -Werror $(OPT)

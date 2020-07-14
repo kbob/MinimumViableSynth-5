@@ -4,8 +4,6 @@
                 test-ported test-ports test-resolver test-steps         \
                 test-summer test-synth test-timbre test-voice
 
- TARGET_ARCH := -march=native
-
  test-planner-SOURCES := planner.cpp
    test-synth-SOURCES := planner.cpp
 
