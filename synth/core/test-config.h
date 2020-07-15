@@ -28,9 +28,9 @@ public:
         Config c;
         FooSub f;
         TS_ASSERT_THROWS(c.get<FooSub>(), std::out_of_range);
-        c.register_subsystem(&f);
-        auto p = c.get<FooSub>();
-        TS_ASSERT(p);
-        TS_ASSERT_EQUALS(p->member_function(), "foo");
+        c.register_subsystem(f);
+        auto& p = c.get<FooSub>();
+        TS_ASSERT(&p);
+        TS_ASSERT_EQUALS(p.member_function(), "foo");
     }
 };

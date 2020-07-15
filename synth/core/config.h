@@ -56,18 +56,18 @@ public:
     // N.B., `get` throws `std::out_of_range` if the subsystem is
     // not registered.
     template <class T>
-    typename std::enable_if<std::is_base_of<Subsystem, T>::value, T>::type *
+    typename std::enable_if<std::is_base_of<Subsystem, T>::value, T>::type&
     get() const
     {
         Subsystem *p = m_subs.at(typeid(T));
         assert(dynamic_cast<T *>(p));
-        return static_cast<T *>(p);
+        return *static_cast<T *>(p);
     }
 
     void
-    register_subsystem(Subsystem *sub)
+    register_subsystem(Subsystem& sub)
     {
-        m_subs[typeid(*sub)] = sub;
+        m_subs[typeid(sub)] = &sub;
     }
 
     // helper because everybody needs the sample rate.

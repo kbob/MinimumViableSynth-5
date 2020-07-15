@@ -99,7 +99,7 @@ public:
         vm1.name("vm1");
         tm1.m_twin = &vm0;
         cfg.set_sample_rate(44100);
-        cfg.register_subsystem(&fsub);
+        cfg.register_subsystem(fsub);
     }
 
     void test_properties()

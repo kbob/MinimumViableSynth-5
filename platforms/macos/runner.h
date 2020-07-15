@@ -18,7 +18,7 @@ public:
       m_duration{1.0}
     {
         m_config.set_sample_rate(m_output_config.sample_rate);
-        m_config.register_subsystem(&m_output_config);
+        m_config.register_subsystem(m_output_config);
     }
     Runner(const Runner&) = delete;
     Runner& operator = (const Runner&) = delete;
