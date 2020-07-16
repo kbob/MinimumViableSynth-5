@@ -67,7 +67,7 @@ r := $(r:/=)
 
 # invoke make with BUILD=release for release build.
     debug_OPT := -O0 -fsanitize=address,bounds,undefined -g
-  release_OPT := -O3 -DNDEBUG
+  release_OPT := -O3 -DNDEBUG -flto
         BUILD := debug
           OPT := $($(BUILD)_OPT)
   TARGET_ARCH := -march=native
@@ -118,8 +118,12 @@ pre-commit-check:
 	    make clean-world
 	    make $(JOBS) world BUILD=release
 
+# Try EXTRA_CLOCFLAGS=--ignore=/dev/stdout
+    CLOCFLAGS := --vcs=git --force-lang=make,make                       \
+                 --exclude-dir=experiments $(EXTRA_CLOCFLAGS)
+
 cloc:
-	    @cloc --vcs=git --force-lang=make,make --exclude-dir=experiments
+	    @cloc $(CLOCFLAGS)
 
 help: general-help local-help
 
