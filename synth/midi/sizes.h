@@ -27,7 +27,7 @@ namespace midi {
     static const size_t MAX_NRPNS = MIDI_MAX_NRPNS;
 
     // 409 is a good size.
-    // That is the size of a KEY-BASED TUNING DUMP message
+    // That is the size of a KEY-BASED TUNING DUMP message.
     #ifndef MIDI_MAX_SYSEX_SIZE
     #define MIDI_MAX_SYSEX_SIZE 10
     #endif
@@ -39,6 +39,12 @@ namespace midi {
     #define MIDI_MAX_SYSEX_IDS 4
     #endif
     static const size_t MAX_SYSEX_IDS = MIDI_MAX_SYSEX_IDS;
+
+    // Number of MIDI interfaces.  Each is an in/out pair.
+    #ifndef MIDI_MAX_INTERFACES
+    #define MIDI_MAX_INTERFACES 4
+    #endif
+    static const size_t MAX_INTERFACES = MIDI_MAX_INTERFACES;
 
 }
 

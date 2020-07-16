@@ -1,6 +1,7 @@
 test-config
 test-controls
 test-dispatcher
+test-facade
 test-layering
 test-messages
 test-mode-mgr
